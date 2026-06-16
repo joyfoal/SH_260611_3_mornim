@@ -22,11 +22,19 @@ export default function OnboardingPage() {
   const router = useRouter()
   const [step, setStep] = useState(0)
   const [selectedAffirmation, setSelectedAffirmation] = useState('')
+  const [customInput, setCustomInput] = useState('')
   const [selectedCategory, setSelectedCategory] = useState<AffirmationCategory | null>(null)
   const [wakeTime, setWakeTime] = useState('08:00')
   const [isLoading, setIsLoading] = useState(false)
 
   const handleBubbleTap = (text: string) => {
+    setSelectedAffirmation(text)
+    setStep(1)
+  }
+
+  const handleCustomSubmit = () => {
+    const text = customInput.trim()
+    if (!text) return
     setSelectedAffirmation(text)
     setStep(1)
   }
@@ -113,6 +121,49 @@ export default function OnboardingPage() {
               {text}
             </button>
           ))}
+
+          {/* 직접 입력 */}
+          <div style={{ marginTop: '8px' }}>
+            <p style={{ fontSize: '13px', color: 'var(--color-text-muted)', textAlign: 'center', marginBottom: '10px' }}>
+              또는 직접 써보세요
+            </p>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={customInput}
+                onChange={(e) => setCustomInput(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter' && !e.nativeEvent.isComposing) handleCustomSubmit() }}
+                placeholder="나만의 성공의 말을 입력하세요"
+                style={{
+                  flex: 1,
+                  padding: '14px 16px',
+                  background: 'var(--color-bg-surface)',
+                  border: '1px solid rgba(255,255,255,0.15)',
+                  borderRadius: '16px',
+                  color: 'var(--color-text-onDark)',
+                  fontSize: '15px',
+                  outline: 'none',
+                }}
+              />
+              <button
+                onClick={handleCustomSubmit}
+                disabled={!customInput.trim()}
+                style={{
+                  padding: '14px 18px',
+                  background: customInput.trim() ? 'var(--color-accent-primary)' : 'var(--color-bg-surface)',
+                  border: 'none',
+                  borderRadius: '16px',
+                  color: 'var(--color-text-onDark)',
+                  fontSize: '16px',
+                  cursor: customInput.trim() ? 'pointer' : 'not-allowed',
+                  opacity: customInput.trim() ? 1 : 0.4,
+                  transition: 'all 0.2s ease',
+                }}
+              >
+                →
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     )

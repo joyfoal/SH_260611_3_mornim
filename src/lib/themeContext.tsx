@@ -10,13 +10,13 @@ interface ThemeContextValue {
 }
 
 const ThemeContext = createContext<ThemeContextValue>({
-  theme: themes.warm,
-  themeName: 'warm',
+  theme: themes.green,
+  themeName: 'green',
   setTheme: () => {},
 })
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [themeName, setThemeName] = useState<ThemeName>('warm')
+  const [themeName, setThemeName] = useState<ThemeName>('green')
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
