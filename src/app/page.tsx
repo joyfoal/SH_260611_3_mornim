@@ -44,7 +44,7 @@ export default function RootPage() {
       }
 
       router.replace('/home')
-    }, 2000)
+    }, 3000)
 
     return () => clearTimeout(timer)
   }, [router])
