@@ -50,7 +50,7 @@ export default function RootPage() {
       className="flex items-center justify-center"
       style={{ minHeight: '100dvh', background: 'var(--color-bg-dark)' }}
     >
-      <div style={{ color: 'var(--color-text-onDark)', fontSize: '20px' }}>모님</div>
+      <img src="/mornim.png" alt="모님" style={{ width: '120px', height: '120px', objectFit: 'contain' }} />
     </div>
   )
 }
