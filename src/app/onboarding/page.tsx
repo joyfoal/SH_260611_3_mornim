@@ -108,6 +108,28 @@ export default function OnboardingPage() {
       className="flex flex-col px-6 py-8"
       style={{ minHeight: '100dvh', background: 'var(--color-bg-dark)', overflowY: 'auto' }}
     >
+      {/* Mini icon strip */}
+      <div style={{ display: 'flex', gap: '6px', marginBottom: '20px' }}>
+        {Array.from({ length: 9 }, (_, i) => {
+          const col = i % 3
+          const row = Math.floor(i / 3)
+          return (
+            <div
+              key={i}
+              style={{
+                width: '28px',
+                height: '28px',
+                borderRadius: '8px',
+                backgroundImage: 'url(/mornim.png)',
+                backgroundSize: '300% 300%',
+                backgroundPosition: `${col * 50}% ${row * 50}%`,
+                flexShrink: 0,
+              }}
+            />
+          )
+        })}
+      </div>
+
       <h1
         style={{
           fontSize: '24px',
@@ -154,9 +176,6 @@ export default function OnboardingPage() {
       </div>
 
       {/* Custom affirmation inputs */}
-      <p style={{ fontSize: '16px', color: 'var(--color-text-onDark)', marginBottom: '12px', fontWeight: 500 }}>
-        나만의 성공의 말을 입력하세요
-      </p>
       <div className="flex flex-col gap-3 mb-3">
         {inputs.map((inp, index) => (
           <div key={inp.id}>
@@ -166,7 +185,13 @@ export default function OnboardingPage() {
                 value={inp.value}
                 onChange={(e) => updateInput(inp.id, e.target.value)}
                 onBlur={(e) => checkNegative(inp.id, e.target.value)}
-                placeholder={`성공의 말 ${index + 1}`}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.nativeEvent.isComposing) {
+                    e.currentTarget.blur()
+                    checkNegative(inp.id, inp.value)
+                  }
+                }}
+                placeholder={index === 0 ? '나만의 성공의 말을 입력하세요' : `성공의 말 ${index + 1}`}
                 style={{
                   flex: 1,
                   padding: '14px 16px',

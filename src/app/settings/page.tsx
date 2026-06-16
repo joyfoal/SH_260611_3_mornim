@@ -369,7 +369,7 @@ export default function SettingsPage() {
   ]
 
   return (
-    <AppLayout activeTab="설정">
+    <AppLayout activeTab="설정" decorativeIcons={[6, 3]}>
       <div style={{ padding: '20px 16px' }}>
         <h1 style={{ fontSize: '20px', fontWeight: 600, color: 'var(--color-text-primary)', marginBottom: '24px' }}>
           설정

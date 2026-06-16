@@ -40,7 +40,7 @@ export default function AffirmationsPage() {
   }, {})
 
   return (
-    <AppLayout activeTab="성공의 말">
+    <AppLayout activeTab="성공의 말" decorativeIcons={[4, 8]}>
       <div style={{ padding: '20px 16px' }}>
         <div className="flex items-center justify-between mb-4">
           <h1 style={{ fontSize: '20px', fontWeight: 600, color: 'var(--color-text-primary)' }}>
