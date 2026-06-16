@@ -10,34 +10,19 @@ import {
   type AffirmationCategory,
 } from '@/lib/storage'
 
-type InputItem = {
-  id: number
-  value: string
-  suggestion: string | null
-  isChecking: boolean
-}
-
 export default function OnboardingPage() {
   const router = useRouter()
   const [selectedCategory, setSelectedCategory] = useState<AffirmationCategory | null>(null)
   const [wakeTime, setWakeTime] = useState('08:00')
   const [isLoading, setIsLoading] = useState(false)
-  const [inputs, setInputs] = useState<InputItem[]>([
-    { id: 0, value: '', suggestion: null, isChecking: false },
-  ])
+  const [customInput, setCustomInput] = useState('')
+  const [suggestion, setSuggestion] = useState<string | null>(null)
+  const [isChecking, setIsChecking] = useState(false)
 
-  const addInput = () => {
-    if (inputs.length >= 4) return
-    setInputs((prev) => [...prev, { id: Date.now(), value: '', suggestion: null, isChecking: false }])
-  }
-
-  const updateInput = (id: number, value: string) => {
-    setInputs((prev) => prev.map((inp) => (inp.id === id ? { ...inp, value, suggestion: null } : inp)))
-  }
-
-  const checkNegative = async (id: number, text: string) => {
+  const checkNegative = async (text: string) => {
     if (!text.trim()) return
-    setInputs((prev) => prev.map((inp) => (inp.id === id ? { ...inp, isChecking: true } : inp)))
+    setIsChecking(true)
+    setSuggestion(null)
     try {
       const res = await fetch('/api/detect-negative', {
         method: 'POST',
@@ -45,33 +30,19 @@ export default function OnboardingPage() {
         body: JSON.stringify({ text }),
       })
       const data = await res.json() as { isNegative: boolean; alternative: string | null }
-      setInputs((prev) =>
-        prev.map((inp) =>
-          inp.id === id
-            ? { ...inp, isChecking: false, suggestion: data.isNegative && data.alternative ? data.alternative : null }
-            : inp
-        )
-      )
+      setSuggestion(data.isNegative && data.alternative ? data.alternative : null)
     } catch {
-      setInputs((prev) => prev.map((inp) => (inp.id === id ? { ...inp, isChecking: false } : inp)))
+      // ignore
+    } finally {
+      setIsChecking(false)
     }
-  }
-
-  const acceptSuggestion = (id: number, suggestion: string) => {
-    setInputs((prev) =>
-      prev.map((inp) => (inp.id === id ? { ...inp, value: suggestion, suggestion: null } : inp))
-    )
-  }
-
-  const removeInput = (id: number) => {
-    setInputs((prev) => prev.filter((inp) => inp.id !== id))
   }
 
   const handleFinish = async () => {
     if (!selectedCategory) return
     setIsLoading(true)
     try {
-      const customTexts = inputs.map((inp) => inp.value.trim()).filter(Boolean)
+      const finalText = customInput.trim()
 
       const res = await fetch('/api/recommend', {
         method: 'POST',
@@ -82,11 +53,11 @@ export default function OnboardingPage() {
       const ids: string[] = []
       const now = Date.now()
 
-      customTexts.forEach((text, i) => {
-        const id = `custom-${now}-${i}`
-        saveAffirmation({ id, text, category: selectedCategory, createdAt: new Date().toISOString(), completedDates: [] })
+      if (finalText) {
+        const id = `custom-${now}`
+        saveAffirmation({ id, text: finalText, category: selectedCategory, createdAt: new Date().toISOString(), completedDates: [] })
         ids.push(id)
-      })
+      }
 
       data.affirmations.forEach((text, i) => {
         const id = `onboarding-${now}-${i}`
@@ -108,8 +79,8 @@ export default function OnboardingPage() {
       className="flex flex-col px-6 py-8"
       style={{ minHeight: '100dvh', background: 'var(--color-bg-dark)', overflowY: 'auto' }}
     >
-      {/* Mini icon strip */}
-      <div style={{ display: 'flex', gap: '6px', marginBottom: '20px' }}>
+      {/* Mini icon strip — 가운데 정렬, 더 크게 */}
+      <div style={{ display: 'flex', gap: '8px', marginBottom: '24px', justifyContent: 'center' }}>
         {Array.from({ length: 9 }, (_, i) => {
           const col = i % 3
           const row = Math.floor(i / 3)
@@ -117,9 +88,9 @@ export default function OnboardingPage() {
             <div
               key={i}
               style={{
-                width: '28px',
-                height: '28px',
-                borderRadius: '8px',
+                width: '36px',
+                height: '36px',
+                borderRadius: '10px',
                 backgroundImage: 'url(/mornim.png)',
                 backgroundSize: '300% 300%',
                 backgroundPosition: `${col * 50}% ${row * 50}%`,
@@ -135,14 +106,11 @@ export default function OnboardingPage() {
           fontSize: '24px',
           fontWeight: 500,
           color: 'var(--color-text-onDark)',
-          marginBottom: '8px',
+          marginBottom: '28px',
         }}
       >
-        모님에 오신 걸 환영해요 🎉
+        모님에 오신 걸 환영해요
       </h1>
-      <p style={{ fontSize: '15px', color: 'var(--color-text-muted)', marginBottom: '32px' }}>
-        당신만의 성공의 말 라이브러리를 만들어 드릴게요
-      </p>
 
       {/* Category selection */}
       <p style={{ fontSize: '16px', color: 'var(--color-text-onDark)', marginBottom: '16px', fontWeight: 500 }}>
@@ -175,133 +143,89 @@ export default function OnboardingPage() {
         })}
       </div>
 
-      {/* Custom affirmation inputs */}
-      <div className="flex flex-col gap-3 mb-3">
-        {inputs.map((inp, index) => (
-          <div key={inp.id}>
+      {/* Single custom affirmation input */}
+      <div style={{ marginBottom: '28px' }}>
+        <input
+          type="text"
+          value={customInput}
+          onChange={(e) => { setCustomInput(e.target.value); setSuggestion(null) }}
+          onBlur={() => checkNegative(customInput)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && !e.nativeEvent.isComposing) {
+              e.currentTarget.blur()
+              checkNegative(customInput)
+            }
+          }}
+          placeholder="나만의 성공의 말을 입력하세요"
+          style={{
+            width: '100%',
+            padding: '14px 16px',
+            background: 'var(--color-bg-surface)',
+            border: suggestion ? '1px solid #F59E0B' : '1px solid rgba(255,255,255,0.15)',
+            borderRadius: '16px',
+            color: 'var(--color-text-onDark)',
+            fontSize: '15px',
+            outline: 'none',
+            transition: 'border-color 0.2s ease',
+          }}
+        />
+
+        {isChecking && (
+          <p style={{ fontSize: '12px', color: 'var(--color-text-muted)', marginTop: '6px', paddingLeft: '4px' }}>
+            확인 중...
+          </p>
+        )}
+
+        {suggestion && (
+          <div
+            style={{
+              marginTop: '8px',
+              padding: '12px 14px',
+              background: 'rgba(245, 158, 11, 0.08)',
+              border: '1px solid rgba(245, 158, 11, 0.3)',
+              borderRadius: '12px',
+            }}
+          >
+            <p style={{ fontSize: '12px', color: '#F59E0B', marginBottom: '6px' }}>
+              💡 긍정적인 표현으로 바꿔보는 건 어떨까요?
+            </p>
+            <p style={{ fontSize: '14px', color: 'var(--color-text-onDark)', marginBottom: '10px', lineHeight: 1.5 }}>
+              {suggestion}
+            </p>
             <div className="flex gap-2">
-              <input
-                type="text"
-                value={inp.value}
-                onChange={(e) => updateInput(inp.id, e.target.value)}
-                onBlur={(e) => checkNegative(inp.id, e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && !e.nativeEvent.isComposing) {
-                    e.currentTarget.blur()
-                    checkNegative(inp.id, inp.value)
-                  }
-                }}
-                placeholder={index === 0 ? '나만의 성공의 말을 입력하세요' : `성공의 말 ${index + 1}`}
+              <button
+                onClick={() => { setCustomInput(suggestion); setSuggestion(null) }}
                 style={{
-                  flex: 1,
-                  padding: '14px 16px',
-                  background: 'var(--color-bg-surface)',
-                  border: inp.suggestion
-                    ? '1px solid #F59E0B'
-                    : '1px solid rgba(255,255,255,0.15)',
-                  borderRadius: '16px',
-                  color: 'var(--color-text-onDark)',
-                  fontSize: '15px',
-                  outline: 'none',
-                  transition: 'border-color 0.2s ease',
-                }}
-              />
-              {inputs.length > 1 && (
-                <button
-                  onClick={() => removeInput(inp.id)}
-                  style={{
-                    padding: '0 16px',
-                    background: 'var(--color-bg-surface)',
-                    border: '1px solid rgba(255,255,255,0.15)',
-                    borderRadius: '16px',
-                    color: 'var(--color-text-muted)',
-                    fontSize: '18px',
-                    cursor: 'pointer',
-                    flexShrink: 0,
-                  }}
-                >
-                  ×
-                </button>
-              )}
-            </div>
-
-            {inp.isChecking && (
-              <p style={{ fontSize: '12px', color: 'var(--color-text-muted)', marginTop: '6px', paddingLeft: '4px' }}>
-                확인 중...
-              </p>
-            )}
-
-            {inp.suggestion && (
-              <div
-                style={{
-                  marginTop: '8px',
-                  padding: '12px 14px',
-                  background: 'rgba(245, 158, 11, 0.08)',
-                  border: '1px solid rgba(245, 158, 11, 0.3)',
-                  borderRadius: '12px',
+                  padding: '7px 14px',
+                  background: '#F59E0B',
+                  border: 'none',
+                  borderRadius: '8px',
+                  color: '#fff',
+                  fontSize: '13px',
+                  fontWeight: 600,
+                  cursor: 'pointer',
                 }}
               >
-                <p style={{ fontSize: '12px', color: '#F59E0B', marginBottom: '6px' }}>
-                  💡 긍정적인 표현으로 바꿔보는 건 어떨까요?
-                </p>
-                <p style={{ fontSize: '14px', color: 'var(--color-text-onDark)', marginBottom: '10px', lineHeight: 1.5 }}>
-                  {inp.suggestion}
-                </p>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => acceptSuggestion(inp.id, inp.suggestion!)}
-                    style={{
-                      padding: '7px 14px',
-                      background: '#F59E0B',
-                      border: 'none',
-                      borderRadius: '8px',
-                      color: '#fff',
-                      fontSize: '13px',
-                      fontWeight: 600,
-                      cursor: 'pointer',
-                    }}
-                  >
-                    이 표현 사용하기
-                  </button>
-                  <button
-                    onClick={() => setInputs((prev) => prev.map((x) => x.id === inp.id ? { ...x, suggestion: null } : x))}
-                    style={{
-                      padding: '7px 14px',
-                      background: 'transparent',
-                      border: '1px solid rgba(255,255,255,0.2)',
-                      borderRadius: '8px',
-                      color: 'var(--color-text-muted)',
-                      fontSize: '13px',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    그대로 쓸게요
-                  </button>
-                </div>
-              </div>
-            )}
+                이 표현 사용하기
+              </button>
+              <button
+                onClick={() => setSuggestion(null)}
+                style={{
+                  padding: '7px 14px',
+                  background: 'transparent',
+                  border: '1px solid rgba(255,255,255,0.2)',
+                  borderRadius: '8px',
+                  color: 'var(--color-text-muted)',
+                  fontSize: '13px',
+                  cursor: 'pointer',
+                }}
+              >
+                그대로 쓸게요
+              </button>
+            </div>
           </div>
-        ))}
+        )}
       </div>
-
-      {inputs.length < 4 && (
-        <button
-          onClick={addInput}
-          style={{
-            padding: '12px',
-            background: 'transparent',
-            border: '1px dashed rgba(255,255,255,0.2)',
-            borderRadius: '16px',
-            color: 'var(--color-text-muted)',
-            fontSize: '14px',
-            cursor: 'pointer',
-            marginBottom: '28px',
-            width: '100%',
-          }}
-        >
-          + 추가
-        </button>
-      )}
 
       {/* Time picker */}
       <p style={{ fontSize: '16px', color: 'var(--color-text-onDark)', marginBottom: '12px', fontWeight: 500 }}>

@@ -60,23 +60,23 @@ export default function RootPage() {
   return (
     <div
       className="flex items-center justify-center"
-      style={{ minHeight: '100dvh', background: 'var(--color-bg-dark)' }}
+      style={{ minHeight: '100dvh', background: 'var(--color-bg-dark)', padding: '0 24px' }}
     >
       <div
         style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(3, 1fr)',
-          gap: '20px',
-          width: '360px',
+          gap: '16px',
+          width: '100%',
+          maxWidth: '380px',
         }}
       >
         {icons.map(({ col, row, delay }, i) => (
           <div
             key={i}
             style={{
-              width: '106px',
-              height: '106px',
-              borderRadius: '24px',
+              aspectRatio: '1',
+              borderRadius: '22%',
               backgroundImage: 'url(/mornim.png)',
               backgroundSize: '300% 300%',
               backgroundPosition: `${col * 50}% ${row * 50}%`,
