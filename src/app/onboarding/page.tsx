@@ -38,16 +38,19 @@ export default function OnboardingPage() {
     }
   }
 
+  const canStart = !!selectedCategory || !!customInput.trim()
+
   const handleFinish = async () => {
-    if (!selectedCategory) return
+    if (!canStart) return
     setIsLoading(true)
+    const effectiveCategory = selectedCategory ?? '나 자신'
     try {
       const finalText = customInput.trim()
 
       const res = await fetch('/api/recommend', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt: '', category: selectedCategory }),
+        body: JSON.stringify({ prompt: '', category: effectiveCategory }),
       })
       const data = await res.json() as { affirmations: string[] }
       const ids: string[] = []
@@ -55,13 +58,13 @@ export default function OnboardingPage() {
 
       if (finalText) {
         const id = `custom-${now}`
-        saveAffirmation({ id, text: finalText, category: selectedCategory, createdAt: new Date().toISOString(), completedDates: [] })
+        saveAffirmation({ id, text: finalText, category: effectiveCategory, createdAt: new Date().toISOString(), completedDates: [] })
         ids.push(id)
       }
 
       data.affirmations.forEach((text, i) => {
         const id = `onboarding-${now}-${i}`
-        saveAffirmation({ id, text, category: selectedCategory, createdAt: new Date().toISOString(), completedDates: [] })
+        saveAffirmation({ id, text, category: effectiveCategory, createdAt: new Date().toISOString(), completedDates: [] })
         ids.push(id)
       })
 
@@ -249,17 +252,17 @@ export default function OnboardingPage() {
 
       <button
         onClick={handleFinish}
-        disabled={!selectedCategory || isLoading}
+        disabled={!canStart || isLoading}
         style={{
-          background: selectedCategory ? 'var(--color-accent-primary)' : 'var(--color-bg-surface)',
+          background: canStart ? 'var(--color-accent-primary)' : 'var(--color-bg-surface)',
           color: 'var(--color-text-onDark)',
           borderRadius: '16px',
           padding: '16px',
           fontSize: '16px',
           fontWeight: 600,
           border: 'none',
-          cursor: selectedCategory ? 'pointer' : 'not-allowed',
-          opacity: selectedCategory ? 1 : 0.5,
+          cursor: canStart ? 'pointer' : 'not-allowed',
+          opacity: canStart ? 1 : 0.5,
         }}
       >
         {isLoading ? '성공의 말 만드는 중...' : '시작하기'}
