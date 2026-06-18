@@ -94,18 +94,6 @@ body {
   50% { height: 20px; }
 }
 
-@keyframes popIn {
-  0%   { transform: scale(0) rotate(-15deg) translateY(20px); opacity: 0; }
-  55%  { transform: scale(1.25) rotate(6deg) translateY(-6px); opacity: 1; }
-  75%  { transform: scale(0.92) rotate(-3deg) translateY(2px); opacity: 1; }
-  90%  { transform: scale(1.06) rotate(1deg) translateY(-1px); opacity: 1; }
-  100% { transform: scale(1) rotate(0deg) translateY(0px); opacity: 1; }
-}
-
-@keyframes floatIcon {
-  0%, 100% { transform: translateY(0px); }
-  50%       { transform: translateY(-5px); }
-}
 
 /* ── Onboarding screen transitions ────────────────────────────── */
 .onb-scr {
