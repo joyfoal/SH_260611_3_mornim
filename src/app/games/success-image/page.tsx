@@ -117,24 +117,28 @@ export default function SuccessImagePage() {
 
   const handleGenerate = async () => {
     if (selectedIds.length === 0) return
-    setGenerating(true)
-    setError(null)
+
+    // 기존 결과 즉시 초기화
     setImageUrl(null)
+    setError(null)
     setUsedFace(false)
+    setGenerating(true)
 
     const selected = affirmations.filter((a) => selectedIds.includes(a.id))
     const affirmationTexts = selected.map((a) => a.text)
 
     try {
+      // 매번 IndexedDB에서 최신 얼굴 데이터 새로 불러오기
+      const latestProfile = await getFaceProfile().catch(() => null)
+
       const body: { affirmations: string[]; faceDescription?: string; faceImageBase64?: string } = {
         affirmations: affirmationTexts,
       }
-      if (faceProfile?.imageBlob) {
-        // PNG로 리사이즈해서 전송 (gpt-image-1 edit API 요구사항)
-        body.faceImageBase64 = await resizeImage(faceProfile.imageBlob, 512, 'png')
+      if (latestProfile?.imageBlob) {
+        body.faceImageBase64 = await resizeImage(latestProfile.imageBlob, 512, 'png')
         setUsedFace(true)
-      } else if (faceProfile?.faceData.generationPrompt) {
-        body.faceDescription = faceProfile.faceData.generationPrompt
+      } else if (latestProfile?.faceData.generationPrompt) {
+        body.faceDescription = latestProfile.faceData.generationPrompt
         setUsedFace(true)
       }
 
