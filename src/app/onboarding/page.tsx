@@ -35,7 +35,7 @@ const SUGGESTIONS: Record<string, string[]> = {
   '관계와 사랑': ['나는 따뜻한 관계를 만든다.', '나는 사랑을 주고받는다.'],
   '건강과 몸': ['나는 내 몸을 소중히 돌본다.', '나는 건강한 에너지로 가득하다.'],
   '용기와 도전': ['나는 두려움보다 크다.', '나는 모든 도전에 용기 있게 맞선다.'],
-  '마음과 평온': ['나는 평온한 마음을 지킨다.', '나는 지금 이 순간에 머문다.'],
+  '마음과 평온': ['나는 평온한 마음을 지킨다.', '나는 내 마음을 평화로 가득 채운다.'],
   '오늘 하루': ['나는 오늘 하루를 긍정으로 시작한다.', '나는 오늘을 소중히 보낸다.'],
 }
 
@@ -448,7 +448,7 @@ export default function OnboardingPage() {
     saveAffirmation({ id: voiceId, text: affText, category, createdAt: new Date().toISOString(), completedDates: [] })
     ids.push(voiceId)
 
-    // 2. 화면 1에서 추천된 성공의 말 (카테고리별 1개씩)
+    // 2. 화면 1에서 추천된 성공의 말 — 선택한 카테고리당 1개씩만
     cats.forEach((cat, i) => {
       const suggestion = SUGGESTIONS[cat]?.[0]
       if (suggestion && suggestion !== affText) {
@@ -457,21 +457,6 @@ export default function OnboardingPage() {
         ids.push(id)
       }
     })
-
-    // 3. AI 추천 (추가 보완용)
-    try {
-      const res = await fetch('/api/recommend', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt: '', category }),
-      })
-      const data = await res.json() as { affirmations: string[] }
-      data.affirmations.forEach((text, i) => {
-        const id = `onboarding-${now}-${i}`
-        saveAffirmation({ id, text, category, createdAt: new Date().toISOString(), completedDates: [] })
-        ids.push(id)
-      })
-    } catch { /* AI 추천 실패해도 계속 진행 */ }
 
     saveTodayAffirmationIds(ids.slice(0, 3))
     setOnboarded()
