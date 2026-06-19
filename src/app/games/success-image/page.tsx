@@ -348,13 +348,29 @@ export default function SuccessImagePage() {
             <button
               onClick={async () => {
                 await deleteFaceProfile().catch(() => {})
+                // 프로필 관련
                 setSavedProfile(null)
                 setSavedProfileUrl(null)
-                setShowCreationUI(true)
-                setIsRegenerating(true)
                 setProfileUrl(null)
                 setProfileSaved(false)
+                setProfileError(null)
+                setIsRegenerating(false)
+                // 얼굴
+                if (faceThumbnail) URL.revokeObjectURL(faceThumbnail)
+                setFaceThumbnail(null)
+                setFaceFile(null)
+                setFaceData(null)
+                setFaceError(null)
+                // 글 + 스타일
+                setText('')
+                setImageStyle('ghibli')
+                // 확언 선택
+                setSelectedIds([])
+                // 성공 이미지
                 setSuccessUrl(null)
+                setSuccessError(null)
+                // UI
+                setShowCreationUI(true)
               }}
               style={{
                 width: '100%',
