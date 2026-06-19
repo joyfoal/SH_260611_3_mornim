@@ -157,7 +157,6 @@ function SpeakPageInner() {
 
   const startSTT = useCallback(() => {
     if (typeof window === 'undefined') return
-    if (!shouldListenRef.current) return
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const w = window as any
     const SpeechRec = w.SpeechRecognition ?? w.webkitSpeechRecognition
@@ -230,6 +229,7 @@ function SpeakPageInner() {
 
   useEffect(() => {
     if (screen === 'speak') {
+      shouldListenRef.current = true
       startCamera()
       startSTT()
     }
@@ -257,7 +257,9 @@ function SpeakPageInner() {
   useEffect(() => {
     if (screen !== 'speak' || !affirmation || autoCompleteTriggeredRef.current) return
     const words = affirmation.text.split(' ').filter(Boolean)
-    if (words.length > 0 && recognizedWords.size >= words.length) {
+    // 중복 단어가 있어도 모든 고유 단어가 인식됐는지 확인
+    const allRecognized = words.every((w) => recognizedWords.has(w))
+    if (words.length > 0 && allRecognized) {
       autoCompleteTriggeredRef.current = true
       autoCompleteTimerRef.current = setTimeout(() => handleComplete(), 600)
     }
@@ -270,8 +272,10 @@ function SpeakPageInner() {
     pendingAffirmationRef.current = affirmation
 
     // Stop recognition
+    shouldListenRef.current = false
     if (recognitionRef.current) {
-      recognitionRef.current.stop()
+      try { recognitionRef.current.stop() } catch { /* ignore */ }
+      recognitionRef.current = null
     }
 
     // Stop MediaRecorder (triggers onstop which saves audio)
