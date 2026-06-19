@@ -24,7 +24,7 @@ import {
   type DayRecord,
   type StreakData,
 } from '@/lib/storage'
-import { CATEGORY_COLORS } from '@/lib/categories'
+import { CATEGORY_COLORS, getCategoryColor } from '@/lib/categories'
 import { getRecentAudioRecord, deleteExpiredAudioRecords, type AudioRecord } from '@/lib/audioStorage'
 import { getSuccessImage } from '@/lib/successImageStorage'
 import { WeeklyReportModal } from '@/components/ui/WeeklyReportModal'
@@ -165,11 +165,11 @@ function CalendarView() {
   const now = new Date()
   const firstDayOfWeek = new Date(now.getFullYear(), now.getMonth(), 1).getDay()
 
-  // 이번 주 7일 (일~토)
+  // 이번 주 7일 (일~토) — 로컬 시간 기준
   const weekDays = Array.from({ length: 7 }, (_, i) => {
     const d = new Date(now)
     d.setDate(d.getDate() - now.getDay() + i)
-    return d.toISOString().split('T')[0]
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
   })
   const weekRecords = weekDays.map(
     (date) => records.find((r) => r.date === date) ?? { date, completedCount: 0, dominantCategory: null as null }
@@ -179,7 +179,7 @@ function CalendarView() {
     const day = parseInt(rec.date.split('-')[2])
     const isToday = rec.date === today
     const isSelected = selectedDay?.date === rec.date
-    const colors = rec.dominantCategory ? CATEGORY_COLORS[rec.dominantCategory] : null
+    const colors = rec.dominantCategory ? getCategoryColor(rec.dominantCategory) : null
     const intensity =
       rec.completedCount >= 6
         ? colors?.dark

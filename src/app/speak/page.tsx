@@ -364,7 +364,7 @@ function SpeakPageInner() {
       }
     }
     if (isTomorrowEnabled()) router.push('/tomorrow')
-    else router.push('/home')
+    else { router.refresh(); router.push('/home') }
   }, [currentIndex, queue, router])
 
   const handleMoreAffirmation = useCallback(() => {
