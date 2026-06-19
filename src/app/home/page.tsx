@@ -124,25 +124,28 @@ function RecentRecordingPlayer() {
 const DAY_LABELS = ['일', '월', '화', '수', '목', '금', '토']
 
 function CalendarView() {
+  const todayDate = new Date()
+  const [viewYear, setViewYear] = useState(todayDate.getFullYear())
+  const [viewMonth, setViewMonth] = useState(todayDate.getMonth())
   const [records, setRecords] = useState<DayRecord[]>([])
   const [selectedDay, setSelectedDay] = useState<DayRecord | null>(null)
   const [selectedAffirmations, setSelectedAffirmations] = useState<Affirmation[]>([])
   const [selectedNote, setSelectedNote] = useState<string | null>(null)
   const [expanded, setExpanded] = useState(false)
 
+  const isCurrentMonth = viewYear === todayDate.getFullYear() && viewMonth === todayDate.getMonth()
+  const showExpanded = expanded || !isCurrentMonth
+
   const loadRecords = useCallback(() => {
-    const now = new Date()
-    const year = now.getFullYear()
-    const month = now.getMonth()
-    const daysInMonth = new Date(year, month + 1, 0).getDate()
+    const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate()
     const recs: DayRecord[] = []
     for (let d = 1; d <= daysInMonth; d++) {
-      const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`
+      const dateStr = `${viewYear}-${String(viewMonth + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`
       const rec = getDayRecord(dateStr)
       recs.push(rec ?? { date: dateStr, completedCount: 0, dominantCategory: null })
     }
     setRecords(recs)
-  }, [])
+  }, [viewYear, viewMonth])
 
   useEffect(() => {
     loadRecords()
@@ -150,6 +153,18 @@ function CalendarView() {
     document.addEventListener('visibilitychange', onVisible)
     return () => document.removeEventListener('visibilitychange', onVisible)
   }, [loadRecords])
+
+  const handlePrevMonth = () => {
+    setSelectedDay(null)
+    if (viewMonth === 0) { setViewYear((y) => y - 1); setViewMonth(11) }
+    else setViewMonth((m) => m - 1)
+  }
+
+  const handleNextMonth = () => {
+    setSelectedDay(null)
+    if (viewMonth === 11) { setViewYear((y) => y + 1); setViewMonth(0) }
+    else setViewMonth((m) => m + 1)
+  }
 
   const handleDayClick = (rec: DayRecord) => {
     if (selectedDay?.date === rec.date) {
@@ -163,9 +178,9 @@ function CalendarView() {
 
   const today = todayStr()
   const now = new Date()
-  const firstDayOfWeek = new Date(now.getFullYear(), now.getMonth(), 1).getDay()
+  const firstDayOfWeek = new Date(viewYear, viewMonth, 1).getDay()
 
-  // 이번 주 7일 (일~토) — 로컬 시간 기준
+  // 이번 주 7일 (일~토) — 로컬 시간 기준, 현재 달일 때만 사용
   const weekDays = Array.from({ length: 7 }, (_, i) => {
     const d = new Date(now)
     d.setDate(d.getDate() - now.getDay() + i)
@@ -217,15 +232,32 @@ function CalendarView() {
     <div style={{ padding: '0 16px 16px' }}>
       {/* 헤더 */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-        <div style={{ fontSize: '14px', color: 'var(--color-text-secondary)', fontWeight: 500 }}>
-          {now.getFullYear()}년 {now.getMonth() + 1}월
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <button
+            onClick={handlePrevMonth}
+            style={{ fontSize: '14px', color: 'var(--color-accent-primary)', background: 'none', border: 'none', cursor: 'pointer', padding: '2px 4px', lineHeight: 1 }}
+          >
+            ‹
+          </button>
+          <span style={{ fontSize: '14px', color: 'var(--color-text-secondary)', fontWeight: 500, minWidth: '80px', textAlign: 'center' }}>
+            {viewYear}년 {viewMonth + 1}월
+          </span>
+          <button
+            onClick={handleNextMonth}
+            disabled={isCurrentMonth}
+            style={{ fontSize: '14px', color: isCurrentMonth ? 'var(--color-border)' : 'var(--color-accent-primary)', background: 'none', border: 'none', cursor: isCurrentMonth ? 'default' : 'pointer', padding: '2px 4px', lineHeight: 1 }}
+          >
+            ›
+          </button>
         </div>
-        <button
-          onClick={() => { setExpanded((v) => !v); setSelectedDay(null) }}
-          style={{ fontSize: '12px', color: 'var(--color-accent-primary)', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 500 }}
-        >
-          {expanded ? '접기 ↑' : '전체 보기 ↓'}
-        </button>
+        {isCurrentMonth && (
+          <button
+            onClick={() => { setExpanded((v) => !v); setSelectedDay(null) }}
+            style={{ fontSize: '12px', color: 'var(--color-accent-primary)', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 500 }}
+          >
+            {expanded ? '접기 ↑' : '전체 보기 ↓'}
+          </button>
+        )}
       </div>
 
       {/* 요일 레이블 */}
@@ -237,15 +269,15 @@ function CalendarView() {
         ))}
       </div>
 
-      {/* 주간 뷰 (기본) */}
-      {!expanded && (
+      {/* 주간 뷰 (현재 달 기본) */}
+      {!showExpanded && (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '4px' }}>
           {weekRecords.map((rec) => renderDayBtn(rec, 32))}
         </div>
       )}
 
-      {/* 월간 뷰 (펼침) */}
-      {expanded && (
+      {/* 월간 뷰 (펼침 또는 다른 달) */}
+      {showExpanded && (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '4px' }}>
           {Array.from({ length: firstDayOfWeek }, (_, i) => <div key={`empty-${i}`} />)}
           {records.map((rec) => renderDayBtn(rec, 28))}
