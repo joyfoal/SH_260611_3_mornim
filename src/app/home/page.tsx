@@ -599,56 +599,54 @@ export default function HomePage() {
         <CalendarView />
 
         {/* Shortcuts */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', padding: '0 16px 16px' }}>
-          <div style={{ display: 'flex', gap: '10px' }}>
-            <button
-              onClick={() => router.push('/create')}
-              style={{
-                flex: 1,
-                padding: '14px',
-                background: 'var(--color-bg-card)',
-                border: '1px solid var(--color-border)',
-                borderRadius: '14px',
-                color: 'var(--color-text-secondary)',
-                fontSize: '14px',
-                fontWeight: 500,
-                cursor: 'pointer',
-              }}
-            >
-              ✨ 성공의 말 만들기
-            </button>
-            <button
-              onClick={() => router.push('/games')}
-              style={{
-                flex: 1,
-                padding: '14px',
-                background: 'var(--color-bg-card)',
-                border: '1px solid var(--color-border)',
-                borderRadius: '14px',
-                color: 'var(--color-text-secondary)',
-                fontSize: '14px',
-                fontWeight: 500,
-                cursor: 'pointer',
-              }}
-            >
-              🎮 게임하기
-            </button>
-          </div>
+        <div style={{ display: 'flex', gap: '8px', padding: '0 16px 16px' }}>
+          <button
+            onClick={() => router.push('/create')}
+            style={{
+              flex: 1,
+              padding: '12px 4px',
+              background: 'var(--color-bg-card)',
+              border: '1px solid var(--color-border)',
+              borderRadius: '12px',
+              color: 'var(--color-text-secondary)',
+              fontSize: '12px',
+              fontWeight: 500,
+              cursor: 'pointer',
+            }}
+          >
+            성공의 말 만들기
+          </button>
           <button
             onClick={() => router.push('/games/success-image')}
             style={{
-              width: '100%',
-              padding: '14px',
+              flex: 1,
+              padding: '12px 4px',
               background: 'var(--color-accent-light)',
               border: '1px solid var(--color-accent-primary)',
-              borderRadius: '14px',
+              borderRadius: '12px',
               color: 'var(--color-accent-primary)',
-              fontSize: '14px',
+              fontSize: '12px',
               fontWeight: 600,
               cursor: 'pointer',
             }}
           >
-            🌟 성공 이미지 만들기
+            성공 이미지 만들기
+          </button>
+          <button
+            onClick={() => router.push('/games')}
+            style={{
+              flex: 1,
+              padding: '12px 4px',
+              background: 'var(--color-bg-card)',
+              border: '1px solid var(--color-border)',
+              borderRadius: '12px',
+              color: 'var(--color-text-secondary)',
+              fontSize: '12px',
+              fontWeight: 500,
+              cursor: 'pointer',
+            }}
+          >
+            게임하기
           </button>
         </div>
       </div>
