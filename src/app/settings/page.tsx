@@ -682,8 +682,8 @@ export default function SettingsPage() {
         <div style={{ background: 'var(--color-bg-card)', borderRadius: '16px', padding: '16px', marginBottom: '16px' }}>
           <div className="flex items-center justify-between">
             <div>
-              <p style={{ fontSize: '15px', fontWeight: 500, color: 'var(--color-text-primary)', marginBottom: '2px' }}>내일의 나에게</p>
-              <p style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>성공의 말 완료 후 내일의 나에게 메시지를 남겨요</p>
+              <p style={{ fontSize: '15px', fontWeight: 500, color: 'var(--color-text-primary)', marginBottom: '2px' }}>나에게</p>
+              <p style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>성공의 말 완료 후 나에게 메시지를 남겨요</p>
             </div>
             <button
               onClick={handleTomorrowToggle}
