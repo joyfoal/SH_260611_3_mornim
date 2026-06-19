@@ -2,10 +2,11 @@ import { NextRequest, NextResponse } from 'next/server'
 
 export async function POST(req: NextRequest) {
   try {
-    const { affirmations, faceDescription, faceImageBase64 } = await req.json() as {
+    const { affirmations, faceDescription, faceImageBase64, eyewear } = await req.json() as {
       affirmations: string[]
       faceDescription?: string
       faceImageBase64?: string   // "data:image/png;base64,..."
+      eyewear?: string           // "glasses" | "sunglasses" | "none"
     }
 
     if (!process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY === 'your_key_here') {
@@ -18,6 +19,16 @@ export async function POST(req: NextRequest) {
     const affText = affirmations.join(', ')
     let b64: string | null | undefined
 
+    // 안경 절대 규칙 문장 생성
+    const eyewearRule =
+      eyewear === 'glasses'
+        ? 'ABSOLUTE RULE: This person is wearing glasses in the registered photo — the generated image MUST show them wearing the exact same glasses. Do not remove the glasses under any circumstances.'
+        : eyewear === 'sunglasses'
+        ? 'ABSOLUTE RULE: This person is wearing sunglasses in the registered photo — the generated image MUST show them wearing the exact same sunglasses. Do not remove them under any circumstances.'
+        : eyewear === 'none'
+        ? 'ABSOLUTE RULE: This person is NOT wearing any glasses or eyewear in the registered photo — do NOT add any glasses or eyewear. The generated image must show their face without glasses.'
+        : ''
+
     if (faceImageBase64) {
       // 얼굴 사진 있음: gpt-image-1 이미지 편집 (원본 얼굴 유지)
       const base64Data = faceImageBase64.replace(/^data:image\/\w+;base64,/, '')
@@ -26,7 +37,7 @@ export async function POST(req: NextRequest) {
 
       const prompt = `Preserve this person's face with absolute fidelity — identical facial structure, skin tone, eye shape, nose, lips, jawline, and hair.
 Keep their current young appearance exactly as it is. Do NOT age the face — maintain their youthful look.
-If the person wears glasses, keep the exact same glasses on their face.
+${eyewearRule}
 The person's expression should be genuinely joyful, warm, confident, and deeply fulfilled — radiating positivity from within.
 Place them in a meaningful scene that visually embodies these themes: ${affText}
 The environment and surroundings should reflect those themes through symbolic objects and settings — no text, no words, no letters anywhere in the image.
@@ -46,6 +57,7 @@ NO TEXT OR LETTERS of any kind in the image.`
       const prompt = faceDescription
         ? `A photorealistic portrait of a person with these exact facial features: ${faceDescription}.
 Keep their young, current-age appearance — do NOT age the face at all.
+${eyewearRule}
 The person's expression is genuinely joyful, warm, confident, and deeply fulfilled — radiating positivity.
 Place them in a rich scene that visually embodies these themes: ${affText}
 The environment and surroundings reflect those themes through symbolic objects and settings.
