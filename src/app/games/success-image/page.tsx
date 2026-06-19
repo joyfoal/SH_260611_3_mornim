@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import { getAffirmations, type Affirmation } from '@/lib/storage'
+import { getAffirmations, clearAllData, type Affirmation } from '@/lib/storage'
 import {
   getFaceProfile,
   saveFaceProfile,
@@ -370,6 +370,7 @@ export default function SuccessImagePage() {
             <button
               onClick={async () => {
                 await deleteFaceProfile().catch(() => {})
+                clearAllData() // 성공의 말 포함 모든 데이터 초기화
                 // 프로필 관련
                 setSavedProfile(null)
                 setSavedProfileUrl(null)

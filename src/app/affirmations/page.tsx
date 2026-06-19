@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { AppLayout } from '@/components/ui/AppLayout'
 import { Plus, Trash2 } from 'lucide-react'
@@ -12,6 +12,10 @@ export default function AffirmationsPage() {
   const [affirmations, setAffirmations] = useState<Affirmation[]>([])
   const [filterCategory, setFilterCategory] = useState<string | null>(null)
   const [categories, setCategories] = useState<string[]>([])
+  const tabsRef = useRef<HTMLDivElement>(null)
+  const isDragging = useRef(false)
+  const dragStartX = useRef(0)
+  const scrollStartX = useRef(0)
 
   const load = () => {
     setAffirmations(getAffirmations())
@@ -66,8 +70,20 @@ export default function AffirmationsPage() {
 
         {/* Filter chips */}
         <div
+          ref={tabsRef}
           className="flex gap-2 overflow-x-auto pb-2 mb-4"
-          style={{ scrollbarWidth: 'none' }}
+          style={{ scrollbarWidth: 'none', cursor: isDragging.current ? 'grabbing' : 'grab', userSelect: 'none' }}
+          onMouseDown={(e) => {
+            isDragging.current = true
+            dragStartX.current = e.pageX
+            scrollStartX.current = tabsRef.current?.scrollLeft ?? 0
+          }}
+          onMouseMove={(e) => {
+            if (!isDragging.current || !tabsRef.current) return
+            tabsRef.current.scrollLeft = scrollStartX.current - (e.pageX - dragStartX.current)
+          }}
+          onMouseUp={() => { isDragging.current = false }}
+          onMouseLeave={() => { isDragging.current = false }}
         >
           <button
             onClick={() => setFilterCategory(null)}
