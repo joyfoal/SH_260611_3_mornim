@@ -7,7 +7,7 @@ export default function GamesPage() {
   const router = useRouter()
 
   return (
-    <AppLayout activeTab="게임" decorativeIcons={[1, 8]}>
+    <AppLayout activeTab="게임">
       <div style={{ padding: '20px 16px' }}>
         <h1 style={{ fontSize: '20px', fontWeight: 600, color: 'var(--color-text-primary)', marginBottom: '8px' }}>
           게임

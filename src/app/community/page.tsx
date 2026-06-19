@@ -4,7 +4,7 @@ import { AppLayout } from '@/components/ui/AppLayout'
 
 export default function CommunityPage() {
   return (
-    <AppLayout activeTab="함께" decorativeIcons={[7, 5]}>
+    <AppLayout activeTab="함께">
       <div
         className="flex flex-col items-center justify-center"
         style={{ minHeight: '60vh', padding: '40px 24px', textAlign: 'center' }}

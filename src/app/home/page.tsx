@@ -463,7 +463,7 @@ export default function HomePage() {
   }
 
   return (
-    <AppLayout activeTab="홈" decorativeIcons={[0, 2]}>
+    <AppLayout activeTab="홈">
       <div style={{ paddingBottom: '16px' }}>
         {/* Yesterday's note */}
         {tomorrowNote && (
