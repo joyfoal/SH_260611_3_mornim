@@ -165,6 +165,8 @@ export default function OnboardingPage() {
   const [onbIsPlaying, setOnbIsPlaying] = useState(false)
   const [onbRecognizedWords, setOnbRecognizedWords] = useState<Set<string>>(new Set())
   const [onbIsListening, setOnbIsListening] = useState(false)
+  const [onbPhrase, setOnbPhrase] = useState('나는 매일 성장한다.')
+  const onbPhraseRef = useRef('나는 매일 성장한다.')
   const [onbIsSpeaking, setOnbIsSpeaking] = useState(false)
 
   const goTo = useCallback((n: number, d: Dir = 'next') => {
@@ -241,9 +243,8 @@ export default function OnboardingPage() {
       if (onbSpeakTimerRef.current) clearTimeout(onbSpeakTimerRef.current)
       onbSpeakTimerRef.current = setTimeout(() => setOnbIsSpeaking(false), 800)
 
-      const phrase = getPhrase(catsRef.current)
       const clean = (w: string) => w.replace(/[.,!?。、。·]/g, '').toLowerCase()
-      const words = phrase.split(' ')
+      const words = onbPhraseRef.current.split(' ')
       const transcriptWords = transcript.split(/\s+/).map(clean)
       words.forEach((word) => {
         const lw = clean(word)
@@ -289,7 +290,7 @@ export default function OnboardingPage() {
       onbRecorderRef.current.stop()
     }
 
-    setTranscript(getPhrase(catsRef.current))
+    setTranscript(onbPhraseRef.current)
     setRec('done')
     import('canvas-confetti').then(({ default: confetti }) => {
       confetti({ particleCount: 80, spread: 60, origin: { y: 0.5 }, colors: ['#bd821f', '#e8c878', '#f3e6c8', '#ffffff'] })
@@ -322,7 +323,7 @@ export default function OnboardingPage() {
             await saveAudioRecord({
               id: `onb-audio-${Date.now()}`,
               affirmationId: `voice-onb-${Date.now()}`,
-              affirmationText: getPhrase(catsRef.current),
+              affirmationText: onbPhraseRef.current,
               blob,
               createdAt: Date.now(),
               keepForever: false,
@@ -369,6 +370,14 @@ export default function OnboardingPage() {
     onbAutoCompleteRef.current = false
     setOnbRecognizedWords(new Set())
 
+    // 선택한 카테고리의 성공의 말 중 랜덤 1개 선택
+    const pool: string[] = catsRef.current.flatMap((cat) => SUGGESTIONS[cat] ?? [])
+    const picked = pool.length > 0
+      ? pool[Math.floor(Math.random() * pool.length)]
+      : '나는 매일 성장한다.'
+    onbPhraseRef.current = picked
+    setOnbPhrase(picked)
+
     // 카메라만 먼저 시작 (오디오 없이)
     navigator.mediaDevices?.getUserMedia({ video: { facingMode: 'user' }, audio: false })
       .then((stream) => {
@@ -405,14 +414,13 @@ export default function OnboardingPage() {
   useEffect(() => {
     if (rec !== 'recording') return
     if (onbAutoCompleteRef.current) return
-    const phrase = getPhrase(cats)
-    const words = phrase.split(' ').filter(Boolean)
+    const words = onbPhraseRef.current.split(' ').filter(Boolean)
     const allRecognized = words.every((w) => onbRecognizedWords.has(w))
     if (words.length > 0 && allRecognized) {
       onbAutoCompleteRef.current = true
       onbAutoCompleteTimerRef.current = setTimeout(() => finishRec(), 600)
     }
-  }, [onbRecognizedWords, rec, cats, finishRec])
+  }, [onbRecognizedWords, rec, finishRec])
 
   const handleReRecord = useCallback(() => {
     // STT 중단
@@ -437,7 +445,7 @@ export default function OnboardingPage() {
   const handleFinish = async () => {
     if (isFinishing) return
     setIsFinishing(true)
-    const affText = transcript || getPhrase(cats)
+    const affText = transcript || onbPhraseRef.current
     const category = cats[0] ?? '나 자신'
 
     if (notifAllowed) {
@@ -473,8 +481,8 @@ export default function OnboardingPage() {
   }
 
   const TIME_PRESETS = [360, 420, 480, 540]
-  const phrase = transcript || getPhrase(cats)
-  const onbWords = getPhrase(cats).split(' ')
+  const phrase = transcript || onbPhrase
+  const onbWords = onbPhrase.split(' ')
 
   const renderScreen = (idx: number) => {
     switch (idx) {
@@ -639,7 +647,7 @@ export default function OnboardingPage() {
                   이 문장을 소리 내어 읽어보세요
                 </div>
                 <div style={{ fontSize: 18, fontWeight: 800, color: '#fff', lineHeight: 1.5 }}>
-                  &ldquo;{getPhrase(cats)}&rdquo;
+                  &ldquo;{onbPhrase}&rdquo;
                 </div>
               </div>
               {/* 마이크 버튼 */}
