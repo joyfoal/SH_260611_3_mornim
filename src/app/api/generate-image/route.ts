@@ -25,6 +25,7 @@ export async function POST(req: NextRequest) {
       const imageFile = await toFile(imageBuffer, 'face.png', { type: 'image/png' })
 
       const prompt = `Preserve this person's face with absolute fidelity — identical facial structure, skin tone, eye shape, nose, lips, jawline, and hair.
+Keep their current young appearance exactly as it is. Do NOT age the face — maintain their youthful look.
 If the person wears glasses, keep the exact same glasses on their face.
 The person's expression should be genuinely joyful, warm, confident, and deeply fulfilled — radiating positivity from within.
 Place them in a meaningful scene that visually embodies these themes: ${affText}
@@ -44,6 +45,7 @@ NO TEXT OR LETTERS of any kind in the image.`
       // 얼굴 없음: gpt-image-1 텍스트 기반 생성
       const prompt = faceDescription
         ? `A photorealistic portrait of a person with these exact facial features: ${faceDescription}.
+Keep their young, current-age appearance — do NOT age the face at all.
 The person's expression is genuinely joyful, warm, confident, and deeply fulfilled — radiating positivity.
 Place them in a rich scene that visually embodies these themes: ${affText}
 The environment and surroundings reflect those themes through symbolic objects and settings.
