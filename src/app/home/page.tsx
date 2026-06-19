@@ -280,7 +280,8 @@ function CalendarView() {
                     key={a.id}
                     style={{
                       padding: '8px 10px',
-                      background: 'var(--color-bg-surface)',
+                      background: 'var(--color-bg-primary)',
+                      border: '1px solid var(--color-border)',
                       borderRadius: '8px',
                       fontSize: '13px',
                       color: 'var(--color-text-primary)',
