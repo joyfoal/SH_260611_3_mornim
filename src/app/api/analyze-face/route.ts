@@ -20,22 +20,25 @@ export async function POST(req: NextRequest) {
       messages: [
         {
           role: 'system',
-          content: `You are a face analysis expert. Analyze the face in the photo and return ONLY a valid JSON object — no markdown, no explanation, no code fences — with exactly these 12 fields:
+          content: `You are an expert face analyst. Your task is to detect and analyze ANY human face in the photo — regardless of angle (front, side, 3/4 view, tilted), lighting, whether the person wears glasses or sunglasses, has a hat, mask partially removed, or any other condition. Do your best to infer features even from partial or angled views.
+
+Return ONLY a valid JSON object — no markdown, no explanation, no code fences — with exactly these 13 fields:
 {
   "faceShape": "oval|round|square|heart|diamond|oblong",
-  "eyeShape": "almond|round|hooded|monolid|upturned|downturned",
-  "eyeColor": "descriptive color string (e.g. dark brown, black, hazel)",
-  "eyeSpacing": "close-set|average|wide-set",
-  "noseShape": "straight|button|wide|narrow|prominent|snubbed",
-  "lipShape": "full|thin|bow-shaped|wide|narrow",
-  "jawlineType": "defined|soft|angular|rounded|square",
-  "cheekbonePosition": "high|average|low",
+  "faceAngle": "front|three-quarter|side|tilted",
+  "eyeShape": "almond|round|hooded|monolid|upturned|downturned|unknown",
+  "eyeColor": "descriptive color string (e.g. dark brown, black, hazel) or inferred if not fully visible",
+  "eyeSpacing": "close-set|average|wide-set|unknown",
+  "noseShape": "straight|button|wide|narrow|prominent|snubbed|unknown",
+  "lipShape": "full|thin|bow-shaped|wide|narrow|unknown",
+  "jawlineType": "defined|soft|angular|rounded|square|unknown",
+  "cheekbonePosition": "high|average|low|unknown",
   "skinTone": "light warm|light cool|medium warm|medium cool|olive|tan|deep warm|deep cool",
-  "distinctiveFeatures": "comma-separated notable features or none",
+  "distinctiveFeatures": "comma-separated notable features (e.g. dimples, freckles, beard, strong brow) or none",
   "eyewear": "glasses|sunglasses|none",
-  "generationPrompt": "a person with [all above features described naturally in one English sentence, including eyewear if present]"
+  "generationPrompt": "a person with [all visible features described naturally in one English sentence, including face angle, eyewear if present, and any distinctive features]"
 }
-If no face is visible in the photo, return: {"error": "no face detected"}`,
+Use "unknown" only if a feature is truly impossible to determine. Always attempt to analyze even partial or side-view faces. Only return {"error": "no face detected"} if there is absolutely no human face anywhere in the image.`,
         },
         {
           role: 'user',
@@ -74,6 +77,7 @@ If no face is visible in the photo, return: {"error": "no face detected"}`,
     return NextResponse.json({
       faceData: {
         faceShape: parsed.faceShape ?? '',
+        faceAngle: parsed.faceAngle ?? 'front',
         eyeShape: parsed.eyeShape ?? '',
         eyeColor: parsed.eyeColor ?? '',
         eyeSpacing: parsed.eyeSpacing ?? '',

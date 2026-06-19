@@ -4,6 +4,7 @@ const DB_VERSION = 1
 
 export interface FaceData {
   faceShape: string
+  faceAngle: string           // "front" | "three-quarter" | "side" | "tilted"
   eyeShape: string
   eyeColor: string
   eyeSpacing: string
