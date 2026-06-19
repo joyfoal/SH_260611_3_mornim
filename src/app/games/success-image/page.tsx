@@ -11,7 +11,7 @@ import {
   type FaceData,
 } from '@/lib/faceStorage'
 
-function resizeImage(file: File, maxPx = 800): Promise<string> {
+function resizeImage(file: File | Blob, maxPx = 800, format: 'jpeg' | 'png' = 'jpeg'): Promise<string> {
   return new Promise((resolve) => {
     const img = new Image()
     const objectUrl = URL.createObjectURL(file)
@@ -22,7 +22,10 @@ function resizeImage(file: File, maxPx = 800): Promise<string> {
       canvas.width = Math.round(img.naturalWidth * scale)
       canvas.height = Math.round(img.naturalHeight * scale)
       canvas.getContext('2d')!.drawImage(img, 0, 0, canvas.width, canvas.height)
-      resolve(canvas.toDataURL('image/jpeg', 0.85))
+      resolve(format === 'png'
+        ? canvas.toDataURL('image/png')
+        : canvas.toDataURL('image/jpeg', 0.85)
+      )
     }
     img.src = objectUrl
   })
@@ -123,10 +126,14 @@ export default function SuccessImagePage() {
     const affirmationTexts = selected.map((a) => a.text)
 
     try {
-      const body: { affirmations: string[]; faceDescription?: string } = {
+      const body: { affirmations: string[]; faceDescription?: string; faceImageBase64?: string } = {
         affirmations: affirmationTexts,
       }
-      if (faceProfile?.faceData.generationPrompt) {
+      if (faceProfile?.imageBlob) {
+        // PNG로 리사이즈해서 전송 (gpt-image-1 edit API 요구사항)
+        body.faceImageBase64 = await resizeImage(faceProfile.imageBlob, 512, 'png')
+        setUsedFace(true)
+      } else if (faceProfile?.faceData.generationPrompt) {
         body.faceDescription = faceProfile.faceData.generationPrompt
         setUsedFace(true)
       }
