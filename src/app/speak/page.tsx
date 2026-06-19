@@ -182,12 +182,14 @@ function SpeakPageInner() {
       speakTimerRef.current = setTimeout(() => setIsSpeaking(false), 800)
 
       if (affirmation) {
+        const clean = (w: string) => w.replace(/[.,!?。、。·]/g, '').toLowerCase()
         const words = affirmation.text.split(' ')
-        const transcriptWords = transcript.split(/\s+/)
+        const transcriptWords = transcript.split(/\s+/).map(clean)
         const newRecognized = new Set<string>()
         words.forEach((word) => {
-          const lw = word.toLowerCase()
-          if (transcriptWords.some((tw) => tw === lw || tw.startsWith(lw))) {
+          const lw = clean(word)
+          if (!lw) return
+          if (transcriptWords.some((tw) => tw === lw || tw.startsWith(lw) || lw.startsWith(tw))) {
             newRecognized.add(word)
           }
         })
