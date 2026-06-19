@@ -48,10 +48,11 @@ Soft background bokeh, detailed textures, vibrant yet natural colors.
 The overall atmosphere is deeply positive, hopeful, and inspiring — like a motivational life image.
 NO TEXT OR LETTERS in the image.`
         : hasText
-        ? `Create an anime/cartoon style illustration that vividly expresses the mood and feeling of: "${mood}".
-The art style, color palette, atmosphere, and visual elements should fully embody this mood.
-A warm, joyful character radiating positivity, energy, and inner strength.
-Uplifting and inspiring visual narrative. The image is deeply positive, heartwarming, and encouraging.
+        ? `Create an illustration where the art style, color palette, and visual atmosphere are entirely shaped by this mood: "${mood}".
+IMPORTANT: Do NOT use Studio Ghibli style. Choose the illustration or cartoon style that best matches this specific mood — the mood defines the style.
+For example: a cyberpunk mood → neon-lit urban cartoon; a dreamy pastel mood → soft watercolor illustration; a bold energetic mood → vibrant comic style.
+A joyful character who embodies this mood, radiating positivity and inner strength.
+The image is deeply positive, uplifting, and inspiring. Style and colors follow the mood.
 NO TEXT OR LETTERS in the image.`
         : `Create a beautiful Studio Ghibli anime character illustration.
 Classic Ghibli aesthetic: soft watercolor tones, warm golden sunlight, gentle breeze, enchanting nature scene.
