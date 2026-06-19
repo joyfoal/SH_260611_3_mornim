@@ -23,8 +23,10 @@ export interface FaceData {
 export interface FaceProfile {
   id: 'default'
   createdAt: number
-  imageBlob: Blob
-  faceData: FaceData
+  imageBlob?: Blob              // 원본 얼굴 사진 (선택)
+  faceData?: FaceData           // 얼굴 분석 결과 (선택)
+  profileImageBlob?: Blob       // AI가 생성한 스타일 캐릭터 이미지
+  profileDescription?: string   // 캐릭터 생성 시 사용한 설명
 }
 
 function openDB(): Promise<IDBDatabase> {

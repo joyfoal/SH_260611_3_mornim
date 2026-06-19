@@ -94,6 +94,7 @@ export default function SuccessImagePage() {
   const [faceAnalyzing, setFaceAnalyzing] = useState(false)
   const [faceError, setFaceError] = useState<string | null>(null)
   const [thumbnailUrl, setThumbnailUrl] = useState<string | null>(null)
+  const [profileThumbnailUrl, setProfileThumbnailUrl] = useState<string | null>(null)
   const [usedFace, setUsedFace] = useState(false)
 
   useEffect(() => {
@@ -104,10 +105,20 @@ export default function SuccessImagePage() {
   useEffect(() => {
     if (!faceProfile?.imageBlob) {
       setThumbnailUrl(null)
+    } else {
+      const url = URL.createObjectURL(faceProfile.imageBlob)
+      setThumbnailUrl(url)
+      return () => URL.revokeObjectURL(url)
+    }
+  }, [faceProfile])
+
+  useEffect(() => {
+    if (!faceProfile?.profileImageBlob) {
+      setProfileThumbnailUrl(null)
       return
     }
-    const url = URL.createObjectURL(faceProfile.imageBlob)
-    setThumbnailUrl(url)
+    const url = URL.createObjectURL(faceProfile.profileImageBlob)
+    setProfileThumbnailUrl(url)
     return () => URL.revokeObjectURL(url)
   }, [faceProfile])
 
@@ -181,20 +192,33 @@ export default function SuccessImagePage() {
       // 매번 IndexedDB에서 최신 얼굴 데이터 새로 불러오기
       const latestProfile = await getFaceProfile().catch(() => null)
 
-      const body: { affirmations: string[]; faceData?: FaceData; faceImageBase64?: string; faceMaskBase64?: string } = {
+      const body: {
+        affirmations: string[]
+        faceData?: FaceData
+        faceImageBase64?: string
+        faceMaskBase64?: string
+        profileImageBase64?: string
+      } = {
         affirmations: affirmationTexts,
       }
-      if (latestProfile?.imageBlob) {
+
+      if (latestProfile?.profileImageBlob) {
+        // 저장된 프로필 이미지 우선 사용 (지브리 캐릭터)
+        const profileBase64 = await resizeImage(latestProfile.profileImageBlob, 1024, 'png')
+        body.profileImageBase64 = profileBase64
+        setUsedFace(true)
+      } else if (latestProfile?.imageBlob) {
+        // 프로필 이미지 없으면 원본 얼굴 사진 + 마스크 사용 (기존 방식)
         const { imageBase64, maskBase64 } = await resizeWithMask(
           latestProfile.imageBlob,
           768,
-          latestProfile.faceData.faceBoundingBox
+          latestProfile.faceData?.faceBoundingBox
         )
         body.faceImageBase64 = imageBase64
         body.faceMaskBase64 = maskBase64
-        body.faceData = latestProfile.faceData
+        if (latestProfile.faceData) body.faceData = latestProfile.faceData
         setUsedFace(true)
-      } else if (latestProfile?.faceData.generationPrompt) {
+      } else if (latestProfile?.faceData?.generationPrompt) {
         body.faceData = latestProfile.faceData
         setUsedFace(true)
       }
@@ -265,7 +289,7 @@ export default function SuccessImagePage() {
         얼굴 사진을 등록하면 더 실제 같은 성공 이미지를 만들 수 있어요.
       </div>
 
-      {/* 섹션 1: 얼굴 등록 */}
+      {/* 섹션 1: 내 캐릭터 */}
       <div
         style={{
           padding: '16px',
@@ -275,15 +299,39 @@ export default function SuccessImagePage() {
         }}
       >
         <p style={{ fontSize: '14px', fontWeight: 600, color: 'var(--color-text-primary)', marginBottom: '12px' }}>
-          얼굴 등록 <span style={{ fontSize: '12px', fontWeight: 400, color: 'var(--color-text-muted)' }}>(선택)</span>
+          내 캐릭터 <span style={{ fontSize: '12px', fontWeight: 400, color: 'var(--color-text-muted)' }}>(선택)</span>
         </p>
 
-        {faceAnalyzing ? (
+        {/* 프로필 이미지 있음 — 우선 표시 */}
+        {profileThumbnailUrl ? (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+            <img
+              src={profileThumbnailUrl}
+              alt="프로필 이미지"
+              style={{ width: '72px', height: '72px', borderRadius: '16px', objectFit: 'cover', flexShrink: 0, border: '2.5px solid var(--color-accent-primary)' }}
+            />
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <p style={{ fontSize: '13px', color: 'var(--color-accent-primary)', fontWeight: 600, marginBottom: '4px' }}>
+                ✓ 프로필 이미지 사용
+              </p>
+              <p style={{ fontSize: '12px', color: 'var(--color-text-muted)', marginBottom: '8px', lineHeight: 1.4 }}>
+                {faceProfile?.profileDescription ?? '저장된 프로필 캐릭터로 성공 이미지를 만들어요'}
+              </p>
+              <button
+                onClick={() => router.push('/games/profile-image')}
+                style={{ fontSize: '12px', color: 'var(--color-accent-primary)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+              >
+                프로필 변경
+              </button>
+            </div>
+          </div>
+        ) : faceAnalyzing ? (
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '12px 0' }}>
             <span style={{ animation: 'spin 1s linear infinite', display: 'inline-block', fontSize: '18px' }}>✨</span>
             <span style={{ fontSize: '14px', color: 'var(--color-text-muted)' }}>AI가 얼굴을 분석하는 중...</span>
           </div>
-        ) : faceProfile ? (
+        ) : faceProfile?.imageBlob ? (
+          // 원본 얼굴 사진만 있는 경우 (기존 방식 유지)
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             {thumbnailUrl && (
               <img
@@ -294,7 +342,7 @@ export default function SuccessImagePage() {
             )}
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginBottom: '8px' }}>
-                {[
+                {faceProfile.faceData && [
                   FACE_TRAIT_LABELS[faceProfile.faceData.faceShape] ?? faceProfile.faceData.faceShape,
                   faceProfile.faceData.eyeShape,
                   faceProfile.faceData.skinTone,
@@ -334,26 +382,50 @@ export default function SuccessImagePage() {
             </div>
           </div>
         ) : (
-          <button
-            onClick={() => fileInputRef.current?.click()}
-            style={{
-              width: '100%',
-              padding: '14px',
-              background: 'var(--color-bg-surface)',
-              border: '1.5px dashed var(--color-border)',
-              borderRadius: '12px',
-              fontSize: '14px',
-              color: 'var(--color-text-muted)',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '8px',
-            }}
-          >
-            <span style={{ fontSize: '20px' }}>📷</span>
-            얼굴 사진 등록하기
-          </button>
+          // 아무것도 없을 때
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <button
+              onClick={() => router.push('/games/profile-image')}
+              style={{
+                width: '100%',
+                padding: '14px',
+                background: 'var(--color-accent-light)',
+                border: '1.5px solid var(--color-accent-primary)',
+                borderRadius: '12px',
+                fontSize: '14px',
+                color: 'var(--color-accent-primary)',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px',
+                fontWeight: 600,
+              }}
+            >
+              <span style={{ fontSize: '20px' }}>🌟</span>
+              프로필 이미지 먼저 만들기 (추천)
+            </button>
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              style={{
+                width: '100%',
+                padding: '12px',
+                background: 'var(--color-bg-surface)',
+                border: '1.5px dashed var(--color-border)',
+                borderRadius: '12px',
+                fontSize: '13px',
+                color: 'var(--color-text-muted)',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px',
+              }}
+            >
+              <span style={{ fontSize: '18px' }}>📷</span>
+              얼굴 사진만 등록하기
+            </button>
+          </div>
         )}
 
         {faceError && (
@@ -443,7 +515,9 @@ export default function SuccessImagePage() {
             <span style={{ animation: 'spin 1s linear infinite', display: 'inline-block' }}>✨</span>
             AI가 이미지를 그리는 중...
           </span>
-        ) : faceProfile
+        ) : faceProfile?.profileImageBlob
+          ? '🌟 내 캐릭터로 성공 이미지 만들기'
+          : faceProfile?.imageBlob
           ? '🌟 내 얼굴로 성공 이미지 만들기'
           : '🌟 성공 이미지 만들기'
         }
@@ -469,7 +543,12 @@ export default function SuccessImagePage() {
       {imageUrl && (
         <div style={{ textAlign: 'center' }}>
           <div style={{ fontSize: '14px', color: 'var(--color-text-muted)', marginBottom: '12px' }}>
-            {usedFace ? '당신의 얼굴 특징을 반영한 성공 이미지예요 ✨' : '당신의 성공한 미래예요 ✨'}
+            {usedFace && faceProfile?.profileImageBlob
+              ? '내 캐릭터의 성공한 미래예요 ✨'
+              : usedFace
+              ? '당신의 얼굴 특징을 반영한 성공 이미지예요 ✨'
+              : '당신의 성공한 미래예요 ✨'
+            }
           </div>
           <img
             src={imageUrl}

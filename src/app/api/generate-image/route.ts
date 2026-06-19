@@ -65,11 +65,12 @@ NO TEXT OR LETTERS of any kind in the image.`
 
 export async function POST(req: NextRequest) {
   try {
-    const { affirmations, faceData, faceImageBase64, faceMaskBase64 } = await req.json() as {
+    const { affirmations, faceData, faceImageBase64, faceMaskBase64, profileImageBase64 } = await req.json() as {
       affirmations: string[]
       faceData?: FaceData
       faceImageBase64?: string   // "data:image/png;base64,..."
       faceMaskBase64?: string    // 얼굴 타원 = 불투명(보존), 나머지 = 투명(편집)
+      profileImageBase64?: string // AI 생성 프로필 이미지 (마스크 없이 전체 편집)
     }
 
     if (!process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY === 'your_key_here') {
@@ -82,7 +83,28 @@ export async function POST(req: NextRequest) {
     const affText = affirmations.join(', ')
     let b64: string | null | undefined
 
-    if (faceImageBase64) {
+    if (profileImageBase64) {
+      // 프로필 이미지(지브리 캐릭터) 기반 성공 이미지 생성
+      const base64Data = profileImageBase64.replace(/^data:image\/\w+;base64,/, '')
+      const imageBuffer = Buffer.from(base64Data, 'base64')
+      const imageFile = await toFile(imageBuffer, 'profile.png', { type: 'image/png' })
+
+      const prompt = `Keep this character's appearance, face, style, and identity EXACTLY as shown.
+Place them in an inspiring, triumphant success scene that visually embodies: ${affText}
+The character is experiencing genuine joy, fulfillment, and success.
+Maintain the exact same art style (Studio Ghibli). Warm golden light, uplifting atmosphere.
+NO TEXT OR LETTERS in the image.`
+
+      const response = await openai.images.edit({
+        model: 'gpt-image-1',
+        image: imageFile,
+        prompt,
+        n: 1,
+        size: '1024x1024',
+        quality: 'high',
+      })
+      b64 = response.data?.[0]?.b64_json
+    } else if (faceImageBase64) {
       // 얼굴 사진 있음: gpt-image-1 이미지 편집
       const base64Data = faceImageBase64.replace(/^data:image\/\w+;base64,/, '')
       const imageBuffer = Buffer.from(base64Data, 'base64')
