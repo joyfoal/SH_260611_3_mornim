@@ -246,42 +246,20 @@ function SpeakPageInner() {
     }
   }, [screen, startCamera, startSTT])
 
-  // affirmation 바뀌면 자동완료 플래그 및 누적 인식 리셋
-  useEffect(() => {
-    autoCompleteTriggeredRef.current = false
-    if (autoCompleteTimerRef.current) clearTimeout(autoCompleteTimerRef.current)
-    cumulativeRecognizedRef.current = new Set()
-  }, [affirmation])
-
-  // 모든 단어 인식 시 자동 완료 (타이머가 onresult마다 리셋되지 않도록 ref로 제어)
-  useEffect(() => {
-    if (screen !== 'speak' || !affirmation || autoCompleteTriggeredRef.current) return
-    const words = affirmation.text.split(' ').filter(Boolean)
-    // 중복 단어가 있어도 모든 고유 단어가 인식됐는지 확인
-    const allRecognized = words.every((w) => recognizedWords.has(w))
-    if (words.length > 0 && allRecognized) {
-      autoCompleteTriggeredRef.current = true
-      autoCompleteTimerRef.current = setTimeout(() => handleComplete(), 600)
-    }
-  }, [recognizedWords, screen, affirmation, handleComplete])
-
+  // handleComplete는 auto-complete useEffect보다 반드시 먼저 선언되어야 함 (TDZ 방지)
   const handleComplete = useCallback(() => {
     if (!affirmation) return
 
-    // Set pending affirmation for audio recording
     pendingAffirmationRef.current = affirmation
 
-    // Stop recognition
     shouldListenRef.current = false
     if (recognitionRef.current) {
       try { recognitionRef.current.stop() } catch { /* ignore */ }
       recognitionRef.current = null
     }
 
-    // Stop MediaRecorder (triggers onstop which saves audio)
     stopMediaRecorder()
 
-    // Mark completion
     const today = todayStr()
     if (!affirmation.completedDates.includes(today)) {
       const updated = {
@@ -307,6 +285,24 @@ function SpeakPageInner() {
 
     setScreen('celebration')
   }, [affirmation, stopMediaRecorder])
+
+  // affirmation 바뀌면 자동완료 플래그 및 누적 인식 리셋
+  useEffect(() => {
+    autoCompleteTriggeredRef.current = false
+    if (autoCompleteTimerRef.current) clearTimeout(autoCompleteTimerRef.current)
+    cumulativeRecognizedRef.current = new Set()
+  }, [affirmation])
+
+  // 모든 단어 인식 시 자동 완료
+  useEffect(() => {
+    if (screen !== 'speak' || !affirmation || autoCompleteTriggeredRef.current) return
+    const words = affirmation.text.split(' ').filter(Boolean)
+    const allRecognized = words.every((w) => recognizedWords.has(w))
+    if (words.length > 0 && allRecognized) {
+      autoCompleteTriggeredRef.current = true
+      autoCompleteTimerRef.current = setTimeout(() => handleComplete(), 600)
+    }
+  }, [recognizedWords, screen, affirmation, handleComplete])
 
   const handleCelebrationNext = useCallback(() => {
     const nextIndex = currentIndex + 1
