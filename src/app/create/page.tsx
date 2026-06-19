@@ -3,7 +3,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { AppLayout } from '@/components/ui/AppLayout'
-import { ArrowLeft } from 'lucide-react'
 import type { CategoryName } from '@/lib/categories'
 import { saveAffirmation, getCategories, type AffirmationCategory } from '@/lib/storage'
 
@@ -169,22 +168,17 @@ export default function CreatePage() {
   return (
     <AppLayout activeTab="성공의 말">
       <div style={{ padding: '20px 16px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
+        <div className="flex items-center justify-between w-full mb-4">
           <button
             onClick={() => router.push('/affirmations')}
-            style={{
-              width: '34px', height: '34px', borderRadius: '50%',
-              background: 'var(--color-bg-card)',
-              border: '1px solid var(--color-border)',
-              cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-              flexShrink: 0,
-            }}
+            style={{ color: 'var(--color-text-muted)', background: 'none', border: 'none', cursor: 'pointer', fontSize: '14px' }}
           >
-            <ArrowLeft size={16} color="var(--color-text-primary)" />
+            ← 돌아가기
           </button>
           <h1 style={{ fontSize: '20px', fontWeight: 600, color: 'var(--color-text-primary)' }}>
             성공의 말 만들기
           </h1>
+          <div style={{ width: '60px' }} />
         </div>
 
         {/* Tabs */}
