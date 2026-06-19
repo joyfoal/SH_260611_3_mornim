@@ -3,31 +3,103 @@
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { AppLayout } from '@/components/ui/AppLayout'
-import { Plus, Trash2 } from 'lucide-react'
+import { Plus, Trash2, Play, Pause } from 'lucide-react'
 import { getAffirmations, deleteAffirmation, getCategories, type Affirmation } from '@/lib/storage'
 import { getCategoryColor } from '@/lib/categories'
+import { getAudioRecords, deleteAudioRecord, type AudioRecord } from '@/lib/audioStorage'
 
 export default function AffirmationsPage() {
   const router = useRouter()
   const [affirmations, setAffirmations] = useState<Affirmation[]>([])
   const [filterCategory, setFilterCategory] = useState<string | null>(null)
   const [categories, setCategories] = useState<string[]>([])
+  const [audioMap, setAudioMap] = useState<Record<string, AudioRecord>>({})
+  const [playingId, setPlayingId] = useState<string | null>(null)
+  const audioRef = useRef<HTMLAudioElement | null>(null)
+  const audioBlobUrlRef = useRef<string | null>(null)
   const tabsRef = useRef<HTMLDivElement>(null)
   const isDragging = useRef(false)
   const dragStartX = useRef(0)
   const scrollStartX = useRef(0)
 
-  const load = () => {
+  const load = async () => {
     setAffirmations(getAffirmations())
     setCategories(getCategories())
+    try {
+      const records = await getAudioRecords()
+      // affirmationId별 가장 최신 녹음 1개씩 매핑
+      const map: Record<string, AudioRecord> = {}
+      for (const r of records) {
+        if (!map[r.affirmationId] || r.createdAt > map[r.affirmationId].createdAt) {
+          map[r.affirmationId] = r
+        }
+      }
+      setAudioMap(map)
+    } catch { /* ignore */ }
   }
 
   useEffect(() => {
     load()
   }, [])
 
+  const stopCurrentAudio = () => {
+    if (audioRef.current) {
+      audioRef.current.pause()
+      audioRef.current = null
+    }
+    if (audioBlobUrlRef.current) {
+      URL.revokeObjectURL(audioBlobUrlRef.current)
+      audioBlobUrlRef.current = null
+    }
+    setPlayingId(null)
+  }
+
+  const handlePlayPause = (affirmationId: string) => {
+    const record = audioMap[affirmationId]
+    if (!record) return
+
+    if (playingId === affirmationId) {
+      stopCurrentAudio()
+      return
+    }
+
+    stopCurrentAudio()
+    const url = URL.createObjectURL(record.blob)
+    audioBlobUrlRef.current = url
+    const audio = new Audio(url)
+    audioRef.current = audio
+    setPlayingId(affirmationId)
+    audio.onended = () => {
+      URL.revokeObjectURL(url)
+      audioBlobUrlRef.current = null
+      setPlayingId(null)
+    }
+    audio.onerror = () => {
+      URL.revokeObjectURL(url)
+      audioBlobUrlRef.current = null
+      setPlayingId(null)
+    }
+    audio.play().catch(() => setPlayingId(null))
+  }
+
+  const handleDeleteAudio = async (affirmationId: string) => {
+    const record = audioMap[affirmationId]
+    if (!record) return
+    if (!confirm('이 녹음을 삭제할까요?')) return
+    if (playingId === affirmationId) stopCurrentAudio()
+    try {
+      await deleteAudioRecord(record.id)
+      setAudioMap((prev) => {
+        const next = { ...prev }
+        delete next[affirmationId]
+        return next
+      })
+    } catch { /* ignore */ }
+  }
+
   const handleDelete = (id: string) => {
     if (confirm('이 성공의 말을 삭제할까요?')) {
+      if (playingId === id) stopCurrentAudio()
       deleteAffirmation(id)
       load()
     }
@@ -53,15 +125,9 @@ export default function AffirmationsPage() {
           <button
             onClick={() => router.push('/create')}
             style={{
-              width: '36px',
-              height: '36px',
-              borderRadius: '50%',
-              background: 'var(--color-accent-primary)',
-              border: 'none',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
+              width: '36px', height: '36px', borderRadius: '50%',
+              background: 'var(--color-accent-primary)', border: 'none',
+              cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}
           >
             <Plus size={18} color="white" />
@@ -88,14 +154,11 @@ export default function AffirmationsPage() {
           <button
             onClick={() => setFilterCategory(null)}
             style={{
-              padding: '6px 14px',
-              borderRadius: '20px',
+              padding: '6px 14px', borderRadius: '20px', flexShrink: 0,
               border: !filterCategory ? '1px solid var(--color-accent-primary)' : '1px solid var(--color-border)',
               background: !filterCategory ? 'var(--color-accent-light)' : 'transparent',
               color: !filterCategory ? 'var(--color-accent-primary)' : 'var(--color-text-muted)',
-              fontSize: '12px',
-              cursor: 'pointer',
-              flexShrink: 0,
+              fontSize: '12px', cursor: 'pointer',
             }}
           >
             전체
@@ -105,14 +168,11 @@ export default function AffirmationsPage() {
               key={cat}
               onClick={() => setFilterCategory(filterCategory === cat ? null : cat)}
               style={{
-                padding: '6px 14px',
-                borderRadius: '20px',
+                padding: '6px 14px', borderRadius: '20px', flexShrink: 0,
                 border: filterCategory === cat ? '1px solid var(--color-accent-primary)' : '1px solid var(--color-border)',
                 background: filterCategory === cat ? 'var(--color-accent-light)' : 'transparent',
                 color: filterCategory === cat ? 'var(--color-accent-primary)' : 'var(--color-text-muted)',
-                fontSize: '12px',
-                cursor: 'pointer',
-                flexShrink: 0,
+                fontSize: '12px', cursor: 'pointer',
               }}
             >
               {cat}
@@ -121,13 +181,7 @@ export default function AffirmationsPage() {
         </div>
 
         {affirmations.length === 0 ? (
-          <div
-            style={{
-              textAlign: 'center',
-              padding: '60px 20px',
-              color: 'var(--color-text-muted)',
-            }}
-          >
+          <div style={{ textAlign: 'center', padding: '60px 20px', color: 'var(--color-text-muted)' }}>
             <div style={{ fontSize: '40px', marginBottom: '16px' }}>✨</div>
             <p style={{ fontSize: '15px', marginBottom: '20px' }}>
               아직 성공의 말이 없어요.<br />첫 성공의 말을 만들어보세요!
@@ -135,14 +189,9 @@ export default function AffirmationsPage() {
             <button
               onClick={() => router.push('/create')}
               style={{
-                padding: '12px 28px',
-                background: 'var(--color-accent-primary)',
-                color: 'white',
-                border: 'none',
-                borderRadius: '14px',
-                fontSize: '15px',
-                fontWeight: 600,
-                cursor: 'pointer',
+                padding: '12px 28px', background: 'var(--color-accent-primary)',
+                color: 'white', border: 'none', borderRadius: '14px',
+                fontSize: '15px', fontWeight: 600, cursor: 'pointer',
               }}
             >
               성공의 말 만들기
@@ -153,57 +202,99 @@ export default function AffirmationsPage() {
             const colors = getCategoryColor(cat, categories)
             return (
               <div key={cat} style={{ marginBottom: '24px' }}>
-                <div
-                  style={{
-                    fontSize: '13px',
-                    fontWeight: 600,
-                    color: colors.dark,
-                    marginBottom: '8px',
-                    padding: '4px 12px',
-                    background: colors.light,
-                    borderRadius: '20px',
-                    display: 'inline-block',
-                  }}
-                >
+                <div style={{
+                  fontSize: '13px', fontWeight: 600, color: colors.dark,
+                  marginBottom: '8px', padding: '4px 12px', background: colors.light,
+                  borderRadius: '20px', display: 'inline-block',
+                }}>
                   {cat}
                 </div>
-                {items.map((affirmation) => (
-                  <div
-                    key={affirmation.id}
-                    style={{
-                      padding: '14px 16px',
-                      background: 'var(--color-bg-card)',
-                      borderRadius: '14px',
-                      marginBottom: '8px',
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'flex-start',
-                      gap: '12px',
-                    }}
-                  >
-                    <div style={{ flex: 1 }}>
-                      <p style={{ fontSize: '14px', color: 'var(--color-text-primary)', lineHeight: 1.5, marginBottom: '4px' }}>
-                        {affirmation.text}
-                      </p>
-                      <span style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>
-                        완료 {affirmation.completedDates.length}회
-                      </span>
-                    </div>
-                    <button
-                      onClick={() => handleDelete(affirmation.id)}
+                {items.map((affirmation) => {
+                  const record = audioMap[affirmation.id]
+                  const isPlaying = playingId === affirmation.id
+                  return (
+                    <div
+                      key={affirmation.id}
                       style={{
-                        padding: '6px',
-                        background: 'transparent',
-                        border: 'none',
-                        cursor: 'pointer',
-                        color: 'var(--color-text-muted)',
-                        flexShrink: 0,
+                        padding: '14px 16px', background: 'var(--color-bg-card)',
+                        borderRadius: '14px', marginBottom: '8px',
+                        border: '1px solid var(--color-border)',
                       }}
                     >
-                      <Trash2 size={16} />
-                    </button>
-                  </div>
-                ))}
+                      {/* 텍스트 + 완료 횟수 */}
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
+                        <div style={{ flex: 1 }}>
+                          <p style={{ fontSize: '14px', color: 'var(--color-text-primary)', lineHeight: 1.5, marginBottom: '4px' }}>
+                            {affirmation.text}
+                          </p>
+                          <span style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>
+                            완료 {affirmation.completedDates.length}회
+                          </span>
+                        </div>
+                        <button
+                          onClick={() => handleDelete(affirmation.id)}
+                          style={{ padding: '6px', background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--color-text-muted)', flexShrink: 0 }}
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+
+                      {/* 녹음 영역 */}
+                      {record && (
+                        <div style={{
+                          marginTop: 12, paddingTop: 10,
+                          borderTop: '1px solid var(--color-border)',
+                          display: 'flex', alignItems: 'center', gap: 10,
+                        }}>
+                          {/* 파형 막대 */}
+                          <div style={{ display: 'flex', alignItems: 'flex-end', gap: 2, height: 18, flexShrink: 0 }}>
+                            {[55, 80, 60, 100, 70, 85, 50].map((pct, k) => (
+                              <span key={k} style={{
+                                display: 'block', width: 3, borderRadius: 2,
+                                background: 'var(--color-accent-primary)',
+                                height: isPlaying ? undefined : `${pct}%`,
+                                minHeight: isPlaying ? 3 : undefined,
+                                animation: isPlaying ? `waveBar 0.45s ease-in-out ${k * 0.07}s infinite` : 'none',
+                                opacity: isPlaying ? 1 : 0.5,
+                              }} />
+                            ))}
+                          </div>
+
+                          {/* 재생 버튼 */}
+                          <button
+                            onClick={() => handlePlayPause(affirmation.id)}
+                            style={{
+                              width: 32, height: 32, borderRadius: '50%', border: 'none', cursor: 'pointer',
+                              background: isPlaying ? 'var(--color-accent-primary)' : 'var(--color-accent-light)',
+                              color: isPlaying ? 'white' : 'var(--color-accent-primary)',
+                              display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                            }}
+                          >
+                            {isPlaying ? <Pause size={14} /> : <Play size={14} />}
+                          </button>
+
+                          <span style={{ fontSize: '11px', color: 'var(--color-text-muted)', flex: 1 }}>
+                            {new Date(record.createdAt).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' })} 녹음
+                          </span>
+
+                          {/* 녹음 삭제 버튼 */}
+                          <button
+                            onClick={() => handleDeleteAudio(affirmation.id)}
+                            style={{
+                              padding: '4px 10px', border: '1px solid var(--color-border)',
+                              borderRadius: 8, background: 'transparent', cursor: 'pointer',
+                              fontSize: '11px', color: 'var(--color-text-muted)',
+                              display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0,
+                            }}
+                          >
+                            <Trash2 size={11} />
+                            녹음 삭제
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
               </div>
             )
           })
