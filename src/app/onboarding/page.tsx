@@ -370,8 +370,10 @@ export default function OnboardingPage() {
     onbAutoCompleteRef.current = false
     setOnbRecognizedWords(new Set())
 
-    // 선택한 카테고리의 성공의 말 중 랜덤 1개 선택
-    const pool: string[] = catsRef.current.flatMap((cat) => SUGGESTIONS[cat] ?? [])
+    // 화면 1에서 추천된 성공의 말(SUGGESTIONS[cat][0])만 풀로 사용
+    const pool: string[] = catsRef.current
+      .map((cat) => SUGGESTIONS[cat]?.[0])
+      .filter(Boolean) as string[]
     const picked = pool.length > 0
       ? pool[Math.floor(Math.random() * pool.length)]
       : '나는 매일 성장한다.'
