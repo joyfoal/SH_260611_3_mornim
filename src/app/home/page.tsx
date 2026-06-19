@@ -401,29 +401,10 @@ export default function HomePage() {
     }
   }, [])
 
-  // Alarm check on app open
+  // Schedule alarm via Service Worker on app open
   useEffect(() => {
     if (typeof window === 'undefined') return
-    const checkAlarm = async () => {
-      const { getAlarmSettings, getAlarmLastShown, setAlarmLastShown } = await import('@/lib/storage')
-      const alarm = getAlarmSettings()
-      if (!alarm) return
-      const now = new Date()
-      const today = todayStr()
-      if (getAlarmLastShown() === today) return
-      const nowMinutes = now.getHours() * 60 + now.getMinutes()
-      const alarmMinutes = alarm.hour * 60 + alarm.minute
-      if (Math.abs(nowMinutes - alarmMinutes) <= 30) {
-        if ('Notification' in window && Notification.permission === 'granted') {
-          new Notification('모님 - 성공의 말 시간이에요! 🌟', {
-            body: '오늘의 성공의 말을 말해보세요.',
-            icon: '/icon-192.png',
-          })
-          setAlarmLastShown(today)
-        }
-      }
-    }
-    checkAlarm()
+    import('@/lib/alarmScheduler').then(({ scheduleAlarm }) => scheduleAlarm())
   }, [])
 
   const loadData = useCallback(() => {

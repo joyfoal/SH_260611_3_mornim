@@ -442,6 +442,9 @@ export default function OnboardingPage() {
 
     if (notifAllowed) {
       saveAlarmSettings({ audioId: '', hour: Math.floor(notifTime / 60), minute: notifTime % 60 })
+      import('@/lib/alarmScheduler').then(({ registerSW, scheduleAlarm }) =>
+        registerSW().then(() => scheduleAlarm())
+      )
     }
 
     const now = Date.now()

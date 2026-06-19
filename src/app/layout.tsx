@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next'
 import './globals.css'
 import { ThemeProvider } from '@/lib/themeContext'
+import { AlarmInit } from '@/components/ui/AlarmInit'
 
 export const metadata: Metadata = {
   title: '모님 - Mornim',
@@ -29,6 +30,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body>
         <ThemeProvider>{children}</ThemeProvider>
+        <AlarmInit />
       </body>
     </html>
   )

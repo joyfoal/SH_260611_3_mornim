@@ -304,6 +304,7 @@ function AlarmManager() {
     }
     saveAlarmSettings({ audioId: selectedAudioId, hour, minute })
     setAlarm({ audioId: selectedAudioId, hour, minute })
+    import('@/lib/alarmScheduler').then(({ scheduleAlarm }) => scheduleAlarm())
     setSaving(false)
     setOpen(false)
   }
@@ -311,6 +312,7 @@ function AlarmManager() {
   const handleClear = () => {
     clearAlarmSettings()
     setAlarm(null)
+    import('@/lib/alarmScheduler').then(({ cancelAlarm }) => cancelAlarm())
     setOpen(false)
   }
 
