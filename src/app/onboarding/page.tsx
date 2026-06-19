@@ -327,7 +327,7 @@ export default function OnboardingPage() {
             <div style={{ fontSize: 32, fontWeight: 800, letterSpacing: '-0.6px', color: T.ink, lineHeight: 1.28 }}>안녕하세요 :)</div>
             <div style={{ fontSize: 32, fontWeight: 800, letterSpacing: '-0.6px', color: T.gold, lineHeight: 1.28 }}>저는 모님이에요.</div>
             <div style={{ fontSize: 16, fontWeight: 500, color: T.ink2, lineHeight: 1.55, marginTop: 4 }}>
-              당신이 소리 내어 말한 한 문장이<br />매일의 시작을 바꿔놓을 거예요.
+              성공의 말을 하면 이루어진다.
             </div>
           </div>
           <div style={{ padding: '12px 26px 48px' }}>
@@ -340,7 +340,6 @@ export default function OnboardingPage() {
       case 1: return (
         <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '0 26px', overflow: 'hidden' }}>
-            <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: '.4px', color: T.gold, marginBottom: 12 }}>먼저 알려주세요</div>
             <div style={{ fontSize: 30, fontWeight: 800, letterSpacing: '-0.6px', color: T.ink, lineHeight: 1.28, marginBottom: 10 }}>
               어떤 성공을<br />이루고 싶으세요?
             </div>
@@ -418,21 +417,12 @@ export default function OnboardingPage() {
                     녹음 중 · 듣고 있어요
                   </span>
                 ) : (
-                  <>
-                    <div style={{
-                      fontSize: 24, fontWeight: 800, letterSpacing: '-0.4px',
-                      color: '#fff', lineHeight: 1.3, textShadow: '0 2px 12px rgba(0,0,0,.4)',
-                      whiteSpace: 'pre-line',
-                    }}>
-                      {rec === 'done' ? '잘 들었어요!' : '나를 보며,\n소리 내어 말해보세요'}
-                    </div>
-                    <div style={{
-                      fontSize: 15, fontWeight: 500, color: 'rgba(255,255,255,.86)',
-                      marginTop: 8, textShadow: '0 1px 8px rgba(0,0,0,.5)',
-                    }}>
-                      {rec === 'idle' ? '버튼을 누르고 오늘의 나에게 들려주세요.' : '이 문장이 마음에 드나요?'}
-                    </div>
-                  </>
+                  <div style={{
+                    fontSize: 22, fontWeight: 800, letterSpacing: '-0.4px',
+                    color: '#fff', lineHeight: 1.3, textShadow: '0 2px 12px rgba(0,0,0,.4)',
+                  }}>
+                    {rec === 'done' ? '잘 들었어요!' : '버튼을 누르고 소리내어 말해보세요.'}
+                  </div>
                 )}
               </div>
               {/* Bottom controls */}
@@ -440,6 +430,22 @@ export default function OnboardingPage() {
                 position: 'absolute', left: 0, right: 0, bottom: 24, zIndex: 4,
                 display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16, padding: '0 22px',
               }}>
+                {/* Phrase card (idle state) */}
+                {rec === 'idle' && (
+                  <div style={{
+                    width: '100%',
+                    background: 'rgba(28,20,8,.72)',
+                    backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)',
+                    border: '1px solid rgba(232,200,120,.3)', borderRadius: 18, padding: '16px 18px',
+                  }}>
+                    <div style={{ fontSize: 11, fontWeight: 600, color: 'rgba(232,200,120,.7)', marginBottom: 8, letterSpacing: '.4px' }}>
+                      이 문장을 소리 내어 읽어보세요
+                    </div>
+                    <div style={{ fontSize: 18, fontWeight: 800, lineHeight: 1.45, color: '#fff' }}>
+                      &ldquo;{getPhrase(cats)}&rdquo;
+                    </div>
+                  </div>
+                )}
                 {/* Waveform (recording state) */}
                 {rec === 'recording' && (
                   <div style={{ display: 'flex', alignItems: 'center', gap: 5, height: 40 }}>
