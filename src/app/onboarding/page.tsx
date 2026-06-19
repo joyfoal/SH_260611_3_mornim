@@ -486,6 +486,7 @@ export default function OnboardingPage() {
     })
 
     saveTodayAffirmationIds(ids.slice(0, 3))
+    localStorage.setItem('mornim-theme', 'warm')
     setOnboarded()
     router.push('/home')
   }
