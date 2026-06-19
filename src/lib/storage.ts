@@ -220,7 +220,11 @@ export function saveCategories(cats: string[]): void {
 
 // Helper
 export function todayStr(): string {
-  return new Date().toISOString().split('T')[0]
+  const now = new Date()
+  const y = now.getFullYear()
+  const m = String(now.getMonth() + 1).padStart(2, '0')
+  const d = String(now.getDate()).padStart(2, '0')
+  return `${y}-${m}-${d}`
 }
 
 // Generate today's affirmation queue
@@ -242,9 +246,10 @@ export function generateTodayQueue(): string[] {
   return combined.slice(0, 3).map((a) => a.id)
 }
 
-// Affirmations by date
+// Affirmations by date (active + trashed, so deleted items still appear in calendar)
 export function getAffirmationsByDate(dateStr: string): Affirmation[] {
-  return getAffirmations().filter((a) => a.completedDates.includes(dateStr))
+  const all = [...getAffirmations(), ...getTrash()]
+  return all.filter((a) => a.completedDates.includes(dateStr))
 }
 
 // Extra daily affirmations (beyond base 3)

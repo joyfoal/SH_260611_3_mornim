@@ -267,25 +267,27 @@ function CalendarView() {
                 완료: {selectedDay.completedCount}개
                 {selectedDay.dominantCategory && ` · ${selectedDay.dominantCategory}`}
               </div>
-              {selectedAffirmations.length > 0 && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '8px' }}>
-                  {selectedAffirmations.map((a) => (
-                    <div
-                      key={a.id}
-                      style={{
-                        padding: '8px 10px',
-                        background: 'var(--color-bg-surface)',
-                        borderRadius: '8px',
-                        fontSize: '13px',
-                        color: 'var(--color-text-primary)',
-                        lineHeight: 1.4,
-                      }}
-                    >
-                      ✓ {a.text}
-                    </div>
-                  ))}
-                </div>
-              )}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '8px' }}>
+                {selectedAffirmations.length > 0 ? selectedAffirmations.map((a) => (
+                  <div
+                    key={a.id}
+                    style={{
+                      padding: '8px 10px',
+                      background: 'var(--color-bg-surface)',
+                      borderRadius: '8px',
+                      fontSize: '13px',
+                      color: 'var(--color-text-primary)',
+                      lineHeight: 1.4,
+                    }}
+                  >
+                    ✓ {a.text}
+                  </div>
+                )) : (
+                  <div style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>
+                    완료한 성공의 말이 삭제되었어요
+                  </div>
+                )}
+              </div>
             </>
           ) : (
             <div style={{ marginBottom: '8px', color: 'var(--color-text-muted)' }}>아직 기록이 없어요</div>
