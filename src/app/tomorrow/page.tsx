@@ -81,7 +81,7 @@ export default function TomorrowPage() {
 
       {/* Today's note section */}
       <div style={{ marginBottom: '28px' }}>
-        <p style={{ fontSize: '18px', color: 'var(--color-text-muted)', marginBottom: '10px', fontWeight: 700 }}>
+        <p style={{ fontSize: '18px', color: 'var(--color-text-onDark)', marginBottom: '10px', fontWeight: 700 }}>
           오늘의 나에게
         </p>
         <textarea
