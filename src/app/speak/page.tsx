@@ -234,6 +234,16 @@ function SpeakPageInner() {
     }
   }, [screen, startCamera, startSTT])
 
+  // 모든 단어 인식 시 자동 완료
+  useEffect(() => {
+    if (screen !== 'speak' || !affirmation) return
+    const words = affirmation.text.split(' ').filter(Boolean)
+    if (words.length > 0 && recognizedWords.size >= words.length) {
+      const timer = setTimeout(() => handleComplete(), 600)
+      return () => clearTimeout(timer)
+    }
+  }, [recognizedWords, screen, affirmation, handleComplete])
+
   const handleComplete = useCallback(() => {
     if (!affirmation) return
 
