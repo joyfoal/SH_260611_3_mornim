@@ -10,6 +10,7 @@ export interface AudioRecord {
   blob: Blob
   createdAt: number
   keepForever: boolean
+  inTrash?: boolean
 }
 
 function openDB(): Promise<IDBDatabase> {
@@ -44,7 +45,7 @@ export async function getAudioRecords(): Promise<AudioRecord[]> {
     req.onsuccess = () => {
       const now = Date.now()
       const records = (req.result as AudioRecord[]).filter(
-        (r) => r.keepForever || now - r.createdAt < SEVEN_DAYS_MS
+        (r) => !r.inTrash && (r.keepForever || now - r.createdAt < SEVEN_DAYS_MS)
       )
       resolve(records.sort((a, b) => b.createdAt - a.createdAt))
     }
@@ -113,6 +114,62 @@ export async function getRecentAudioRecord(): Promise<AudioRecord | null> {
 
 export function createAudioObjectUrl(blob: Blob): string {
   return URL.createObjectURL(blob)
+}
+
+export async function getTrashAudioRecords(): Promise<AudioRecord[]> {
+  const db = await openDB()
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE_NAME, 'readonly')
+    const req = tx.objectStore(STORE_NAME).getAll()
+    req.onsuccess = () => resolve((req.result as AudioRecord[]).filter((r) => r.inTrash))
+    req.onerror = () => reject(req.error)
+  })
+}
+
+export async function moveAudioToTrash(id: string): Promise<void> {
+  const db = await openDB()
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE_NAME, 'readwrite')
+    const store = tx.objectStore(STORE_NAME)
+    const req = store.get(id)
+    req.onsuccess = () => {
+      const record = req.result as AudioRecord | undefined
+      if (record) store.put({ ...record, inTrash: true })
+    }
+    tx.oncomplete = () => resolve()
+    tx.onerror = () => reject(tx.error)
+  })
+}
+
+export async function restoreAudioFromTrash(id: string): Promise<void> {
+  const db = await openDB()
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE_NAME, 'readwrite')
+    const store = tx.objectStore(STORE_NAME)
+    const req = store.get(id)
+    req.onsuccess = () => {
+      const record = req.result as AudioRecord | undefined
+      if (record) store.put({ ...record, inTrash: false })
+    }
+    tx.oncomplete = () => resolve()
+    tx.onerror = () => reject(tx.error)
+  })
+}
+
+export async function emptyAudioTrash(): Promise<void> {
+  const db = await openDB()
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE_NAME, 'readwrite')
+    const store = tx.objectStore(STORE_NAME)
+    const req = store.getAll()
+    req.onsuccess = () => {
+      ;(req.result as AudioRecord[]).forEach((r) => {
+        if (r.inTrash) store.delete(r.id)
+      })
+    }
+    tx.oncomplete = () => resolve()
+    tx.onerror = () => reject(tx.error)
+  })
 }
 
 export async function deleteAudioRecord(id: string): Promise<void> {

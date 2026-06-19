@@ -6,7 +6,7 @@ import { AppLayout } from '@/components/ui/AppLayout'
 import { Plus, Trash2, Play, Pause } from 'lucide-react'
 import { getAffirmations, moveToTrash, getCategories, type Affirmation } from '@/lib/storage'
 import { getCategoryColor } from '@/lib/categories'
-import { getAudioRecords, deleteAudioRecord, type AudioRecord } from '@/lib/audioStorage'
+import { getAudioRecords, moveAudioToTrash, type AudioRecord } from '@/lib/audioStorage'
 
 export default function AffirmationsPage() {
   const router = useRouter()
@@ -85,10 +85,10 @@ export default function AffirmationsPage() {
   const handleDeleteAudio = async (affirmationId: string) => {
     const record = audioMap[affirmationId]
     if (!record) return
-    if (!confirm('이 녹음을 삭제할까요?')) return
+    if (!confirm('이 녹음을 휴지통으로 이동할까요?')) return
     if (playingId === affirmationId) stopCurrentAudio()
     try {
-      await deleteAudioRecord(record.id)
+      await moveAudioToTrash(record.id)
       setAudioMap((prev) => {
         const next = { ...prev }
         delete next[affirmationId]

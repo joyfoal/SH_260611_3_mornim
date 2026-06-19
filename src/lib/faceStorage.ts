@@ -23,10 +23,11 @@ export interface FaceData {
 export interface FaceProfile {
   id: 'default'
   createdAt: number
-  imageBlob?: Blob              // 원본 얼굴 사진 (선택)
-  faceData?: FaceData           // 얼굴 분석 결과 (선택)
-  profileImageBlob?: Blob       // AI가 생성한 스타일 캐릭터 이미지
-  profileDescription?: string   // 캐릭터 생성 시 사용한 설명
+  imageBlob?: Blob
+  faceData?: FaceData
+  profileImageBlob?: Blob
+  profileDescription?: string
+  inTrash?: boolean
 }
 
 function openDB(): Promise<IDBDatabase> {
@@ -58,8 +59,54 @@ export async function getFaceProfile(): Promise<FaceProfile | null> {
   return new Promise((resolve, reject) => {
     const tx = db.transaction(STORE_NAME, 'readonly')
     const req = tx.objectStore(STORE_NAME).get('default')
-    req.onsuccess = () => resolve((req.result as FaceProfile) ?? null)
+    req.onsuccess = () => {
+      const p = req.result as FaceProfile | undefined
+      resolve((p && !p.inTrash) ? p : null)
+    }
     req.onerror = () => reject(req.error)
+  })
+}
+
+export async function getFaceProfileFromTrash(): Promise<FaceProfile | null> {
+  const db = await openDB()
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE_NAME, 'readonly')
+    const req = tx.objectStore(STORE_NAME).get('default')
+    req.onsuccess = () => {
+      const p = req.result as FaceProfile | undefined
+      resolve((p && p.inTrash) ? p : null)
+    }
+    req.onerror = () => reject(req.error)
+  })
+}
+
+export async function moveFaceProfileToTrash(): Promise<void> {
+  const db = await openDB()
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE_NAME, 'readwrite')
+    const store = tx.objectStore(STORE_NAME)
+    const req = store.get('default')
+    req.onsuccess = () => {
+      const p = req.result as FaceProfile | undefined
+      if (p) store.put({ ...p, inTrash: true })
+    }
+    tx.oncomplete = () => resolve()
+    tx.onerror = () => reject(tx.error)
+  })
+}
+
+export async function restoreFaceProfileFromTrash(): Promise<void> {
+  const db = await openDB()
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE_NAME, 'readwrite')
+    const store = tx.objectStore(STORE_NAME)
+    const req = store.get('default')
+    req.onsuccess = () => {
+      const p = req.result as FaceProfile | undefined
+      if (p) store.put({ ...p, inTrash: false })
+    }
+    tx.oncomplete = () => resolve()
+    tx.onerror = () => reject(tx.error)
   })
 }
 

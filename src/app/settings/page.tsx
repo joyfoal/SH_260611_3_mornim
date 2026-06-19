@@ -20,9 +20,9 @@ import {
   emptyTrash,
   type AlarmSettings,
 } from '@/lib/storage'
-import { getAudioRecords, setAudioKeepForever, clearAllAudioRecords, type AudioRecord } from '@/lib/audioStorage'
-import { clearFaceStorage } from '@/lib/faceStorage'
-import { clearSuccessImages } from '@/lib/successImageStorage'
+import { getAudioRecords, setAudioKeepForever, clearAllAudioRecords, getTrashAudioRecords, restoreAudioFromTrash, emptyAudioTrash, type AudioRecord } from '@/lib/audioStorage'
+import { clearFaceStorage, getFaceProfileFromTrash, restoreFaceProfileFromTrash, type FaceProfile } from '@/lib/faceStorage'
+import { clearSuccessImages, getSuccessImageFromTrash, restoreSuccessImageFromTrash, type SuccessImageRecord } from '@/lib/successImageStorage'
 import { Pencil, Trash2, Check, X, Plus, Bell, Download } from 'lucide-react'
 import { WeeklyReportModal } from '@/components/ui/WeeklyReportModal'
 
@@ -464,24 +464,77 @@ function AlarmManager() {
 // ─── Trash Manager ────────────────────────────────────────────────
 function TrashManager() {
   const [open, setOpen] = useState(false)
-  const [trash, setTrash] = useState<ReturnType<typeof getTrash>>([])
+  const [affirmations, setAffirmations] = useState<ReturnType<typeof getTrash>>([])
+  const [audios, setAudios] = useState<AudioRecord[]>([])
+  const [faceProfile, setFaceProfile] = useState<FaceProfile | null>(null)
+  const [successImage, setSuccessImage] = useState<SuccessImageRecord | null>(null)
 
-  const reload = () => setTrash(getTrash())
+  const totalCount = affirmations.length + audios.length + (faceProfile ? 1 : 0) + (successImage ? 1 : 0)
+
+  const reload = async () => {
+    setAffirmations(getTrash())
+    try { setAudios(await getTrashAudioRecords()) } catch { setAudios([]) }
+    try { setFaceProfile(await getFaceProfileFromTrash()) } catch { setFaceProfile(null) }
+    try { setSuccessImage(await getSuccessImageFromTrash()) } catch { setSuccessImage(null) }
+  }
 
   useEffect(() => {
-    if (open) reload()
+    if (open) { reload() }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open])
 
-  const handleRestore = (id: string) => {
+  const handleRestoreAffirmation = (id: string) => {
     restoreFromTrash(id)
     reload()
   }
 
-  const handleEmpty = () => {
-    if (!confirm('휴지통을 비울까요? 삭제된 성공의 말은 복구할 수 없어요.')) return
-    emptyTrash()
+  const handleRestoreAudio = async (id: string) => {
+    await restoreAudioFromTrash(id)
     reload()
   }
+
+  const handleRestoreFace = async () => {
+    await restoreFaceProfileFromTrash()
+    reload()
+  }
+
+  const handleRestoreSuccess = async () => {
+    await restoreSuccessImageFromTrash()
+    reload()
+  }
+
+  const handleEmpty = async () => {
+    if (!confirm('휴지통을 비울까요? 모든 항목이 영구적으로 삭제됩니다.')) return
+    emptyTrash()
+    await Promise.all([
+      emptyAudioTrash(),
+      faceProfile ? clearFaceStorage() : Promise.resolve(),
+      successImage ? clearSuccessImages() : Promise.resolve(),
+    ])
+    reload()
+  }
+
+  const itemStyle: React.CSSProperties = {
+    padding: '10px 12px',
+    background: 'var(--color-bg-surface)',
+    border: '1px solid var(--color-border)',
+    borderRadius: '10px',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '10px',
+  }
+
+  const restoreBtn: React.CSSProperties = {
+    padding: '5px 10px', border: '1px solid var(--color-accent-primary)',
+    borderRadius: '8px', background: 'transparent', cursor: 'pointer',
+    fontSize: '12px', color: 'var(--color-accent-primary)', flexShrink: 0,
+  }
+
+  const label = (icon: string, text: string) => (
+    <span style={{ fontSize: '10px', color: 'var(--color-text-muted)', background: 'var(--color-bg-primary)', borderRadius: '6px', padding: '2px 6px', marginBottom: '2px', display: 'inline-block' }}>
+      {icon} {text}
+    </span>
+  )
 
   return (
     <div style={{ background: 'var(--color-bg-card)', borderRadius: '16px', padding: '16px', marginBottom: '16px' }}>
@@ -491,7 +544,7 @@ function TrashManager() {
             휴지통
           </p>
           <p style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>
-            삭제된 성공의 말 {open ? '' : `· ${getTrash().length}개`}
+            성공의 말 · 녹음 · 이미지 {open ? '' : `· ${totalCount}개`}
           </p>
         </div>
         <button
@@ -504,44 +557,66 @@ function TrashManager() {
 
       {open && (
         <div style={{ marginTop: '16px' }}>
-          {trash.length === 0 ? (
+          {totalCount === 0 ? (
             <p style={{ fontSize: '13px', color: 'var(--color-text-muted)', fontStyle: 'italic', textAlign: 'center', padding: '16px 0' }}>
               휴지통이 비어있어요
             </p>
           ) : (
             <>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '12px' }}>
-                {trash.map((item) => (
-                  <div
-                    key={item.id}
-                    style={{
-                      padding: '10px 12px',
-                      background: 'var(--color-bg-surface)',
-                      border: '1px solid var(--color-border)',
-                      borderRadius: '10px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '10px',
-                    }}
-                  >
+
+                {affirmations.map((item) => (
+                  <div key={item.id} style={itemStyle}>
                     <div style={{ flex: 1 }}>
+                      {label('✦', '성공의 말')}
                       <p style={{ fontSize: '13px', color: 'var(--color-text-primary)', lineHeight: 1.4, marginBottom: '2px' }}>
                         {item.text}
                       </p>
                       <span style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>{item.category}</span>
                     </div>
-                    <button
-                      onClick={() => handleRestore(item.id)}
-                      style={{
-                        padding: '5px 10px', border: '1px solid var(--color-accent-primary)',
-                        borderRadius: '8px', background: 'transparent', cursor: 'pointer',
-                        fontSize: '12px', color: 'var(--color-accent-primary)', flexShrink: 0,
-                      }}
-                    >
-                      복원
-                    </button>
+                    <button onClick={() => handleRestoreAffirmation(item.id)} style={restoreBtn}>복원</button>
                   </div>
                 ))}
+
+                {audios.map((rec) => (
+                  <div key={rec.id} style={itemStyle}>
+                    <div style={{ flex: 1 }}>
+                      {label('🎙', '녹음 파일')}
+                      <p style={{ fontSize: '13px', color: 'var(--color-text-primary)', lineHeight: 1.4, marginBottom: '2px' }}>
+                        {rec.affirmationText}
+                      </p>
+                      <span style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>
+                        {new Date(rec.createdAt).toLocaleDateString('ko-KR')}
+                      </span>
+                    </div>
+                    <button onClick={() => handleRestoreAudio(rec.id)} style={restoreBtn}>복원</button>
+                  </div>
+                ))}
+
+                {faceProfile && (
+                  <div style={itemStyle}>
+                    <div style={{ flex: 1 }}>
+                      {label('👤', '프로필 이미지')}
+                      <p style={{ fontSize: '13px', color: 'var(--color-text-primary)', lineHeight: 1.4 }}>
+                        {new Date(faceProfile.createdAt).toLocaleDateString('ko-KR')} 생성
+                      </p>
+                    </div>
+                    <button onClick={handleRestoreFace} style={restoreBtn}>복원</button>
+                  </div>
+                )}
+
+                {successImage && (
+                  <div style={itemStyle}>
+                    <div style={{ flex: 1 }}>
+                      {label('🖼', '성공 이미지')}
+                      <p style={{ fontSize: '13px', color: 'var(--color-text-primary)', lineHeight: 1.4 }}>
+                        {new Date(successImage.createdAt).toLocaleDateString('ko-KR')} 생성
+                      </p>
+                    </div>
+                    <button onClick={handleRestoreSuccess} style={restoreBtn}>복원</button>
+                  </div>
+                )}
+
               </div>
               <button
                 onClick={handleEmpty}

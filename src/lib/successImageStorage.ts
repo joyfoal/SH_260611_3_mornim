@@ -6,6 +6,7 @@ export interface SuccessImageRecord {
   id: 'latest'
   createdAt: number
   imageBlob: Blob
+  inTrash?: boolean
 }
 
 function openDB(): Promise<IDBDatabase> {
@@ -37,8 +38,54 @@ export async function getSuccessImage(): Promise<SuccessImageRecord | null> {
   return new Promise((resolve, reject) => {
     const tx = db.transaction(STORE_NAME, 'readonly')
     const req = tx.objectStore(STORE_NAME).get('latest')
-    req.onsuccess = () => resolve((req.result as SuccessImageRecord) ?? null)
+    req.onsuccess = () => {
+      const r = req.result as SuccessImageRecord | undefined
+      resolve((r && !r.inTrash) ? r : null)
+    }
     req.onerror = () => reject(req.error)
+  })
+}
+
+export async function getSuccessImageFromTrash(): Promise<SuccessImageRecord | null> {
+  const db = await openDB()
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE_NAME, 'readonly')
+    const req = tx.objectStore(STORE_NAME).get('latest')
+    req.onsuccess = () => {
+      const r = req.result as SuccessImageRecord | undefined
+      resolve((r && r.inTrash) ? r : null)
+    }
+    req.onerror = () => reject(req.error)
+  })
+}
+
+export async function moveSuccessImageToTrash(): Promise<void> {
+  const db = await openDB()
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE_NAME, 'readwrite')
+    const store = tx.objectStore(STORE_NAME)
+    const req = store.get('latest')
+    req.onsuccess = () => {
+      const r = req.result as SuccessImageRecord | undefined
+      if (r) store.put({ ...r, inTrash: true })
+    }
+    tx.oncomplete = () => resolve()
+    tx.onerror = () => reject(tx.error)
+  })
+}
+
+export async function restoreSuccessImageFromTrash(): Promise<void> {
+  const db = await openDB()
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE_NAME, 'readwrite')
+    const store = tx.objectStore(STORE_NAME)
+    const req = store.get('latest')
+    req.onsuccess = () => {
+      const r = req.result as SuccessImageRecord | undefined
+      if (r) store.put({ ...r, inTrash: false })
+    }
+    tx.oncomplete = () => resolve()
+    tx.onerror = () => reject(tx.error)
   })
 }
 
