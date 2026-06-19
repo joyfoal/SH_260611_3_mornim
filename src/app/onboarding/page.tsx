@@ -440,6 +440,25 @@ export default function OnboardingPage() {
       saveAlarmSettings({ audioId: '', hour: Math.floor(notifTime / 60), minute: notifTime % 60 })
     }
 
+    const now = Date.now()
+    const ids: string[] = []
+
+    // 1. 녹음한 성공의 말 (화면 2에서 말한 문장)
+    const voiceId = `voice-${now}`
+    saveAffirmation({ id: voiceId, text: affText, category, createdAt: new Date().toISOString(), completedDates: [] })
+    ids.push(voiceId)
+
+    // 2. 화면 1에서 추천된 성공의 말 (카테고리별 1개씩)
+    cats.forEach((cat, i) => {
+      const suggestion = SUGGESTIONS[cat]?.[0]
+      if (suggestion && suggestion !== affText) {
+        const id = `suggestion-${now}-${i}`
+        saveAffirmation({ id, text: suggestion, category: cat, createdAt: new Date().toISOString(), completedDates: [] })
+        ids.push(id)
+      }
+    })
+
+    // 3. AI 추천 (추가 보완용)
     try {
       const res = await fetch('/api/recommend', {
         method: 'POST',
@@ -447,23 +466,14 @@ export default function OnboardingPage() {
         body: JSON.stringify({ prompt: '', category }),
       })
       const data = await res.json() as { affirmations: string[] }
-      const now = Date.now()
-      const ids: string[] = []
-      const voiceId = `voice-${now}`
-      saveAffirmation({ id: voiceId, text: affText, category, createdAt: new Date().toISOString(), completedDates: [] })
-      ids.push(voiceId)
       data.affirmations.forEach((text, i) => {
         const id = `onboarding-${now}-${i}`
         saveAffirmation({ id, text, category, createdAt: new Date().toISOString(), completedDates: [] })
         ids.push(id)
       })
-      saveTodayAffirmationIds(ids.slice(0, 3))
-    } catch {
-      const now = Date.now()
-      const voiceId = `voice-${now}`
-      saveAffirmation({ id: voiceId, text: affText, category, createdAt: new Date().toISOString(), completedDates: [] })
-      saveTodayAffirmationIds([voiceId])
-    }
+    } catch { /* AI 추천 실패해도 계속 진행 */ }
+
+    saveTodayAffirmationIds(ids.slice(0, 3))
     setOnboarded()
     router.push('/home')
   }
