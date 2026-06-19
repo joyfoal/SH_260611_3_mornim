@@ -17,7 +17,7 @@ import {
   type Affirmation,
 } from '@/lib/storage'
 import { updateStreak } from '@/lib/streak'
-import { saveAudioRecord, getAudioRecordsByAffirmationId } from '@/lib/audioStorage'
+import { saveAudioRecord, getAudioRecords } from '@/lib/audioStorage'
 
 const MAX_EXTRA = 4
 
@@ -94,11 +94,13 @@ function SpeakPageInner() {
     setDataLoaded(true)
   }, [searchParams])
 
-  // 기존 녹음 여부 확인 (ref + state 동시 업데이트 — state는 UI용, ref는 startCamera 클로저용)
+  // 기존 녹음 여부 확인 — ID 또는 텍스트가 일치하는 녹음이 있으면 있는 것으로 판단
   useEffect(() => {
     if (!affirmation) return
-    getAudioRecordsByAffirmationId(affirmation.id).then((records) => {
-      const has = records.length > 0
+    getAudioRecords().then((records) => {
+      const has = records.some(
+        (r) => r.affirmationId === affirmation.id || r.affirmationText === affirmation.text
+      )
       hasExistingRecordingRef.current = has
       setHasExistingRecording(has)
     }).catch(() => {
