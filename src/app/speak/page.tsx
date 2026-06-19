@@ -53,6 +53,7 @@ function SpeakPageInner() {
   // Re-record state: idle | recording | confirm
   const [reRecordState, setReRecordState] = useState<'idle' | 'recording' | 'confirm'>('idle')
   const [hasExistingRecording, setHasExistingRecording] = useState(false)
+  const hasExistingRecordingRef = useRef(false) // ref로도 유지 — startCamera 클로저에서 사용
   const reRecordBlobRef = useRef<Blob | null>(null)
   const reRecordRecorderRef = useRef<MediaRecorder | null>(null)
   const reRecordChunksRef = useRef<Blob[]>([])
@@ -90,12 +91,17 @@ function SpeakPageInner() {
     setDataLoaded(true)
   }, [searchParams])
 
-  // 기존 녹음 여부 확인
+  // 기존 녹음 여부 확인 (ref + state 동시 업데이트 — state는 UI용, ref는 startCamera 클로저용)
   useEffect(() => {
     if (!affirmation) return
     getAudioRecordsByAffirmationId(affirmation.id).then((records) => {
-      setHasExistingRecording(records.length > 0)
-    }).catch(() => setHasExistingRecording(false))
+      const has = records.length > 0
+      hasExistingRecordingRef.current = has
+      setHasExistingRecording(has)
+    }).catch(() => {
+      hasExistingRecordingRef.current = false
+      setHasExistingRecording(false)
+    })
   }, [affirmation])
 
   useEffect(() => {
@@ -126,8 +132,8 @@ function SpeakPageInner() {
       recorder.onstop = async () => {
         const blob = new Blob(audioChunksRef.current, { type: mimeType || 'audio/webm' })
         const aff = pendingAffirmationRef.current
-        // 기존 녹음이 없을 때만(첫 번째) 자동 저장
-        if (aff && blob.size > 0 && !hasExistingRecording) {
+        // 기존 녹음이 없을 때만(첫 번째) 자동 저장 — ref로 최신값 참조
+        if (aff && blob.size > 0 && !hasExistingRecordingRef.current) {
           try {
             await saveAudioRecord({
               id: `audio-${Date.now()}-${Math.random().toString(36).slice(2)}`,
@@ -149,7 +155,7 @@ function SpeakPageInner() {
         if (videoRef.current) videoRef.current.srcObject = stream
       } catch { /* camera denied */ }
     }
-  }, [hasExistingRecording])
+  }, []) // hasExistingRecordingRef.current으로 읽으므로 의존성 불필요
 
   const startSTT = useCallback(() => {
     if (typeof window === 'undefined') return
