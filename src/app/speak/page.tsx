@@ -65,6 +65,8 @@ function SpeakPageInner() {
   const pendingAffirmationRef = useRef<Affirmation | null>(null)
   const streamRef = useRef<MediaStream | null>(null)
   const isExtraMode = useRef(false)
+  const autoCompleteTriggeredRef = useRef(false)
+  const autoCompleteTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
     if (typeof window === 'undefined') return
@@ -234,13 +236,19 @@ function SpeakPageInner() {
     }
   }, [screen, startCamera, startSTT])
 
-  // 모든 단어 인식 시 자동 완료
+  // affirmation 바뀌면 자동완료 플래그 리셋
   useEffect(() => {
-    if (screen !== 'speak' || !affirmation) return
+    autoCompleteTriggeredRef.current = false
+    if (autoCompleteTimerRef.current) clearTimeout(autoCompleteTimerRef.current)
+  }, [affirmation])
+
+  // 모든 단어 인식 시 자동 완료 (타이머가 onresult마다 리셋되지 않도록 ref로 제어)
+  useEffect(() => {
+    if (screen !== 'speak' || !affirmation || autoCompleteTriggeredRef.current) return
     const words = affirmation.text.split(' ').filter(Boolean)
     if (words.length > 0 && recognizedWords.size >= words.length) {
-      const timer = setTimeout(() => handleComplete(), 600)
-      return () => clearTimeout(timer)
+      autoCompleteTriggeredRef.current = true
+      autoCompleteTimerRef.current = setTimeout(() => handleComplete(), 600)
     }
   }, [recognizedWords, screen, affirmation, handleComplete])
 
