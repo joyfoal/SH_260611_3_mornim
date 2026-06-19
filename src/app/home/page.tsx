@@ -665,9 +665,6 @@ export default function HomePage() {
           </div>
         )}
 
-        {/* Recent recording player — above calendar */}
-        <RecentRecordingPlayer />
-
         {/* Calendar */}
         <CalendarView />
 
@@ -722,6 +719,9 @@ export default function HomePage() {
             게임하기
           </button>
         </div>
+
+        {/* Recent recording player */}
+        <RecentRecordingPlayer />
 
         {/* 저장된 성공 이미지 */}
         <SavedSuccessImage onTap={() => router.push('/games/success-image')} />
