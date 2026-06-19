@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { getAffirmations, type Affirmation } from '@/lib/storage'
 import {
@@ -71,6 +71,10 @@ export default function SuccessImagePage() {
   const [profileSaved, setProfileSaved] = useState(false)
   const [profileError, setProfileError] = useState<string | null>(null)
 
+  // 부정어 감지
+  const [positiveSuggestion, setPositiveSuggestion] = useState<string | null>(null)
+  const negativeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
   // Step 2 — 성공 이미지 생성
   const [successGenerating, setSuccessGenerating] = useState(false)
   const [successUrl, setSuccessUrl] = useState<string | null>(null)
@@ -98,6 +102,22 @@ export default function SuccessImagePage() {
   useEffect(() => {
     return () => { if (faceThumbnail) URL.revokeObjectURL(faceThumbnail) }
   }, [faceThumbnail])
+
+  const checkNegative = useCallback((val: string) => {
+    if (negativeTimerRef.current) clearTimeout(negativeTimerRef.current)
+    if (!val.trim()) { setPositiveSuggestion(null); return }
+    negativeTimerRef.current = setTimeout(async () => {
+      try {
+        const res = await fetch('/api/detect-negative', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text: val }),
+        })
+        const data = await res.json() as { isNegative: boolean; alternative: string | null }
+        setPositiveSuggestion(data.isNegative && data.alternative ? data.alternative : null)
+      } catch { setPositiveSuggestion(null) }
+    }, 800)
+  }, [])
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -364,6 +384,7 @@ export default function SuccessImagePage() {
                 // 글 + 스타일
                 setText('')
                 setImageStyle('ghibli')
+                setPositiveSuggestion(null)
                 // 확언 선택
                 setSelectedIds([])
                 // 성공 이미지
@@ -456,9 +477,11 @@ export default function SuccessImagePage() {
               value={text}
               onChange={(e) => {
                 setText(e.target.value)
+                setPositiveSuggestion(null)
                 setProfileUrl(null)
                 setProfileSaved(false)
                 setSuccessUrl(null)
+                checkNegative(e.target.value)
               }}
               placeholder="원하는 느낌이나 긍정의 말을 입력해요 (선택)"
               rows={2}
@@ -466,7 +489,7 @@ export default function SuccessImagePage() {
                 width: '100%',
                 padding: '11px 13px',
                 background: 'var(--color-bg-primary)',
-                border: '1.5px solid var(--color-border)',
+                border: positiveSuggestion ? '1.5px solid #F59E0B' : '1.5px solid var(--color-border)',
                 borderRadius: '11px',
                 fontSize: '13px',
                 color: 'var(--color-text-primary)',
@@ -474,9 +497,50 @@ export default function SuccessImagePage() {
                 outline: 'none',
                 lineHeight: 1.6,
                 boxSizing: 'border-box',
-                marginBottom: '12px',
+                marginBottom: positiveSuggestion ? '8px' : '12px',
               }}
             />
+            {/* 부정어 감지 시 긍정 제안 */}
+            {positiveSuggestion && (
+              <div style={{
+                marginBottom: '12px',
+                padding: '10px 12px',
+                background: '#FFFBEB',
+                border: '1px solid #F59E0B',
+                borderRadius: '10px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                flexWrap: 'wrap',
+              }}>
+                <span style={{ fontSize: '13px', color: '#92400E', flex: 1 }}>
+                  💡 긍정의 말로 바꿔볼까요?<br />
+                  <span style={{ fontWeight: 600 }}>"{positiveSuggestion}"</span>
+                </span>
+                <button
+                  onClick={() => {
+                    setText(positiveSuggestion)
+                    setPositiveSuggestion(null)
+                    setProfileUrl(null)
+                    setProfileSaved(false)
+                    setSuccessUrl(null)
+                  }}
+                  style={{
+                    padding: '6px 12px',
+                    background: '#F59E0B',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '8px',
+                    fontSize: '12px',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  바꾸기
+                </button>
+              </div>
+            )}
 
             {/* 스타일 선택 */}
             <div

@@ -37,16 +37,26 @@ export async function POST(req: NextRequest) {
     let b64: string | null | undefined
 
     if (mode === 'text') {
-      const mood = text ?? '긍정과 행복'
+      const mood = text?.trim() ?? ''
+      const hasText = mood.length > 0
+
       const prompt = style === 'realistic'
-        ? `A beautiful, photorealistic portrait of a radiant person who embodies the feeling of: "${mood}".
-Warm golden natural light, professional photography style, soft bokeh background.
-The person looks genuinely joyful, confident, and fulfilled. Authentic expression.
+        ? `Create a high-quality photorealistic image of a confident, radiant person${hasText ? ` in a scene that captures the feeling of: "${mood}"` : ' standing in a bright, uplifting environment'}.
+Cinematic composition, warm natural lighting, professional DSLR photography quality.
+The person's expression shows genuine joy, inner strength, and deep fulfillment.
+Soft background bokeh, detailed textures, vibrant yet natural colors.
+The overall atmosphere is deeply positive, hopeful, and inspiring — like a motivational life image.
 NO TEXT OR LETTERS in the image.`
-        : `Create a beautiful, inspiring character illustration that captures the mood and feeling of: "${mood}".
-Studio Ghibli anime art style. Warm golden light, soft watercolor tones, magical atmosphere.
-A person radiating joy, warmth, positivity, and inner peace.
-Lush nature scene with soft sunlight.
+        : hasText
+        ? `Create an anime/cartoon style illustration that vividly expresses the mood and feeling of: "${mood}".
+The art style, color palette, atmosphere, and visual elements should fully embody this mood.
+A warm, joyful character radiating positivity, energy, and inner strength.
+Uplifting and inspiring visual narrative. The image is deeply positive, heartwarming, and encouraging.
+NO TEXT OR LETTERS in the image.`
+        : `Create a beautiful Studio Ghibli anime character illustration.
+Classic Ghibli aesthetic: soft watercolor tones, warm golden sunlight, gentle breeze, enchanting nature scene.
+A cheerful person with a peaceful, joyful smile surrounded by cherry blossoms, lush green trees, and soft light.
+The scene radiates warmth, hope, and deep positivity — a heartwarming and uplifting image.
 NO TEXT OR LETTERS in the image.`
 
       const response = await openai.images.generate({
@@ -68,23 +78,23 @@ NO TEXT OR LETTERS in the image.`
         faceData?.eyewear === 'glasses' ? 'Keep their glasses exactly.' :
         faceData?.eyewear === 'sunglasses' ? 'Keep their sunglasses exactly.' :
         'No glasses or eyewear.'
-      const moodLine = (mode === 'face+text' && text)
-        ? `\nThe scene captures the mood and feeling of: "${text}".`
+      const moodLine = (mode === 'face+text' && text?.trim())
+        ? `\nThe scene captures the mood and feeling of: "${text.trim()}".`
         : ''
 
       const prompt = style === 'realistic'
-        ? `Create a beautiful, radiant photorealistic portrait of this ${genderLabel}.
+        ? `Create a stunning photorealistic portrait of this ${genderLabel}.
 Character reference: ${faceDesc}
-CRITICAL: Maintain their exact facial features, face shape, eye shape, skin tone, and identity. ${eyewearRule}${moodLine}
-Warm golden natural light, professional photography style, soft bokeh background.
-Genuine joy, confidence, and fulfillment in their expression.
+CRITICAL: Preserve their exact facial features, face shape, eye shape, skin tone, and identity. ${eyewearRule}${moodLine}
+Warm golden natural light, cinematic composition, professional photography quality.
+Their expression radiates genuine joy, confidence, deep fulfillment, and radiant positive energy.
+The image is uplifting, beautiful, and deeply inspiring.
 NO TEXT OR LETTERS in the image.`
-        : `Transform this ${genderLabel} into a Studio Ghibli anime character.
+        : `Transform this ${genderLabel} into a Studio Ghibli anime character with their exact facial features preserved.
 Character reference: ${faceDesc}
 CRITICAL: Maintain their face shape, eye shape, skin tone, and identity exactly. ${eyewearRule}${moodLine}
-Place them in a warm, magical, uplifting nature scene filled with soft golden light.
-Detailed Ghibli art style with soft watercolor tones.
-The character radiates positivity, joy, and inner peace.
+Beautiful magical Ghibli world: warm golden sunlight filtering through trees, cherry blossoms, soft watercolor tones.
+The character radiates joy, warmth, positivity, and hope — a deeply uplifting and heartwarming scene.
 NO TEXT OR LETTERS in the image.`
 
       const response = await openai.images.edit({
