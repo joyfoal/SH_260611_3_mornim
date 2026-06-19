@@ -87,7 +87,7 @@ export default function TomorrowPage() {
         <textarea
           value={message}
           onChange={(e) => setMessage(e.target.value)}
-          placeholder={placeholder}
+          placeholder={`${placeholder}\n메시지를 입력하세요`}
           rows={3}
           style={{
             width: '100%',
@@ -109,8 +109,8 @@ export default function TomorrowPage() {
         <h2 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--color-text-onDark)', marginBottom: '6px' }}>
           내일의 나에게
         </h2>
-        <p style={{ fontSize: '13px', color: 'var(--color-text-muted)', marginBottom: '6px' }}>
-          내일 말하고 싶은 성공의 말 최대 7개 (선택 안 하면 AI가 3개 골라줘요)
+        <p style={{ fontSize: '13px', color: 'var(--color-text-muted)', marginBottom: '6px', lineHeight: 1.6 }}>
+          내일 말할 성공의 말을 골라주세요<br />최대 7개 선택가능, 고르지 않으면 AI가 3개를 골라줘요
         </p>
         <p style={{ fontSize: '11px', color: 'var(--color-accent-light)', marginBottom: '12px' }}>
           {selectedIds.length}/7 선택됨
