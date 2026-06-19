@@ -131,16 +131,15 @@ export default function SuccessImagePage() {
       // 매번 IndexedDB에서 최신 얼굴 데이터 새로 불러오기
       const latestProfile = await getFaceProfile().catch(() => null)
 
-      const body: { affirmations: string[]; faceDescription?: string; faceImageBase64?: string; eyewear?: string } = {
+      const body: { affirmations: string[]; faceData?: FaceData; faceImageBase64?: string } = {
         affirmations: affirmationTexts,
       }
       if (latestProfile?.imageBlob) {
         body.faceImageBase64 = await resizeImage(latestProfile.imageBlob, 512, 'png')
-        body.eyewear = latestProfile.faceData.eyewear ?? 'none'
+        body.faceData = latestProfile.faceData
         setUsedFace(true)
       } else if (latestProfile?.faceData.generationPrompt) {
-        body.faceDescription = latestProfile.faceData.generationPrompt
-        body.eyewear = latestProfile.faceData.eyewear ?? 'none'
+        body.faceData = latestProfile.faceData
         setUsedFace(true)
       }
 
