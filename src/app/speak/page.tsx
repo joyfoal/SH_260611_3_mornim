@@ -59,6 +59,8 @@ function SpeakPageInner() {
   const reRecordChunksRef = useRef<Blob[]>([])
   const reRecordStreamRef = useRef<MediaStream | null>(null)
 
+  const [isRecording, setIsRecording] = useState(false)
+
   const videoRef = useRef<HTMLVideoElement>(null)
   const recognitionRef = useRef<{ stop: () => void } | null>(null)
   const shouldListenRef = useRef(false)
@@ -67,7 +69,8 @@ function SpeakPageInner() {
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const audioChunksRef = useRef<Blob[]>([])
   const pendingAffirmationRef = useRef<Affirmation | null>(null)
-  const streamRef = useRef<MediaStream | null>(null)
+  const streamRef = useRef<MediaStream | null>(null)     // 카메라 (video-only)
+  const audioStreamRef = useRef<MediaStream | null>(null) // 마이크 (audio-only)
   const isExtraMode = useRef(false)
   const autoCompleteTriggeredRef = useRef(false)
   const autoCompleteTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -117,45 +120,50 @@ function SpeakPageInner() {
   }, [])
 
   const startCamera = useCallback(async () => {
+    // 1. 카메라 (video-only) — 오디오와 분리해서 안정적으로 시작
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'user' },
-        audio: true,
-      })
-      streamRef.current = stream
-      if (videoRef.current) videoRef.current.srcObject = stream
-
-      const mimeType = getSupportedMimeType()
-      const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined)
-      audioChunksRef.current = []
-      recorder.ondataavailable = (e) => { if (e.data.size > 0) audioChunksRef.current.push(e.data) }
-      recorder.onstop = async () => {
-        const blob = new Blob(audioChunksRef.current, { type: mimeType || 'audio/webm' })
-        const aff = pendingAffirmationRef.current
-        // 기존 녹음이 없을 때만(첫 번째) 자동 저장 — ref로 최신값 참조
-        if (aff && blob.size > 0 && !hasExistingRecordingRef.current) {
-          try {
-            await saveAudioRecord({
-              id: `audio-${Date.now()}-${Math.random().toString(36).slice(2)}`,
-              affirmationId: aff.id,
-              affirmationText: aff.text,
-              blob,
-              createdAt: Date.now(),
-              keepForever: false,
-            })
-          } catch { /* ignore */ }
-        }
+      const videoStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false })
+      streamRef.current = videoStream
+      if (videoRef.current) {
+        videoRef.current.srcObject = videoStream
+        videoRef.current.play().catch(() => {})
       }
-      recorder.start()
-      mediaRecorderRef.current = recorder
-    } catch {
+    } catch { /* 카메라 권한 없음 — 계속 진행 */ }
+
+    // 2. 마이크 (audio-only) — 첫 녹음일 때만 자동 시작
+    if (!hasExistingRecordingRef.current) {
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false })
-        streamRef.current = stream
-        if (videoRef.current) videoRef.current.srcObject = stream
-      } catch { /* camera denied */ }
+        const audioStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false })
+        audioStreamRef.current = audioStream
+        const mimeType = getSupportedMimeType()
+        const recorder = new MediaRecorder(audioStream, mimeType ? { mimeType } : undefined)
+        audioChunksRef.current = []
+        recorder.ondataavailable = (e) => { if (e.data.size > 0) audioChunksRef.current.push(e.data) }
+        recorder.onstart = () => setIsRecording(true)
+        recorder.onstop = async () => {
+          setIsRecording(false)
+          audioStreamRef.current?.getTracks().forEach((t) => t.stop())
+          audioStreamRef.current = null
+          const blob = new Blob(audioChunksRef.current, { type: mimeType || 'audio/webm' })
+          const aff = pendingAffirmationRef.current
+          if (aff && blob.size > 0 && !hasExistingRecordingRef.current) {
+            try {
+              await saveAudioRecord({
+                id: `audio-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+                affirmationId: aff.id,
+                affirmationText: aff.text,
+                blob,
+                createdAt: Date.now(),
+                keepForever: false,
+              })
+            } catch { /* ignore */ }
+          }
+        }
+        recorder.start(500) // 500ms 단위로 청크 수집 — 유실 방지
+        mediaRecorderRef.current = recorder
+      } catch { /* 마이크 권한 없음 */ }
     }
-  }, []) // hasExistingRecordingRef.current으로 읽으므로 의존성 불필요
+  }, [])
 
   const startSTT = useCallback(() => {
     if (typeof window === 'undefined') return
@@ -231,6 +239,10 @@ function SpeakPageInner() {
       if (streamRef.current) {
         streamRef.current.getTracks().forEach((t) => t.stop())
         streamRef.current = null
+      }
+      if (audioStreamRef.current) {
+        audioStreamRef.current.getTracks().forEach((t) => t.stop())
+        audioStreamRef.current = null
       }
       // re-record 정리
       if (reRecordRecorderRef.current && reRecordRecorderRef.current.state !== 'inactive') {
@@ -435,11 +447,24 @@ function SpeakPageInner() {
       <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, rgba(0,0,0,0.45) 0%, rgba(0,0,0,0.15) 40%, rgba(0,0,0,0.55) 100%)', pointerEvents: 'none' }} />
       {isSpeaking && <div style={{ position: 'absolute', inset: 0, animation: 'speakGlow 0.6s ease-in-out', pointerEvents: 'none' }} />}
 
-      {/* Progress */}
-      <div style={{ position: 'relative', zIndex: 10, padding: '20px 16px 0', textAlign: 'center' }}>
+      {/* Progress + 녹음 표시 */}
+      <div style={{ position: 'relative', zIndex: 10, padding: '20px 16px 0', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
         <div style={{ display: 'inline-block', background: 'rgba(0,0,0,0.5)', borderRadius: '20px', padding: '4px 16px', fontSize: '13px', color: 'var(--color-text-muted)' }}>
           {isExtraMode.current ? `보너스 +${extraCount + 1}` : `${currentIndex + 1} / ${queue.length}`}
         </div>
+        {isRecording && (
+          <div style={{
+            display: 'inline-flex', alignItems: 'center', gap: 5,
+            background: 'rgba(194,60,40,0.85)', borderRadius: '20px', padding: '4px 10px',
+            fontSize: '12px', fontWeight: 700, color: '#fff',
+          }}>
+            <span style={{
+              width: 7, height: 7, borderRadius: '50%', background: '#fff', display: 'inline-block',
+              animation: 'onbRecBlink 1s steps(2,end) infinite',
+            }} />
+            녹음 중
+          </div>
+        )}
       </div>
 
       {/* Words overlay */}
