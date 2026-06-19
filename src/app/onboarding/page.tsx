@@ -106,6 +106,14 @@ function PlayIcon() {
   return <svg width={22} height={22} viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.5v13l11-6.5z" /></svg>
 }
 
+function MicIcon({ size = 32 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="9" y="3" width="6" height="11" rx="3" /><path d="M5 11a7 7 0 0 0 14 0M12 18v3" />
+    </svg>
+  )
+}
+
 const ENCOURAGEMENTS = [
   '당신은 정말 해낼 수 있어요!',
   '시작이 반이에요! 오늘도 멋지게!',
@@ -141,7 +149,8 @@ export default function OnboardingPage() {
 
   // Screen 2: camera + STT + recording refs
   const onbVideoRef = useRef<HTMLVideoElement>(null)
-  const onbStreamRef = useRef<MediaStream | null>(null)
+  const onbStreamRef = useRef<MediaStream | null>(null)   // video-only (camera)
+  const onbAudioStreamRef = useRef<MediaStream | null>(null) // audio (recording)
   const onbRecorderRef = useRef<MediaRecorder | null>(null)
   const onbAudioChunksRef = useRef<Blob[]>([])
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -286,133 +295,20 @@ export default function OnboardingPage() {
     }).catch(() => {})
   }, [])
 
-  // Camera + STT + recording: start when entering screen 2, stop when leaving
-  useEffect(() => {
-    if (cur !== 2) {
-      onbShouldListenRef.current = false
-      if (onbRecognitionRef.current) {
-        try { onbRecognitionRef.current.stop() } catch { /* ignore */ }
-        onbRecognitionRef.current = null
-      }
-      if (onbStreamRef.current) {
-        onbStreamRef.current.getTracks().forEach((t) => t.stop())
-        onbStreamRef.current = null
-      }
-      setOnbIsListening(false)
-      return
-    }
-
-    onbShouldListenRef.current = true
+  // 마이크 버튼 탭 → 녹음 + STT 시작 (사용자 제스처로 getUserMedia 호출)
+  const handleMicTap = useCallback(async () => {
     onbCumulativeRef.current = new Set()
+    onbAutoCompleteRef.current = new Set() as unknown as boolean
     onbAutoCompleteRef.current = false
     setOnbRecognizedWords(new Set())
     setRec('recording')
 
-    const startStream = async () => {
-      try {
-        // speak 페이지와 동일: video+audio 하나의 스트림으로 카메라+녹음 동시 처리
-        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: true })
-        onbStreamRef.current = stream
-        if (onbVideoRef.current) {
-          onbVideoRef.current.srcObject = stream
-          onbVideoRef.current.play().catch(() => {})
-        }
-        const mimeType = getSupportedMimeType()
-        const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined)
-        onbAudioChunksRef.current = []
-        recorder.ondataavailable = (e) => { if (e.data.size > 0) onbAudioChunksRef.current.push(e.data) }
-        recorder.onstop = async () => {
-          const blob = new Blob(onbAudioChunksRef.current, { type: mimeType || 'audio/webm' })
-          if (blob.size > 0) {
-            try {
-              await saveAudioRecord({
-                id: `onb-audio-${Date.now()}`,
-                affirmationId: `voice-onb-${Date.now()}`,
-                affirmationText: getPhrase(catsRef.current),
-                blob,
-                createdAt: Date.now(),
-                keepForever: false,
-              })
-            } catch { /* ignore */ }
-          }
-        }
-        recorder.start()
-        onbRecorderRef.current = recorder
-      } catch {
-        // 카메라 없이 오디오만 시도
-        try {
-          const audioStream = await navigator.mediaDevices.getUserMedia({ audio: true })
-          onbStreamRef.current = audioStream
-          const mimeType = getSupportedMimeType()
-          const recorder = new MediaRecorder(audioStream, mimeType ? { mimeType } : undefined)
-          onbAudioChunksRef.current = []
-          recorder.ondataavailable = (e) => { if (e.data.size > 0) onbAudioChunksRef.current.push(e.data) }
-          recorder.onstop = async () => {
-            const blob = new Blob(onbAudioChunksRef.current, { type: mimeType || 'audio/webm' })
-            if (blob.size > 0) {
-              try {
-                await saveAudioRecord({
-                  id: `onb-audio-${Date.now()}`,
-                  affirmationId: `voice-onb-${Date.now()}`,
-                  affirmationText: getPhrase(catsRef.current),
-                  blob,
-                  createdAt: Date.now(),
-                  keepForever: false,
-                })
-              } catch { /* ignore */ }
-            }
-          }
-          recorder.start()
-          onbRecorderRef.current = recorder
-        } catch { /* mic also denied */ }
-      }
-      // 스트림 확보 후 STT 시작 (마이크 충돌 방지)
-      startOnbSTT()
-    }
-
-    startStream()
-
-    return () => {
-      onbShouldListenRef.current = false
-      if (onbRecognitionRef.current) {
-        try { onbRecognitionRef.current.stop() } catch { /* ignore */ }
-        onbRecognitionRef.current = null
-      }
-      if (onbRecorderRef.current && onbRecorderRef.current.state !== 'inactive') {
-        try { onbRecorderRef.current.stop() } catch { /* ignore */ }
-      }
-      if (onbStreamRef.current) {
-        onbStreamRef.current.getTracks().forEach((t) => t.stop())
-        onbStreamRef.current = null
-      }
-      setOnbIsListening(false)
-    }
-  }, [cur, startOnbSTT])
-
-  // Auto-complete when all words recognized
-  useEffect(() => {
-    if (rec !== 'recording') return
-    if (onbAutoCompleteRef.current) return
-    const phrase = getPhrase(cats)
-    const words = phrase.split(' ').filter(Boolean)
-    const allRecognized = words.every((w) => onbRecognizedWords.has(w))
-    if (words.length > 0 && allRecognized) {
-      onbAutoCompleteRef.current = true
-      onbAutoCompleteTimerRef.current = setTimeout(() => finishRec(), 600)
-    }
-  }, [onbRecognizedWords, rec, cats, finishRec])
-
-  const handleReRecord = useCallback(() => {
-    setRec('recording')
-    setTranscript('')
-    onbAutoCompleteRef.current = false
-    onbCumulativeRef.current = new Set()
-    setOnbRecognizedWords(new Set())
-
-    // 기존 스트림으로 새 recorder 생성
-    if (onbStreamRef.current) {
+    try {
+      // 사용자 제스처 안에서 호출 → 모든 브라우저에서 마이크 권한 정상 요청
+      const audioStream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      onbAudioStreamRef.current = audioStream
       const mimeType = getSupportedMimeType()
-      const recorder = new MediaRecorder(onbStreamRef.current, mimeType ? { mimeType } : undefined)
+      const recorder = new MediaRecorder(audioStream, mimeType ? { mimeType } : undefined)
       onbAudioChunksRef.current = []
       recorder.ondataavailable = (e) => { if (e.data.size > 0) onbAudioChunksRef.current.push(e.data) }
       recorder.onstop = async () => {
@@ -429,15 +325,110 @@ export default function OnboardingPage() {
             })
           } catch { /* ignore */ }
         }
+        audioStream.getTracks().forEach((t) => t.stop())
       }
       recorder.start()
       onbRecorderRef.current = recorder
-    }
+    } catch { /* mic denied */ }
 
-    // Restart STT
     onbShouldListenRef.current = true
     startOnbSTT()
   }, [startOnbSTT])
+
+  // 화면 2 진입: 카메라(비디오 전용)만 시작. 녹음은 마이크 버튼 탭 시 시작
+  useEffect(() => {
+    if (cur !== 2) {
+      // 화면 벗어날 때 모두 정리
+      onbShouldListenRef.current = false
+      if (onbRecognitionRef.current) {
+        try { onbRecognitionRef.current.stop() } catch { /* ignore */ }
+        onbRecognitionRef.current = null
+      }
+      if (onbRecorderRef.current && onbRecorderRef.current.state !== 'inactive') {
+        try { onbRecorderRef.current.stop() } catch { /* ignore */ }
+      }
+      if (onbStreamRef.current) {
+        onbStreamRef.current.getTracks().forEach((t) => t.stop())
+        onbStreamRef.current = null
+      }
+      if (onbAudioStreamRef.current) {
+        onbAudioStreamRef.current.getTracks().forEach((t) => t.stop())
+        onbAudioStreamRef.current = null
+      }
+      setOnbIsListening(false)
+      return
+    }
+
+    setRec('idle')
+    setTranscript('')
+    onbCumulativeRef.current = new Set()
+    onbAutoCompleteRef.current = false
+    setOnbRecognizedWords(new Set())
+
+    // 카메라만 먼저 시작 (오디오 없이)
+    navigator.mediaDevices?.getUserMedia({ video: { facingMode: 'user' }, audio: false })
+      .then((stream) => {
+        onbStreamRef.current = stream
+        if (onbVideoRef.current) {
+          onbVideoRef.current.srcObject = stream
+          onbVideoRef.current.play().catch(() => {})
+        }
+      })
+      .catch(() => {})
+
+    return () => {
+      onbShouldListenRef.current = false
+      if (onbRecognitionRef.current) {
+        try { onbRecognitionRef.current.stop() } catch { /* ignore */ }
+        onbRecognitionRef.current = null
+      }
+      if (onbRecorderRef.current && onbRecorderRef.current.state !== 'inactive') {
+        try { onbRecorderRef.current.stop() } catch { /* ignore */ }
+      }
+      if (onbStreamRef.current) {
+        onbStreamRef.current.getTracks().forEach((t) => t.stop())
+        onbStreamRef.current = null
+      }
+      if (onbAudioStreamRef.current) {
+        onbAudioStreamRef.current.getTracks().forEach((t) => t.stop())
+        onbAudioStreamRef.current = null
+      }
+      setOnbIsListening(false)
+    }
+  }, [cur])
+
+  // Auto-complete when all words recognized
+  useEffect(() => {
+    if (rec !== 'recording') return
+    if (onbAutoCompleteRef.current) return
+    const phrase = getPhrase(cats)
+    const words = phrase.split(' ').filter(Boolean)
+    const allRecognized = words.every((w) => onbRecognizedWords.has(w))
+    if (words.length > 0 && allRecognized) {
+      onbAutoCompleteRef.current = true
+      onbAutoCompleteTimerRef.current = setTimeout(() => finishRec(), 600)
+    }
+  }, [onbRecognizedWords, rec, cats, finishRec])
+
+  const handleReRecord = useCallback(() => {
+    // STT 중단
+    onbShouldListenRef.current = false
+    if (onbRecognitionRef.current) {
+      try { onbRecognitionRef.current.stop() } catch { /* ignore */ }
+      onbRecognitionRef.current = null
+    }
+    // 오디오 스트림 중단
+    if (onbAudioStreamRef.current) {
+      onbAudioStreamRef.current.getTracks().forEach((t) => t.stop())
+      onbAudioStreamRef.current = null
+    }
+    setTranscript('')
+    onbAutoCompleteRef.current = false
+    onbCumulativeRef.current = new Set()
+    setOnbRecognizedWords(new Set())
+    setOnbIsListening(false)
+    setRec('idle') // 마이크 버튼 화면으로 돌아가기
+  }, [])
 
   const handleFinish = async () => {
     if (isFinishing) return
@@ -577,24 +568,69 @@ export default function OnboardingPage() {
             }} />
           )}
 
-          {/* Top: title / status */}
+          {/* Top: title */}
           <div style={{ position: 'absolute', top: 22, left: 22, right: 22, zIndex: 3, textAlign: 'center' }}>
             {rec === 'done' ? (
               <div style={{ fontSize: 22, fontWeight: 800, color: '#fff', textShadow: '0 2px 12px rgba(0,0,0,.5)' }}>
                 잘 했어요!
               </div>
-            ) : (
+            ) : rec === 'recording' ? (
               <div style={{
-                fontSize: 18, fontWeight: 700, color: '#fff',
-                textShadow: '0 2px 12px rgba(0,0,0,.5)', lineHeight: 1.35,
+                display: 'inline-flex', alignItems: 'center', gap: 7,
+                background: 'rgba(194,85,46,.9)', color: '#fff',
+                fontSize: 13, fontWeight: 700, padding: '6px 14px', borderRadius: 999,
               }}>
-                버튼을 누르고 소리내어 말해보세요.
+                <i style={{ width: 8, height: 8, borderRadius: '50%', background: '#fff', display: 'block',
+                  animation: 'onbRecBlink 1s steps(2,end) infinite' }} />
+                녹음 중 · 듣고 있어요
+              </div>
+            ) : (
+              <div style={{ fontSize: 17, fontWeight: 700, color: '#fff', textShadow: '0 2px 12px rgba(0,0,0,.5)' }}>
+                마이크를 눌러서 소리내어 말해보세요
               </div>
             )}
           </div>
 
-          {/* Center: words with highlighting (recording state) */}
-          {rec !== 'done' && (
+          {/* idle: 문장 + 큰 마이크 버튼 */}
+          {rec === 'idle' && (
+            <div style={{
+              position: 'absolute', inset: 0, zIndex: 3,
+              display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+              padding: '80px 32px',
+              gap: 32,
+            }}>
+              <div style={{
+                background: 'rgba(20,14,4,.7)', backdropFilter: 'blur(8px)',
+                border: '1px solid rgba(232,200,120,.3)', borderRadius: 18, padding: '18px 22px',
+                width: '100%', textAlign: 'center',
+              }}>
+                <div style={{ fontSize: 11, color: 'rgba(232,200,120,.75)', fontWeight: 600, letterSpacing: '.4px', marginBottom: 8 }}>
+                  이 문장을 소리 내어 읽어보세요
+                </div>
+                <div style={{ fontSize: 18, fontWeight: 800, color: '#fff', lineHeight: 1.5 }}>
+                  &ldquo;{getPhrase(cats)}&rdquo;
+                </div>
+              </div>
+              {/* 마이크 버튼 */}
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14 }}>
+                <button
+                  onClick={handleMicTap}
+                  style={{
+                    width: 84, height: 84, borderRadius: '50%', border: 'none', cursor: 'pointer',
+                    background: T.gold, color: '#fff',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    boxShadow: '0 0 0 10px rgba(189,130,31,0.22), 0 16px 32px -10px rgba(0,0,0,0.6)',
+                    transition: 'transform .12s',
+                  }}
+                >
+                  <MicIcon size={38} />
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* recording: 단어 하이라이트 */}
+          {rec === 'recording' && (
             <div style={{
               position: 'absolute', inset: 0, zIndex: 3,
               display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
@@ -627,12 +663,12 @@ export default function OnboardingPage() {
                     ))}
                   </div>
                 )}
-                <span>{onbIsSpeaking ? '인식 중...' : '소리 내어 말해보세요'}</span>
+                <span>{onbIsSpeaking ? '인식 중...' : '듣고 있어요...'}</span>
               </div>
             </div>
           )}
 
-          {/* Center: done card */}
+          {/* done: 완료 카드 */}
           {rec === 'done' && (
             <div style={{
               position: 'absolute', inset: 0, zIndex: 3,
@@ -687,7 +723,7 @@ export default function OnboardingPage() {
                   다시 말하기
                 </button>
               </>
-            ) : (
+            ) : rec === 'recording' ? (
               <button
                 style={{
                   ...btnBase,
@@ -700,7 +736,7 @@ export default function OnboardingPage() {
               >
                 완료
               </button>
-            )}
+            ) : null}
           </div>
         </div>
       )
