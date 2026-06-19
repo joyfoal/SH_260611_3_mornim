@@ -24,7 +24,7 @@ import {
   type DayRecord,
   type StreakData,
 } from '@/lib/storage'
-import { CATEGORY_COLORS, getCategoryColor } from '@/lib/categories'
+import { useTheme } from '@/lib/themeContext'
 import { getRecentAudioRecord, deleteExpiredAudioRecords, type AudioRecord } from '@/lib/audioStorage'
 import { getSuccessImage } from '@/lib/successImageStorage'
 import { WeeklyReportModal } from '@/components/ui/WeeklyReportModal'
@@ -190,19 +190,23 @@ function CalendarView() {
     (date) => records.find((r) => r.date === date) ?? { date, completedCount: 0, dominantCategory: null as null }
   )
 
+  const { theme } = useTheme()
+
   const renderDayBtn = (rec: DayRecord, size = 32) => {
     const day = parseInt(rec.date.split('-')[2])
     const isToday = rec.date === today
     const isSelected = selectedDay?.date === rec.date
-    const colors = rec.dominantCategory ? getCategoryColor(rec.dominantCategory) : null
-    const intensity =
-      rec.completedCount >= 6
-        ? colors?.dark
-        : rec.completedCount >= 3
-        ? (colors?.dark ?? '') + 'CC'
-        : rec.completedCount >= 1
-        ? colors?.light
-        : 'transparent'
+    const c = rec.completedCount
+    const bgColor =
+      c === 0 ? 'transparent'
+      : c <= 3 ? theme.accent.light + '99'
+      : c <= 6 ? theme.accent.secondary + 'CC'
+      : theme.accent.primary
+    const textColor =
+      isSelected ? '#FFFFFF'
+      : c === 0 ? 'var(--color-text-muted)'
+      : c <= 3 ? theme.accent.highlight
+      : '#FFFFFF'
     return (
       <button
         key={rec.date}
@@ -211,10 +215,10 @@ function CalendarView() {
           width: size,
           height: size,
           borderRadius: '8px',
-          background: isSelected ? 'var(--color-accent-primary)' : intensity,
+          background: isSelected ? 'var(--color-accent-primary)' : bgColor,
           border: isToday && !isSelected ? '1.5px solid var(--color-accent-primary)' : '1px solid transparent',
           fontSize: '11px',
-          color: isSelected ? 'white' : rec.completedCount > 0 ? colors?.dark : 'var(--color-text-muted)',
+          color: textColor,
           cursor: 'pointer',
           display: 'flex',
           alignItems: 'center',
