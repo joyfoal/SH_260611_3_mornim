@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 
 interface FaceData {
+  gender: string
   faceShape: string
   faceAngle: string
   eyeShape: string
@@ -35,11 +36,14 @@ function buildIdentityMatrix(fd: FaceData, scene: string): string {
     fd.eyewear === 'sunglasses' ? 'MUST wear the exact same sunglasses. Never remove them.' :
     'NO glasses or eyewear — do NOT add any.'
 
+  const genderLabel = fd.gender === 'female' ? 'Female (woman)' : fd.gender === 'male' ? 'Male (man)' : 'unknown'
+
   return `[Identity Matrix: System Overwrite]
 Character Name: [Ch_RegisteredFace]
 Strict Rule: Maintain 100% facial consistency, bone structure, and identity of Ch_RegisteredFace. Do not distort the face.
 
 [Facial Features Data]
+- Gender: ${genderLabel} — CRITICAL: this person is ${fd.gender === 'female' ? 'a WOMAN. Generate female appearance only.' : fd.gender === 'male' ? 'a MAN. Generate male appearance only.' : 'of unspecified gender.'}
 - Face Shape: ${fd.faceShape} face with ${structure || 'natural bone structure'}
 - Eyes: ${eyeDesc || fd.eyeShape}
 - Nose & Mouth: ${nosemouth || fd.generationPrompt}

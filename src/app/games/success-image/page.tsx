@@ -116,8 +116,14 @@ export default function SuccessImagePage() {
     if (!file) return
     e.target.value = ''
 
+    // 새 얼굴 등록 시 이전 데이터 전부 초기화
     setFaceAnalyzing(true)
     setFaceError(null)
+    setImageUrl(null)
+    setError(null)
+    setUsedFace(false)
+    await deleteFaceProfile().catch(() => {})
+
     try {
       const imageBase64 = await resizeImage(file)
       const res = await fetch('/api/analyze-face', {

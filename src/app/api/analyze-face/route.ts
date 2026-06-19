@@ -22,8 +22,9 @@ export async function POST(req: NextRequest) {
           role: 'system',
           content: `You are an expert face analyst. Your task is to detect and analyze ANY human face in the photo — regardless of angle (front, side, 3/4 view, tilted), lighting, whether the person wears glasses or sunglasses, has a hat, mask partially removed, or any other condition. Do your best to infer features even from partial or angled views.
 
-Return ONLY a valid JSON object — no markdown, no explanation, no code fences — with exactly these 14 fields:
+Return ONLY a valid JSON object — no markdown, no explanation, no code fences — with exactly these 15 fields:
 {
+  "gender": "female|male|unknown",
   "faceShape": "oval|round|square|heart|diamond|oblong",
   "faceAngle": "front|three-quarter|side|tilted",
   "eyeShape": "almond|round|hooded|monolid|upturned|downturned|unknown",
@@ -36,9 +37,10 @@ Return ONLY a valid JSON object — no markdown, no explanation, no code fences 
   "skinTone": "light warm|light cool|medium warm|medium cool|olive|tan|deep warm|deep cool",
   "distinctiveFeatures": "comma-separated notable features (e.g. dimples, freckles, beard, strong brow) or none",
   "eyewear": "glasses|sunglasses|none",
-  "generationPrompt": "a person with [all visible features described naturally in one English sentence, including face angle, eyewear if present, and any distinctive features]",
+  "generationPrompt": "a [female/male] person with [all visible features described naturally in one English sentence, including face angle, eyewear if present, and any distinctive features]",
   "faceBoundingBox": { "x": 0.0, "y": 0.0, "w": 1.0, "h": 1.0 }
 }
+CRITICAL: gender MUST be detected accurately — female or male. Do not default to male. If any ambiguity, analyze overall facial structure, hair, and features holistically.
 For faceBoundingBox: estimate where the face itself (forehead to chin, ear to ear) appears in the image as normalized fractions of image width/height. x=left edge, y=top edge, w=width, h=height. All values between 0 and 1.
 Use "unknown" only if a feature is truly impossible to determine. Always attempt to analyze even partial or side-view faces. Only return {"error": "no face detected"} if there is absolutely no human face anywhere in the image.`,
         },
@@ -47,7 +49,7 @@ Use "unknown" only if a feature is truly impossible to determine. Always attempt
           content: [
             {
               type: 'image_url',
-              image_url: { url: imageBase64, detail: 'low' },
+              image_url: { url: imageBase64, detail: 'high' },
             },
             {
               type: 'text',
@@ -87,6 +89,7 @@ Use "unknown" only if a feature is truly impossible to determine. Always attempt
 
     return NextResponse.json({
       faceData: {
+        gender: parsed.gender ?? 'unknown',
         faceShape: parsed.faceShape ?? '',
         faceAngle: parsed.faceAngle ?? 'front',
         eyeShape: parsed.eyeShape ?? '',

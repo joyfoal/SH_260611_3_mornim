@@ -3,6 +3,7 @@ const STORE_NAME = 'profiles'
 const DB_VERSION = 1
 
 export interface FaceData {
+  gender: string              // "female" | "male" | "unknown"
   faceShape: string
   faceAngle: string           // "front" | "three-quarter" | "side" | "tilted"
   eyeShape: string
