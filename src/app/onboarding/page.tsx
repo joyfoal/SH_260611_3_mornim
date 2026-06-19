@@ -430,13 +430,14 @@ export default function OnboardingPage() {
                 position: 'absolute', left: 0, right: 0, bottom: 24, zIndex: 4,
                 display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16, padding: '0 22px',
               }}>
-                {/* Phrase card (idle state) */}
-                {rec === 'idle' && (
+                {/* Phrase card (idle + recording state) */}
+                {(rec === 'idle' || rec === 'recording') && (
                   <div style={{
                     width: '100%',
                     background: 'rgba(28,20,8,.72)',
                     backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)',
-                    border: '1px solid rgba(232,200,120,.3)', borderRadius: 18, padding: '16px 18px',
+                    border: `1px solid ${rec === 'recording' ? 'rgba(194,85,46,.6)' : 'rgba(232,200,120,.3)'}`,
+                    borderRadius: 18, padding: '16px 18px',
                   }}>
                     <div style={{ fontSize: 11, fontWeight: 600, color: 'rgba(232,200,120,.7)', marginBottom: 8, letterSpacing: '.4px' }}>
                       이 문장을 소리 내어 읽어보세요
@@ -444,18 +445,18 @@ export default function OnboardingPage() {
                     <div style={{ fontSize: 18, fontWeight: 800, lineHeight: 1.45, color: '#fff' }}>
                       &ldquo;{getPhrase(cats)}&rdquo;
                     </div>
-                  </div>
-                )}
-                {/* Waveform (recording state) */}
-                {rec === 'recording' && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 5, height: 40 }}>
-                    {Array.from({ length: 13 }).map((_, k) => (
-                      <span key={k} style={{
-                        display: 'block', width: 4, borderRadius: 2, background: '#e8c878', height: '20%',
-                        animation: 'onbWaveJump .7s ease-in-out infinite',
-                        animationDelay: `${(k % 3) * 0.2}s`,
-                      }} />
-                    ))}
+                    {/* Waveform inside card during recording */}
+                    {rec === 'recording' && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 12 }}>
+                        {Array.from({ length: 13 }).map((_, k) => (
+                          <span key={k} style={{
+                            display: 'block', width: 4, borderRadius: 2, background: '#e8c878', height: 16,
+                            animation: 'onbWaveJump .7s ease-in-out infinite',
+                            animationDelay: `${(k % 3) * 0.2}s`,
+                          }} />
+                        ))}
+                      </div>
+                    )}
                   </div>
                 )}
                 {/* Transcript quote card (done state) */}
