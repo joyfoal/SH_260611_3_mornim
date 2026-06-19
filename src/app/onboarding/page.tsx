@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { CATEGORIES } from '@/lib/categories'
 import { saveAffirmation, setOnboarded, saveTodayAffirmationIds, saveAlarmSettings, saveDayRecord, todayStr } from '@/lib/storage'
 import { saveAudioRecord } from '@/lib/audioStorage'
+import { useTheme } from '@/lib/themeContext'
 
 /* ── Design tokens (warm gold) ───────────────────────────────── */
 const T = {
@@ -128,6 +129,7 @@ type Dir = 'next' | 'back' | 'fade'
 
 export default function OnboardingPage() {
   const router = useRouter()
+  const { setTheme } = useTheme()
 
   const [cur, setCur] = useState(0)
   const [prev, setPrev] = useState<number | null>(null)
@@ -486,7 +488,7 @@ export default function OnboardingPage() {
     })
 
     saveTodayAffirmationIds(ids.slice(0, 3))
-    localStorage.setItem('mornim-theme', 'warm')
+    setTheme('warm')
     setOnboarded()
     router.push('/home')
   }
