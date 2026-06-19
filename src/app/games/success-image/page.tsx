@@ -135,14 +135,6 @@ export default function SuccessImagePage() {
     return 'text' as const
   }
 
-  const getProfileModeLabel = () => {
-    const hasFace = faceFile !== null && !faceAnalyzing
-    const hasText = text.trim().length > 0
-    if (hasFace && hasText) return '얼굴과 글로 긍정 프로필 만들기'
-    if (hasFace) return '얼굴로 지브리 스타일 프로필 만들기'
-    if (hasText) return '글 느낌으로 프로필 만들기'
-    return '성공의 말로 지브리 프로필 만들기'
-  }
 
   const handleGenerateProfile = async () => {
     setProfileGenerating(true)
@@ -447,7 +439,7 @@ export default function SuccessImagePage() {
           }}
         >
           {([
-            { id: 'ghibli', label: '✨ 지브리/만화' },
+            { id: 'ghibli', label: '✨ 만화' },
             { id: 'realistic', label: '📸 실사' },
           ] as const).map((s) => (
             <button
@@ -493,7 +485,7 @@ export default function SuccessImagePage() {
               <span style={{ animation: 'spin 1s linear infinite', display: 'inline-block' }}>✨</span>
               프로필 이미지 만드는 중...
             </span>
-          ) : `✨ ${getProfileModeLabel()}`}
+          ) : '✨ 프로필 만들기'}
         </button>
 
         {profileError && (
