@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { CATEGORIES } from '@/lib/categories'
 import { saveAffirmation, setOnboarded, saveTodayAffirmationIds, saveAlarmSettings } from '@/lib/storage'
+import { saveAudioRecord } from '@/lib/audioStorage'
 
 /* ── Design tokens (warm gold) ───────────────────────────────── */
 const T = {
@@ -48,6 +49,14 @@ function fmtTime(min: number): string {
   const ampm = h < 12 ? '오전' : '오후'
   const hh = ((h + 11) % 12) + 1
   return `${ampm} ${String(hh).padStart(2, '0')}:${String(m).padStart(2, '0')}`
+}
+
+function getSupportedMimeType(): string {
+  const types = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4', 'audio/ogg']
+  for (const type of types) {
+    if (typeof MediaRecorder !== 'undefined' && MediaRecorder.isTypeSupported(type)) return type
+  }
+  return ''
 }
 
 /* ── Button styles ───────────────────────────────────────────── */
@@ -97,86 +106,6 @@ function PlayIcon() {
   return <svg width={22} height={22} viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.5v13l11-6.5z" /></svg>
 }
 
-function StopIcon() {
-  return <svg width={34} height={34} viewBox="0 0 24 24" fill="currentColor"><rect x="7" y="7" width="10" height="10" rx="2.5" /></svg>
-}
-
-function MicIcon({ size = 32 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="9" y="3" width="6" height="11" rx="3" /><path d="M5 11a7 7 0 0 0 14 0M12 18v3" />
-    </svg>
-  )
-}
-
-/* ── Selfie Camera ───────────────────────────────────────────── */
-function SelfieCam({ active }: { active: boolean }) {
-  const videoRef = useRef<HTMLVideoElement>(null)
-  const streamRef = useRef<MediaStream | null>(null)
-  const [camState, setCamState] = useState<'init' | 'live' | 'denied' | 'unsupported'>('init')
-
-  useEffect(() => {
-    let cancelled = false
-    const stop = () => {
-      streamRef.current?.getTracks().forEach((t) => t.stop())
-      streamRef.current = null
-    }
-    if (!active) { stop(); return }
-    if (!navigator.mediaDevices?.getUserMedia) { setCamState('unsupported'); return }
-    setCamState('init')
-    const failTimer = setTimeout(() => {
-      if (!cancelled && !streamRef.current) setCamState('denied')
-    }, 7000)
-    navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false })
-      .then((stream) => {
-        clearTimeout(failTimer)
-        if (cancelled) { stream.getTracks().forEach((t) => t.stop()); return }
-        streamRef.current = stream
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream
-          videoRef.current.play().catch(() => {})
-        }
-        setCamState('live')
-      })
-      .catch(() => { clearTimeout(failTimer); if (!cancelled) setCamState('denied') })
-    return () => { cancelled = true; clearTimeout(failTimer); stop() }
-  }, [active])
-
-  return (
-    <>
-      <video
-        ref={videoRef} muted playsInline autoPlay
-        style={{
-          position: 'absolute', inset: 0, width: '100%', height: '100%',
-          objectFit: 'cover', transform: 'scaleX(-1)',
-          opacity: camState === 'live' ? 1 : 0, transition: 'opacity .4s',
-        }}
-      />
-      {camState !== 'live' && (
-        <div style={{
-          position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column',
-          alignItems: 'center', justifyContent: 'center', gap: 14, textAlign: 'center',
-          padding: 30, background: 'radial-gradient(circle at 50% 38%, #3a2c14, #1a140a 72%)',
-        }}>
-          <div style={{
-            width: 96, height: 96, borderRadius: '50%', fontSize: 40,
-            background: 'rgba(232,200,120,.14)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-          }}>🎙️</div>
-          <div style={{ fontSize: 16, fontWeight: 800, color: T.onDark }}>
-            {camState === 'init' ? '카메라를 준비하고 있어요…' : '소리만으로도 충분해요'}
-          </div>
-          <div style={{ fontSize: 14, lineHeight: 1.5, maxWidth: 230, color: T.onDark2 }}>
-            {camState === 'init' && '잠시만 기다려 주세요.'}
-            {camState === 'denied' && '카메라 없이도 괜찮아요. 편하게 소리 내어 말해보세요.'}
-            {camState === 'unsupported' && '이 기기에서는 소리로만 진행해요.'}
-          </div>
-        </div>
-      )}
-    </>
-  )
-}
-
 const ENCOURAGEMENTS = [
   '당신은 정말 해낼 수 있어요!',
   '시작이 반이에요! 오늘도 멋지게!',
@@ -192,16 +121,14 @@ type Dir = 'next' | 'back' | 'fade'
 export default function OnboardingPage() {
   const router = useRouter()
 
-  // Screen transition state
   const [cur, setCur] = useState(0)
   const [prev, setPrev] = useState<number | null>(null)
   const [dir, setDir] = useState<Dir>('fade')
   const transRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const curRef = useRef(0) // mirrors cur state for use inside callbacks
+  const curRef = useRef(0)
 
-  // Form state
   const [cats, setCats] = useState<string[]>([])
-  const catsRef = useRef<string[]>([]) // mirrors cats for use in setTimeout callbacks
+  const catsRef = useRef<string[]>([])
   const [rec, setRec] = useState<RecState>('idle')
   const [transcript, setTranscript] = useState('')
   const [notifTime, setNotifTime] = useState(480)
@@ -209,9 +136,24 @@ export default function OnboardingPage() {
   const [isFinishing, setIsFinishing] = useState(false)
   const recRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  // Recommended affirmations for screen 2
   const [recAffirmations, setRecAffirmations] = useState<string[]>([])
   const [encouragement] = useState(() => ENCOURAGEMENTS[Math.floor(Math.random() * ENCOURAGEMENTS.length)])
+
+  // Screen 2: camera + STT + recording refs
+  const onbVideoRef = useRef<HTMLVideoElement>(null)
+  const onbStreamRef = useRef<MediaStream | null>(null)
+  const onbRecorderRef = useRef<MediaRecorder | null>(null)
+  const onbAudioChunksRef = useRef<Blob[]>([])
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const onbRecognitionRef = useRef<any>(null)
+  const onbShouldListenRef = useRef(false)
+  const onbCumulativeRef = useRef<Set<string>>(new Set())
+  const onbAutoCompleteRef = useRef(false)
+  const onbAutoCompleteTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const onbSpeakTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const [onbRecognizedWords, setOnbRecognizedWords] = useState<Set<string>>(new Set())
+  const [onbIsListening, setOnbIsListening] = useState(false)
+  const [onbIsSpeaking, setOnbIsSpeaking] = useState(false)
 
   const goTo = useCallback((n: number, d: Dir = 'next') => {
     if (transRef.current) clearTimeout(transRef.current)
@@ -225,9 +167,10 @@ export default function OnboardingPage() {
   useEffect(() => () => {
     if (recRef.current) clearTimeout(recRef.current)
     if (transRef.current) clearTimeout(transRef.current)
+    if (onbAutoCompleteTimerRef.current) clearTimeout(onbAutoCompleteTimerRef.current)
+    if (onbSpeakTimerRef.current) clearTimeout(onbSpeakTimerRef.current)
   }, [])
 
-  // Fetch recommended affirmations when entering screen 2
   useEffect(() => {
     if (cur !== 2 || cats.length === 0) return
     const cat = cats[0]
@@ -252,9 +195,106 @@ export default function OnboardingPage() {
       return next
     })
 
+  // STT for screen 2 — must be declared before finishRec (TDZ 방지)
+  const startOnbSTT = useCallback(() => {
+    if (typeof window === 'undefined') return
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const w = window as any
+    const SpeechRec = w.SpeechRecognition ?? w.webkitSpeechRecognition
+    if (!SpeechRec) return
+
+    if (onbRecognitionRef.current) {
+      try { onbRecognitionRef.current.stop() } catch { /* ignore */ }
+      onbRecognitionRef.current = null
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const recognition: any = new SpeechRec()
+    recognition.lang = 'ko-KR'
+    recognition.continuous = true
+    recognition.interimResults = true
+    recognition.maxAlternatives = 1
+    onbRecognitionRef.current = recognition
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    recognition.onresult = (event: any) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const transcript = Array.from(event.results as any[])
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        .map((r: any) => r[0].transcript)
+        .join(' ')
+        .toLowerCase()
+
+      setOnbIsSpeaking(true)
+      if (onbSpeakTimerRef.current) clearTimeout(onbSpeakTimerRef.current)
+      onbSpeakTimerRef.current = setTimeout(() => setOnbIsSpeaking(false), 800)
+
+      const phrase = getPhrase(catsRef.current)
+      const clean = (w: string) => w.replace(/[.,!?。、。·]/g, '').toLowerCase()
+      const words = phrase.split(' ')
+      const transcriptWords = transcript.split(/\s+/).map(clean)
+      words.forEach((word) => {
+        const lw = clean(word)
+        if (!lw) return
+        if (transcriptWords.some((tw) => tw === lw || tw.startsWith(lw) || lw.startsWith(tw))) {
+          onbCumulativeRef.current.add(word)
+        }
+      })
+      setOnbRecognizedWords(new Set(onbCumulativeRef.current))
+    }
+
+    recognition.onerror = (event: { error: string }) => {
+      if (!onbShouldListenRef.current) return
+      if (event.error === 'not-allowed') { setOnbIsListening(false); return }
+      setTimeout(() => { if (onbShouldListenRef.current) startOnbSTT() }, 200)
+    }
+
+    recognition.onend = () => {
+      setTimeout(() => { if (onbShouldListenRef.current) startOnbSTT() }, 100)
+    }
+
+    try {
+      recognition.start()
+      setOnbIsListening(true)
+    } catch {
+      setTimeout(() => { if (onbShouldListenRef.current) startOnbSTT() }, 300)
+    }
+  }, [])
+
   const finishRec = useCallback(() => {
     if (recRef.current) clearTimeout(recRef.current)
-    setTranscript(getPhrase(catsRef.current))
+    if (onbAutoCompleteTimerRef.current) clearTimeout(onbAutoCompleteTimerRef.current)
+
+    // Stop STT
+    onbShouldListenRef.current = false
+    if (onbRecognitionRef.current) {
+      try { onbRecognitionRef.current.stop() } catch { /* ignore */ }
+      onbRecognitionRef.current = null
+    }
+
+    // Stop recorder and save audio
+    const phraseText = getPhrase(catsRef.current)
+    if (onbRecorderRef.current && onbRecorderRef.current.state !== 'inactive') {
+      const mimeType = getSupportedMimeType()
+      onbRecorderRef.current.onstop = async () => {
+        const blob = new Blob(onbAudioChunksRef.current, { type: mimeType || 'audio/webm' })
+        if (blob.size > 0) {
+          try {
+            await saveAudioRecord({
+              id: `onb-audio-${Date.now()}`,
+              affirmationId: `voice-${Date.now()}`,
+              affirmationText: phraseText,
+              blob,
+              createdAt: Date.now(),
+              keepForever: false,
+            })
+          } catch { /* ignore */ }
+        }
+      }
+      onbRecorderRef.current.stop()
+    }
+
+    setTranscript(phraseText)
     setRec('done')
     import('canvas-confetti').then(({ default: confetti }) => {
       confetti({ particleCount: 80, spread: 60, origin: { y: 0.5 }, colors: ['#bd821f', '#e8c878', '#f3e6c8', '#ffffff'] })
@@ -263,12 +303,106 @@ export default function OnboardingPage() {
     }).catch(() => {})
   }, [])
 
-  const micTap = () => {
-    if (rec === 'recording') { finishRec(); return }
-    setTranscript('')
+  // Camera + STT + recording: start when entering screen 2, stop when leaving
+  useEffect(() => {
+    if (cur !== 2) {
+      onbShouldListenRef.current = false
+      if (onbRecognitionRef.current) {
+        try { onbRecognitionRef.current.stop() } catch { /* ignore */ }
+        onbRecognitionRef.current = null
+      }
+      if (onbStreamRef.current) {
+        onbStreamRef.current.getTracks().forEach((t) => t.stop())
+        onbStreamRef.current = null
+      }
+      setOnbIsListening(false)
+      return
+    }
+
+    onbShouldListenRef.current = true
+    onbCumulativeRef.current = new Set()
+    onbAutoCompleteRef.current = false
+    setOnbRecognizedWords(new Set())
     setRec('recording')
-    recRef.current = setTimeout(finishRec, 2600)
-  }
+
+    const startStream = async () => {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: true })
+        onbStreamRef.current = stream
+        if (onbVideoRef.current) {
+          onbVideoRef.current.srcObject = stream
+          onbVideoRef.current.play().catch(() => {})
+        }
+        const mimeType = getSupportedMimeType()
+        const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined)
+        onbAudioChunksRef.current = []
+        recorder.ondataavailable = (e) => { if (e.data.size > 0) onbAudioChunksRef.current.push(e.data) }
+        recorder.start()
+        onbRecorderRef.current = recorder
+      } catch {
+        // Try video only (no mic)
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false })
+          onbStreamRef.current = stream
+          if (onbVideoRef.current) {
+            onbVideoRef.current.srcObject = stream
+            onbVideoRef.current.play().catch(() => {})
+          }
+        } catch { /* camera denied */ }
+      }
+    }
+
+    startStream()
+    startOnbSTT()
+
+    return () => {
+      onbShouldListenRef.current = false
+      if (onbRecognitionRef.current) {
+        try { onbRecognitionRef.current.stop() } catch { /* ignore */ }
+        onbRecognitionRef.current = null
+      }
+      if (onbStreamRef.current) {
+        onbStreamRef.current.getTracks().forEach((t) => t.stop())
+        onbStreamRef.current = null
+      }
+      setOnbIsListening(false)
+    }
+  }, [cur, startOnbSTT])
+
+  // Auto-complete when all words recognized
+  useEffect(() => {
+    if (rec !== 'recording') return
+    if (onbAutoCompleteRef.current) return
+    const phrase = getPhrase(cats)
+    const words = phrase.split(' ').filter(Boolean)
+    const allRecognized = words.every((w) => onbRecognizedWords.has(w))
+    if (words.length > 0 && allRecognized) {
+      onbAutoCompleteRef.current = true
+      onbAutoCompleteTimerRef.current = setTimeout(() => finishRec(), 600)
+    }
+  }, [onbRecognizedWords, rec, cats, finishRec])
+
+  const handleReRecord = useCallback(() => {
+    setRec('recording')
+    setTranscript('')
+    onbAutoCompleteRef.current = false
+    onbCumulativeRef.current = new Set()
+    setOnbRecognizedWords(new Set())
+
+    // Restart recorder on same stream
+    if (onbStreamRef.current) {
+      const mimeType = getSupportedMimeType()
+      const recorder = new MediaRecorder(onbStreamRef.current, mimeType ? { mimeType } : undefined)
+      onbAudioChunksRef.current = []
+      recorder.ondataavailable = (e) => { if (e.data.size > 0) onbAudioChunksRef.current.push(e.data) }
+      recorder.start()
+      onbRecorderRef.current = recorder
+    }
+
+    // Restart STT
+    onbShouldListenRef.current = true
+    startOnbSTT()
+  }, [startOnbSTT])
 
   const handleFinish = async () => {
     if (isFinishing) return
@@ -310,6 +444,7 @@ export default function OnboardingPage() {
 
   const TIME_PRESETS = [360, 420, 480, 540]
   const phrase = transcript || getPhrase(cats)
+  const onbWords = getPhrase(cats).split(' ')
 
   const renderScreen = (idx: number) => {
     switch (idx) {
@@ -379,158 +514,158 @@ export default function OnboardingPage() {
         </div>
       )
 
-      /* ── 2: Voice recording with selfie camera ────────────────── */
+      /* ── 2: Voice recording — full-screen camera like speak page ── */
       case 2: return (
-        <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-          <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', padding: '8px 18px 0' }}>
-            {/* Camera stage */}
+        <div style={{ position: 'relative', height: '100%', background: '#1a140a', overflow: 'hidden' }}>
+          {/* Full-screen camera */}
+          <video
+            ref={onbVideoRef}
+            autoPlay playsInline muted
+            style={{
+              position: 'absolute', inset: 0, width: '100%', height: '100%',
+              objectFit: 'cover', transform: 'scaleX(-1)',
+            }}
+          />
+
+          {/* Gradient overlay */}
+          <div style={{
+            position: 'absolute', inset: 0, pointerEvents: 'none',
+            background: 'linear-gradient(to bottom, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.1) 40%, rgba(0,0,0,0.65) 100%)',
+          }} />
+
+          {/* Speaking glow */}
+          {onbIsSpeaking && (
             <div style={{
-              position: 'relative', width: '100%', flex: 1, minHeight: 0,
-              borderRadius: 30, overflow: 'hidden', background: '#1a140a',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-            }}>
-              <SelfieCam active={cur === 2} />
-              {/* Top scrim */}
-              <div style={{
-                position: 'absolute', left: 0, right: 0, top: 0, height: 168,
-                background: 'linear-gradient(to bottom, rgba(20,12,2,.72), transparent)',
-                pointerEvents: 'none', zIndex: 2,
-              }} />
-              {/* Bottom scrim */}
-              <div style={{
-                position: 'absolute', left: 0, right: 0, bottom: 0, height: 240,
-                background: 'linear-gradient(to top, rgba(20,12,2,.82), transparent)',
-                pointerEvents: 'none', zIndex: 2,
-              }} />
-              {/* Title overlay */}
-              <div style={{ position: 'absolute', top: 22, left: 22, right: 22, zIndex: 3, textAlign: 'center' }}>
-                {rec === 'recording' ? (
-                  <span style={{
-                    display: 'inline-flex', alignItems: 'center', gap: 7,
-                    background: 'rgba(194,85,46,.92)', color: '#fff',
-                    fontSize: 13, fontWeight: 700, padding: '6px 13px', borderRadius: 999,
-                  }}>
-                    <i style={{
-                      width: 8, height: 8, borderRadius: '50%', background: '#fff', display: 'block',
-                      animation: 'onbRecBlink 1s steps(2,end) infinite',
-                    }} />
-                    녹음 중 · 듣고 있어요
-                  </span>
-                ) : (
-                  <div style={{
-                    fontSize: 22, fontWeight: 800, letterSpacing: '-0.4px',
-                    color: '#fff', lineHeight: 1.3, textShadow: '0 2px 12px rgba(0,0,0,.4)',
-                  }}>
-                    {rec === 'done' ? '잘 들었어요!' : '버튼을 누르고 소리내어 말해보세요.'}
-                  </div>
-                )}
+              position: 'absolute', inset: 0, pointerEvents: 'none',
+              boxShadow: `inset 0 0 60px rgba(189,130,31,0.3)`,
+              transition: 'opacity 0.2s',
+            }} />
+          )}
+
+          {/* Top: title / status */}
+          <div style={{ position: 'absolute', top: 22, left: 22, right: 22, zIndex: 3, textAlign: 'center' }}>
+            {rec === 'done' ? (
+              <div style={{ fontSize: 22, fontWeight: 800, color: '#fff', textShadow: '0 2px 12px rgba(0,0,0,.5)' }}>
+                잘 했어요!
               </div>
-              {/* Bottom controls */}
+            ) : (
               <div style={{
-                position: 'absolute', left: 0, right: 0, bottom: 24, zIndex: 4,
-                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16, padding: '0 22px',
+                fontSize: 18, fontWeight: 700, color: '#fff',
+                textShadow: '0 2px 12px rgba(0,0,0,.5)', lineHeight: 1.35,
               }}>
-                {/* Phrase card (idle + recording state) */}
-                {(rec === 'idle' || rec === 'recording') && (
-                  <div style={{
-                    width: '100%',
-                    background: 'rgba(28,20,8,.72)',
-                    backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)',
-                    border: `1px solid ${rec === 'recording' ? 'rgba(194,85,46,.6)' : 'rgba(232,200,120,.3)'}`,
-                    borderRadius: 18, padding: '16px 18px',
+                버튼을 누르고 소리내어 말해보세요.
+              </div>
+            )}
+          </div>
+
+          {/* Center: words with highlighting (recording state) */}
+          {rec !== 'done' && (
+            <div style={{
+              position: 'absolute', inset: 0, zIndex: 3,
+              display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+              padding: '80px 24px',
+            }}>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, justifyContent: 'center', marginBottom: 20 }}>
+                {onbWords.map((word, i) => (
+                  <span key={i} style={{
+                    fontSize: 22, fontWeight: 600, padding: '6px 12px', borderRadius: 10,
+                    background: onbRecognizedWords.has(word) ? T.gold : 'rgba(255,255,255,0.15)',
+                    color: '#fff',
+                    transition: 'all 0.3s ease',
+                    boxShadow: onbRecognizedWords.has(word) ? '0 4px 12px rgba(189,130,31,0.5)' : 'none',
                   }}>
-                    <div style={{ fontSize: 11, fontWeight: 600, color: 'rgba(232,200,120,.7)', marginBottom: 8, letterSpacing: '.4px' }}>
-                      이 문장을 소리 내어 읽어보세요
-                    </div>
-                    <div style={{ fontSize: 18, fontWeight: 800, lineHeight: 1.45, color: '#fff' }}>
-                      &ldquo;{getPhrase(cats)}&rdquo;
-                    </div>
-                    {/* Waveform inside card during recording */}
-                    {rec === 'recording' && (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 12 }}>
-                        {Array.from({ length: 13 }).map((_, k) => (
-                          <span key={k} style={{
-                            display: 'block', width: 4, borderRadius: 2, background: '#e8c878', height: 16,
-                            animation: 'onbWaveJump .7s ease-in-out infinite',
-                            animationDelay: `${(k % 3) * 0.2}s`,
-                          }} />
-                        ))}
-                      </div>
-                    )}
+                    {word}
+                  </span>
+                ))}
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'rgba(255,255,255,0.7)', fontSize: 14 }}>
+                {onbIsListening && (
+                  <div style={{ display: 'flex', alignItems: 'flex-end', gap: 2, height: 20 }}>
+                    {[0, 1, 2, 3, 4].map((i) => (
+                      <div key={i} style={{
+                        width: 3, borderRadius: 2,
+                        background: onbIsSpeaking ? T.gold : 'rgba(255,255,255,0.5)',
+                        animation: onbIsSpeaking ? `waveBar 0.4s ease-in-out ${i * 0.08}s infinite` : 'none',
+                        height: onbIsSpeaking ? undefined : 4,
+                        transition: 'background 0.2s',
+                      }} />
+                    ))}
                   </div>
                 )}
-                {/* Transcript quote card (done state) */}
-                {rec === 'done' && (
-                  <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 10 }}>
-                    <div style={{
-                      width: '100%', background: 'rgba(28,20,8,.72)',
-                      backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)',
-                      border: '1px solid rgba(232,200,120,.3)', borderRadius: 18, padding: '16px 18px',
-                    }}>
-                      <div style={{ fontSize: 19, fontWeight: 800, lineHeight: 1.42, color: '#fff' }}>
-                        &ldquo;{transcript}&rdquo;
-                      </div>
-                    </div>
-                    <div style={{ fontSize: 14, fontWeight: 600, color: '#e8c878', textAlign: 'center', padding: '4px 0' }}>
-                      {encouragement}
-                    </div>
-                    {recAffirmations.length > 0 && (
-                      <div style={{ width: '100%' }}>
-                        <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', marginBottom: 6, textAlign: 'center' }}>
-                          이런 성공의 말도 소리 내어 말해보세요
-                        </div>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                          {recAffirmations.map((aff, i) => (
-                            <div key={i} style={{
-                              background: 'rgba(189,130,31,0.2)', border: '1px solid rgba(232,200,120,0.3)',
-                              borderRadius: 12, padding: '10px 14px', fontSize: 13, color: '#f3e6c8', lineHeight: 1.4,
-                            }}>
-                              {aff}
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
-                {/* Mic button with pulse rings */}
-                <div style={{ position: 'relative', width: 96, height: 96, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  {rec === 'recording' && [0, 0.6, 1.2].map((delay) => (
-                    <span key={delay} style={{
-                      position: 'absolute', inset: 0, borderRadius: '50%',
-                      border: '2px solid #e8c878', opacity: 0,
-                      animation: 'onbMicPulse 1.8s ease-out infinite',
-                      animationDelay: `${delay}s`,
-                    }} />
-                  ))}
-                  <button
-                    onClick={micTap}
-                    style={{
-                      position: 'relative', zIndex: 2,
-                      width: 76, height: 76, borderRadius: '50%', border: 'none', cursor: 'pointer',
-                      background: rec === 'recording' ? '#c2552e' : T.gold, color: '#fff',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      boxShadow: '0 0 0 6px rgba(255,255,255,.16), 0 14px 30px -10px rgba(0,0,0,.7)',
-                      transition: 'transform .14s, background .2s',
-                    }}
-                  >
-                    {rec === 'recording' ? <StopIcon /> : <MicIcon size={32} />}
-                  </button>
-                </div>
+                <span>{onbIsSpeaking ? '인식 중...' : '소리 내어 말해보세요'}</span>
               </div>
             </div>
-          </div>
-          <div style={{ padding: '12px 26px 48px', display: 'flex', flexDirection: 'column', gap: 4 }}>
-            <button
-              style={rec === 'done' ? btnPrimary : btnDisabled}
-              disabled={rec !== 'done'}
-              onClick={() => goTo(3)}
-            >
-              다음
-            </button>
-            {rec === 'done'
-              ? <button style={btnText} onClick={() => { setRec('idle'); setTranscript('') }}>다시 녹음하기</button>
-              : <span style={{ height: 6 }} />}
+          )}
+
+          {/* Center: done card */}
+          {rec === 'done' && (
+            <div style={{
+              position: 'absolute', inset: 0, zIndex: 3,
+              display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+              padding: '80px 24px 200px',
+              gap: 12,
+            }}>
+              <div style={{
+                width: '100%', background: 'rgba(20,14,4,.85)',
+                backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)',
+                border: '1px solid rgba(232,200,120,.45)', borderRadius: 20, padding: '22px 20px',
+              }}>
+                <div style={{ fontSize: 19, fontWeight: 800, lineHeight: 1.45, color: '#fff', marginBottom: 10 }}>
+                  &ldquo;{transcript}&rdquo;
+                </div>
+                <div style={{ fontSize: 14, fontWeight: 600, color: '#e8c878' }}>{encouragement}</div>
+              </div>
+              {recAffirmations.length > 0 && (
+                <div style={{ width: '100%' }}>
+                  <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.55)', marginBottom: 6, textAlign: 'center' }}>
+                    이런 성공의 말도 소리 내어 말해보세요
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    {recAffirmations.map((aff, i) => (
+                      <div key={i} style={{
+                        background: 'rgba(189,130,31,0.2)', border: '1px solid rgba(232,200,120,0.3)',
+                        borderRadius: 12, padding: '10px 14px', fontSize: 13, color: '#f3e6c8', lineHeight: 1.4,
+                      }}>
+                        {aff}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Bottom buttons */}
+          <div style={{
+            position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 4,
+            padding: '16px 26px 48px',
+            display: 'flex', flexDirection: 'column', gap: 8,
+            background: 'linear-gradient(to top, rgba(0,0,0,0.75) 60%, transparent 100%)',
+          }}>
+            {rec === 'done' ? (
+              <>
+                <button style={btnPrimary} onClick={() => goTo(3)}>다음</button>
+                <button
+                  style={{ ...btnText, color: 'rgba(255,255,255,0.65)' }}
+                  onClick={handleReRecord}
+                >
+                  다시 말하기
+                </button>
+              </>
+            ) : (
+              <button
+                style={{
+                  ...btnBase,
+                  background: 'rgba(255,255,255,0.18)',
+                  color: '#fff',
+                  border: '1.5px solid rgba(255,255,255,0.35)',
+                  backdropFilter: 'blur(8px)',
+                }}
+                onClick={finishRec}
+              >
+                완료
+              </button>
+            )}
           </div>
         </div>
       )
@@ -554,7 +689,6 @@ export default function OnboardingPage() {
                 알림을 켜면 정한 시간에 오늘의 성공의 말을 보내드려요.
               </div>
             </div>
-            {/* Time picker card */}
             <div style={{ background: T.bgSoft, border: `1.5px solid ${T.line}`, borderRadius: 16, padding: '18px 18px 22px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16, color: T.ink2, fontWeight: 600, fontSize: 14 }}>
                 <ClockIcon /> 알림 시간
@@ -618,7 +752,6 @@ export default function OnboardingPage() {
             <div style={{ fontSize: 30, fontWeight: 800, letterSpacing: '-0.6px', color: T.ink, lineHeight: 1.28 }}>
               당신의 첫<br />성공의 말이에요.
             </div>
-            {/* Affirmation card */}
             <div style={{ borderRadius: 22, padding: '26px 24px', background: T.goldTint }}>
               <div style={{ fontSize: 24, fontWeight: 800, lineHeight: 1.42, letterSpacing: '-0.4px', color: T.ink, marginBottom: 22 }}>
                 {phrase}
