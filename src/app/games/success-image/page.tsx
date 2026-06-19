@@ -11,6 +11,7 @@ import {
   type FaceData,
 } from '@/lib/faceStorage'
 
+// analyze-face API 전송용 (JPEG 경량화)
 function resizeImage(file: File | Blob, maxPx = 800, format: 'jpeg' | 'png' = 'jpeg'): Promise<string> {
   return new Promise((resolve) => {
     const img = new Image()
@@ -26,6 +27,49 @@ function resizeImage(file: File | Blob, maxPx = 800, format: 'jpeg' | 'png' = 'j
         ? canvas.toDataURL('image/png')
         : canvas.toDataURL('image/jpeg', 0.85)
       )
+    }
+    img.src = objectUrl
+  })
+}
+
+// 성공 이미지 생성용 — 얼굴 이미지 + 마스크 동시 생성
+// 마스크: 얼굴 타원 = 불투명(보존), 나머지 = 투명(편집 허용)
+// bbox 있으면 실제 얼굴 위치 기반, 없으면 고정 타원 폴백
+function resizeWithMask(
+  file: File | Blob,
+  maxPx = 768,
+  bbox?: { x: number; y: number; w: number; h: number }
+): Promise<{ imageBase64: string; maskBase64: string }> {
+  return new Promise((resolve) => {
+    const img = new Image()
+    const objectUrl = URL.createObjectURL(file)
+    img.onload = () => {
+      URL.revokeObjectURL(objectUrl)
+      const scale = Math.min(maxPx / img.naturalWidth, maxPx / img.naturalHeight, 1)
+      const w = Math.round(img.naturalWidth * scale)
+      const h = Math.round(img.naturalHeight * scale)
+
+      const imgCanvas = document.createElement('canvas')
+      imgCanvas.width = w; imgCanvas.height = h
+      imgCanvas.getContext('2d')!.drawImage(img, 0, 0, w, h)
+      const imageBase64 = imgCanvas.toDataURL('image/png')
+
+      const maskCanvas = document.createElement('canvas')
+      maskCanvas.width = w; maskCanvas.height = h
+      const ctx = maskCanvas.getContext('2d')!
+      ctx.clearRect(0, 0, w, h)   // 전체 투명 = 편집 허용
+      ctx.fillStyle = 'white'
+      ctx.beginPath()
+      // bbox 있으면 실제 얼굴 위치·크기 기반, 없으면 고정 중심 폴백
+      const cx = bbox ? w * (bbox.x + bbox.w / 2) : w * 0.50
+      const cy = bbox ? h * (bbox.y + bbox.h / 2) : h * 0.40
+      const rx = bbox ? w * bbox.w * 0.54 : w * 0.38   // 약간 여유
+      const ry = bbox ? h * bbox.h * 0.54 : h * 0.42
+      ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2)
+      ctx.fill()                   // 얼굴 타원 = 불투명 = 원본 픽셀 보존
+      const maskBase64 = maskCanvas.toDataURL('image/png')
+
+      resolve({ imageBase64, maskBase64 })
     }
     img.src = objectUrl
   })
@@ -131,11 +175,17 @@ export default function SuccessImagePage() {
       // 매번 IndexedDB에서 최신 얼굴 데이터 새로 불러오기
       const latestProfile = await getFaceProfile().catch(() => null)
 
-      const body: { affirmations: string[]; faceData?: FaceData; faceImageBase64?: string } = {
+      const body: { affirmations: string[]; faceData?: FaceData; faceImageBase64?: string; faceMaskBase64?: string } = {
         affirmations: affirmationTexts,
       }
       if (latestProfile?.imageBlob) {
-        body.faceImageBase64 = await resizeImage(latestProfile.imageBlob, 512, 'png')
+        const { imageBase64, maskBase64 } = await resizeWithMask(
+          latestProfile.imageBlob,
+          768,
+          latestProfile.faceData.faceBoundingBox
+        )
+        body.faceImageBase64 = imageBase64
+        body.faceMaskBase64 = maskBase64
         body.faceData = latestProfile.faceData
         setUsedFace(true)
       } else if (latestProfile?.faceData.generationPrompt) {

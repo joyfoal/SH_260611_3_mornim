@@ -22,7 +22,7 @@ export async function POST(req: NextRequest) {
           role: 'system',
           content: `You are an expert face analyst. Your task is to detect and analyze ANY human face in the photo — regardless of angle (front, side, 3/4 view, tilted), lighting, whether the person wears glasses or sunglasses, has a hat, mask partially removed, or any other condition. Do your best to infer features even from partial or angled views.
 
-Return ONLY a valid JSON object — no markdown, no explanation, no code fences — with exactly these 13 fields:
+Return ONLY a valid JSON object — no markdown, no explanation, no code fences — with exactly these 14 fields:
 {
   "faceShape": "oval|round|square|heart|diamond|oblong",
   "faceAngle": "front|three-quarter|side|tilted",
@@ -36,8 +36,10 @@ Return ONLY a valid JSON object — no markdown, no explanation, no code fences 
   "skinTone": "light warm|light cool|medium warm|medium cool|olive|tan|deep warm|deep cool",
   "distinctiveFeatures": "comma-separated notable features (e.g. dimples, freckles, beard, strong brow) or none",
   "eyewear": "glasses|sunglasses|none",
-  "generationPrompt": "a person with [all visible features described naturally in one English sentence, including face angle, eyewear if present, and any distinctive features]"
+  "generationPrompt": "a person with [all visible features described naturally in one English sentence, including face angle, eyewear if present, and any distinctive features]",
+  "faceBoundingBox": { "x": 0.0, "y": 0.0, "w": 1.0, "h": 1.0 }
 }
+For faceBoundingBox: estimate where the face itself (forehead to chin, ear to ear) appears in the image as normalized fractions of image width/height. x=left edge, y=top edge, w=width, h=height. All values between 0 and 1.
 Use "unknown" only if a feature is truly impossible to determine. Always attempt to analyze even partial or side-view faces. Only return {"error": "no face detected"} if there is absolutely no human face anywhere in the image.`,
         },
         {
@@ -74,6 +76,15 @@ Use "unknown" only if a feature is truly impossible to determine. Always attempt
       return NextResponse.json({ error: '얼굴 분석 결과를 읽을 수 없어요.' }, { status: 500 })
     }
 
+    let faceBoundingBox: { x: number; y: number; w: number; h: number } | undefined
+    if (parsed.faceBoundingBox && typeof parsed.faceBoundingBox === 'object') {
+      const bb = parsed.faceBoundingBox as Record<string, unknown>
+      const x = Number(bb.x), y = Number(bb.y), w = Number(bb.w), h = Number(bb.h)
+      if ([x, y, w, h].every((v) => Number.isFinite(v) && v >= 0 && v <= 1) && w > 0 && h > 0) {
+        faceBoundingBox = { x, y, w, h }
+      }
+    }
+
     return NextResponse.json({
       faceData: {
         faceShape: parsed.faceShape ?? '',
@@ -89,6 +100,7 @@ Use "unknown" only if a feature is truly impossible to determine. Always attempt
         distinctiveFeatures: parsed.distinctiveFeatures ?? 'none',
         eyewear: parsed.eyewear ?? 'none',
         generationPrompt: parsed.generationPrompt,
+        ...(faceBoundingBox ? { faceBoundingBox } : {}),
       },
     })
   } catch (err) {

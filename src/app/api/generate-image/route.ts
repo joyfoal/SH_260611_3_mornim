@@ -16,47 +16,56 @@ interface FaceData {
   generationPrompt: string
 }
 
-function buildFaceRules(fd: FaceData): string {
-  const rules: string[] = []
+function buildIdentityMatrix(fd: FaceData, scene: string): string {
+  const eyeDesc = [fd.eyeShape, fd.eyeColor, fd.eyeSpacing]
+    .filter((v) => v && v !== 'unknown').join(', ')
 
-  rules.push(`Face shape: ${fd.faceShape} — preserve exactly.`)
+  const nosemouth = [
+    fd.noseShape && fd.noseShape !== 'unknown' ? `${fd.noseShape} nose` : '',
+    fd.lipShape && fd.lipShape !== 'unknown' ? `${fd.lipShape} lips` : '',
+  ].filter(Boolean).join(', ')
 
-  if (fd.eyeShape && fd.eyeShape !== 'unknown')
-    rules.push(`Eyes: ${fd.eyeShape} shape, ${fd.eyeColor}, ${fd.eyeSpacing} — preserve exactly.`)
+  const structure = [
+    fd.jawlineType && fd.jawlineType !== 'unknown' ? `${fd.jawlineType} jawline` : '',
+    fd.cheekbonePosition && fd.cheekbonePosition !== 'unknown' ? `${fd.cheekbonePosition} cheekbones` : '',
+  ].filter(Boolean).join(', ')
 
-  if (fd.noseShape && fd.noseShape !== 'unknown')
-    rules.push(`Nose: ${fd.noseShape} — preserve exactly.`)
+  const eyewearRule =
+    fd.eyewear === 'glasses' ? 'MUST wear the exact same glasses. Never remove them.' :
+    fd.eyewear === 'sunglasses' ? 'MUST wear the exact same sunglasses. Never remove them.' :
+    'NO glasses or eyewear — do NOT add any.'
 
-  if (fd.lipShape && fd.lipShape !== 'unknown')
-    rules.push(`Lips: ${fd.lipShape} — preserve exactly.`)
+  return `[Identity Matrix: System Overwrite]
+Character Name: [Ch_RegisteredFace]
+Strict Rule: Maintain 100% facial consistency, bone structure, and identity of Ch_RegisteredFace. Do not distort the face.
 
-  if (fd.jawlineType && fd.jawlineType !== 'unknown')
-    rules.push(`Jawline: ${fd.jawlineType} — preserve exactly.`)
+[Facial Features Data]
+- Face Shape: ${fd.faceShape} face with ${structure || 'natural bone structure'}
+- Eyes: ${eyeDesc || fd.eyeShape}
+- Nose & Mouth: ${nosemouth || fd.generationPrompt}
+- Skin Tone: ${fd.skinTone}
+- Distinguishing Marks: ${fd.distinctiveFeatures && fd.distinctiveFeatures !== 'none' ? fd.distinctiveFeatures : 'none'}
+- Eyewear: ${eyewearRule}
+- Full description: ${fd.generationPrompt}
 
-  if (fd.cheekbonePosition && fd.cheekbonePosition !== 'unknown')
-    rules.push(`Cheekbones: ${fd.cheekbonePosition} — preserve exactly.`)
+[Current Scene & Situation]
+Ch_RegisteredFace is now in a scene that embodies: ${scene}
+Ch_RegisteredFace is wearing appropriate attire for this success theme and making a genuinely joyful, warm, confident, deeply fulfilled expression — radiating positivity from within.
+The art style must be Photorealistic with warm golden light.
+Keep their current young appearance — do NOT age the face.
 
-  rules.push(`Skin tone: ${fd.skinTone} — preserve exactly.`)
-
-  if (fd.distinctiveFeatures && fd.distinctiveFeatures !== 'none')
-    rules.push(`Distinctive features (${fd.distinctiveFeatures}) — preserve exactly.`)
-
-  if (fd.eyewear === 'glasses')
-    rules.push(`EYEWEAR: This person IS wearing glasses — MUST keep the exact same glasses. Never remove them.`)
-  else if (fd.eyewear === 'sunglasses')
-    rules.push(`EYEWEAR: This person IS wearing sunglasses — MUST keep the exact same sunglasses. Never remove them.`)
-  else if (fd.eyewear === 'none')
-    rules.push(`EYEWEAR: This person has NO glasses or eyewear — do NOT add any glasses or eyewear.`)
-
-  return rules.map((r) => `• ${r}`).join('\n')
+Maintain the exact same facial structure, identity, and features of Ch_RegisteredFace across this new setting.
+The facial features, eye shape, nose structure, and skin tone must remain identical — only the background, clothing, and environment change.
+NO TEXT OR LETTERS of any kind in the image.`
 }
 
 export async function POST(req: NextRequest) {
   try {
-    const { affirmations, faceData, faceImageBase64 } = await req.json() as {
+    const { affirmations, faceData, faceImageBase64, faceMaskBase64 } = await req.json() as {
       affirmations: string[]
       faceData?: FaceData
       faceImageBase64?: string   // "data:image/png;base64,..."
+      faceMaskBase64?: string    // 얼굴 타원 = 불투명(보존), 나머지 = 투명(편집)
     }
 
     if (!process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY === 'your_key_here') {
@@ -75,47 +84,40 @@ export async function POST(req: NextRequest) {
       const imageBuffer = Buffer.from(base64Data, 'base64')
       const imageFile = await toFile(imageBuffer, 'face.png', { type: 'image/png' })
 
-      const faceRules = faceData ? buildFaceRules(faceData) : ''
+      // 마스크: 얼굴 타원 = 불투명(보존), 나머지 = 투명(편집)
+      let maskFile: Awaited<ReturnType<typeof toFile>> | undefined
+      if (faceMaskBase64) {
+        const maskBase64Data = faceMaskBase64.replace(/^data:image\/\w+;base64,/, '')
+        const maskBuffer = Buffer.from(maskBase64Data, 'base64')
+        maskFile = await toFile(maskBuffer, 'mask.png', { type: 'image/png' })
+      }
 
-      const prompt = `Reproduce this person's appearance with absolute fidelity. The following features MUST be preserved exactly as in the registered photo:
-${faceRules}
+      const prompt = faceData
+        ? buildIdentityMatrix(faceData, affText)
+        : `Reproduce this person's appearance with absolute fidelity. Keep their current young appearance — do NOT age the face. Place them in a meaningful scene that visually embodies: ${affText}. NO TEXT OR LETTERS. Style: warm golden light, photorealistic.`
 
-Keep their current young appearance — do NOT age the face.
-The person's expression should be genuinely joyful, warm, confident, and deeply fulfilled — radiating positivity from within.
-Place them in a meaningful scene that visually embodies these themes: ${affText}
-The environment and surroundings should reflect those themes through symbolic objects and settings.
-NO TEXT OR LETTERS of any kind in the image.
-Style: warm golden light, photorealistic, uplifting, rich with meaningful visual detail.`
-
-      const response = await openai.images.edit({
+      const editParams: Parameters<typeof openai.images.edit>[0] = {
         model: 'gpt-image-1',
         image: imageFile,
         prompt,
         n: 1,
         size: '1024x1024',
-      })
+        quality: 'high',
+      }
+      if (maskFile) editParams.mask = maskFile
+
+      const response = await openai.images.edit(editParams)
       b64 = response.data?.[0]?.b64_json
     } else if (faceData) {
-      // 얼굴 데이터만 있음: 텍스트 기반 생성
-      const faceRules = buildFaceRules(faceData)
-
-      const prompt = `A photorealistic portrait. The person MUST have these exact features — preserve all of them:
-${faceRules}
-Full face description: ${faceData.generationPrompt}
-
-Keep their current young appearance — do NOT age the face.
-The person's expression is genuinely joyful, warm, confident, and deeply fulfilled — radiating positivity.
-Place them in a rich scene that visually embodies these themes: ${affText}
-The environment and surroundings reflect those themes through symbolic objects and settings.
-NO TEXT OR LETTERS of any kind in the image.
-Style: warm golden light, professional photography quality, uplifting atmosphere.`
+      // 얼굴 데이터만 있음: Identity Matrix 텍스트 기반 생성
+      const prompt = buildIdentityMatrix(faceData, affText)
 
       const response = await openai.images.generate({
         model: 'gpt-image-1',
         prompt,
         n: 1,
         size: '1024x1024',
-        quality: 'medium',
+        quality: 'high',
       })
       b64 = response.data?.[0]?.b64_json
     } else {

@@ -16,6 +16,7 @@ export interface FaceData {
   distinctiveFeatures: string
   eyewear: string             // "glasses" | "sunglasses" | "none"
   generationPrompt: string
+  faceBoundingBox?: { x: number; y: number; w: number; h: number }
 }
 
 export interface FaceProfile {
