@@ -686,23 +686,6 @@ export default function OnboardingPage() {
                 </div>
                 <div style={{ fontSize: 14, fontWeight: 600, color: '#e8c878' }}>{encouragement}</div>
               </div>
-              {recAffirmations.length > 0 && (
-                <div style={{ width: '100%' }}>
-                  <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.55)', marginBottom: 6, textAlign: 'center' }}>
-                    이런 성공의 말도 소리 내어 말해보세요
-                  </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                    {recAffirmations.map((aff, i) => (
-                      <div key={i} style={{
-                        background: 'rgba(189,130,31,0.2)', border: '1px solid rgba(232,200,120,0.3)',
-                        borderRadius: 12, padding: '10px 14px', fontSize: 13, color: '#f3e6c8', lineHeight: 1.4,
-                      }}>
-                        {aff}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
             </div>
           )}
 
