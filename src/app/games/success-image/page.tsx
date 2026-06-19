@@ -6,6 +6,7 @@ import { getAffirmations, type Affirmation } from '@/lib/storage'
 import {
   getFaceProfile,
   saveFaceProfile,
+  deleteFaceProfile,
   type FaceProfile,
   type FaceData,
 } from '@/lib/faceStorage'
@@ -313,9 +314,6 @@ export default function SuccessImagePage() {
             <p style={{ fontSize: '15px', fontWeight: 600, color: 'var(--color-text-primary)', marginBottom: '2px' }}>
               내 캐릭터 만들기
             </p>
-            <p style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>
-              얼굴·글 없이 버튼만 눌러도 성공의 말로 만들어줘요
-            </p>
           </div>
         </div>
 
@@ -348,7 +346,10 @@ export default function SuccessImagePage() {
               ✓ 저장된 프로필 사용 중 · 아래에서 성공의 말을 선택해요
             </div>
             <button
-              onClick={() => {
+              onClick={async () => {
+                await deleteFaceProfile().catch(() => {})
+                setSavedProfile(null)
+                setSavedProfileUrl(null)
                 setShowCreationUI(true)
                 setIsRegenerating(true)
                 setProfileUrl(null)
@@ -366,7 +367,7 @@ export default function SuccessImagePage() {
                 cursor: 'pointer',
               }}
             >
-              🔄 프로필 다시 만들기
+              프로필 다시 만들기
             </button>
           </div>
         )}
@@ -473,8 +474,8 @@ export default function SuccessImagePage() {
               }}
             >
               {([
-                { id: 'ghibli', label: '✨ 만화' },
-                { id: 'realistic', label: '📸 실사' },
+                { id: 'ghibli', label: '✨ 만화 느낌' },
+                { id: 'realistic', label: '📸 사진 느낌' },
               ] as const).map((s) => (
                 <button
                   key={s.id}
