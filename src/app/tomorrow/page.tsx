@@ -7,7 +7,7 @@ import { ChevronLeft } from 'lucide-react'
 
 function getTimePlaceholder(): string {
   const hour = new Date().getHours()
-  return hour < 18 ? '오후 6시까지는 오늘도 잘 해낼 수 있어!' : '오늘도 수고했어!'
+  return hour < 18 ? '오늘도 잘 할 수 있어!' : '오늘도 수고했어!'
 }
 
 export default function TomorrowPage() {
