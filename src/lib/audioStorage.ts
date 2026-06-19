@@ -97,6 +97,11 @@ export async function deleteExpiredAudioRecords(): Promise<void> {
   })
 }
 
+export async function getAudioRecordsByAffirmationId(affirmationId: string): Promise<AudioRecord[]> {
+  const all = await getAudioRecords()
+  return all.filter((r) => r.affirmationId === affirmationId)
+}
+
 export async function getRecentAudioRecord(): Promise<AudioRecord | null> {
   try {
     const records = await getAudioRecords()

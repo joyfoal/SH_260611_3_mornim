@@ -17,22 +17,16 @@ import {
   type Affirmation,
 } from '@/lib/storage'
 import { updateStreak } from '@/lib/streak'
-import { saveAudioRecord } from '@/lib/audioStorage'
+import { saveAudioRecord, getAudioRecordsByAffirmationId } from '@/lib/audioStorage'
 
 const MAX_EXTRA = 4
 
 function useSwipeUp(onSwipeUp: () => void) {
   const startY = useRef(0)
-
-  const handleTouchStart = (e: React.TouchEvent) => {
-    startY.current = e.touches[0].clientY
-  }
-
+  const handleTouchStart = (e: React.TouchEvent) => { startY.current = e.touches[0].clientY }
   const handleTouchEnd = (e: React.TouchEvent) => {
-    const delta = startY.current - e.changedTouches[0].clientY
-    if (delta > 50) onSwipeUp()
+    if (startY.current - e.changedTouches[0].clientY > 50) onSwipeUp()
   }
-
   return { handleTouchStart, handleTouchEnd }
 }
 
@@ -55,6 +49,15 @@ function SpeakPageInner() {
   const [recognizedWords, setRecognizedWords] = useState<Set<string>>(new Set())
   const [isListening, setIsListening] = useState(false)
   const [isSpeaking, setIsSpeaking] = useState(false)
+
+  // Re-record state: idle | recording | confirm
+  const [reRecordState, setReRecordState] = useState<'idle' | 'recording' | 'confirm'>('idle')
+  const [hasExistingRecording, setHasExistingRecording] = useState(false)
+  const reRecordBlobRef = useRef<Blob | null>(null)
+  const reRecordRecorderRef = useRef<MediaRecorder | null>(null)
+  const reRecordChunksRef = useRef<Blob[]>([])
+  const reRecordStreamRef = useRef<MediaStream | null>(null)
+
   const videoRef = useRef<HTMLVideoElement>(null)
   const recognitionRef = useRef<{ stop: () => void } | null>(null)
   const shouldListenRef = useRef(false)
@@ -87,7 +90,14 @@ function SpeakPageInner() {
     setDataLoaded(true)
   }, [searchParams])
 
-  // 확언 없으면 3초 후 홈으로
+  // 기존 녹음 여부 확인
+  useEffect(() => {
+    if (!affirmation) return
+    getAudioRecordsByAffirmationId(affirmation.id).then((records) => {
+      setHasExistingRecording(records.length > 0)
+    }).catch(() => setHasExistingRecording(false))
+  }, [affirmation])
+
   useEffect(() => {
     if (!dataLoaded || affirmation !== null) return
     const timer = setTimeout(() => router.replace('/home'), 3000)
@@ -107,21 +117,17 @@ function SpeakPageInner() {
         audio: true,
       })
       streamRef.current = stream
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream
-      }
+      if (videoRef.current) videoRef.current.srcObject = stream
 
-      // Start MediaRecorder for audio
       const mimeType = getSupportedMimeType()
       const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined)
       audioChunksRef.current = []
-      recorder.ondataavailable = (e) => {
-        if (e.data.size > 0) audioChunksRef.current.push(e.data)
-      }
+      recorder.ondataavailable = (e) => { if (e.data.size > 0) audioChunksRef.current.push(e.data) }
       recorder.onstop = async () => {
         const blob = new Blob(audioChunksRef.current, { type: mimeType || 'audio/webm' })
         const aff = pendingAffirmationRef.current
-        if (aff && blob.size > 0) {
+        // 기존 녹음이 없을 때만(첫 번째) 자동 저장
+        if (aff && blob.size > 0 && !hasExistingRecording) {
           try {
             await saveAudioRecord({
               id: `audio-${Date.now()}-${Math.random().toString(36).slice(2)}`,
@@ -131,29 +137,19 @@ function SpeakPageInner() {
               createdAt: Date.now(),
               keepForever: false,
             })
-          } catch {
-            // ignore storage errors
-          }
+          } catch { /* ignore */ }
         }
       }
       recorder.start()
       mediaRecorderRef.current = recorder
     } catch {
-      // Try without audio
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: 'user' },
-          audio: false,
-        })
+        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false })
         streamRef.current = stream
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream
-        }
-      } catch {
-        // camera denied — continue without
-      }
+        if (videoRef.current) videoRef.current.srcObject = stream
+      } catch { /* camera denied */ }
     }
-  }, [])
+  }, [hasExistingRecording])
 
   const startSTT = useCallback(() => {
     if (typeof window === 'undefined') return
@@ -162,9 +158,8 @@ function SpeakPageInner() {
     const SpeechRec = w.SpeechRecognition ?? w.webkitSpeechRecognition
     if (!SpeechRec) return
 
-    // 기존 인스턴스 정리 (윈도우 호환: 재시작 대신 새 인스턴스 생성)
     if (recognitionRef.current) {
-      try { recognitionRef.current.stop() } catch { /* ignore */ }
+      try { recognitionRef.current.stop() } catch { }
       recognitionRef.current = null
     }
 
@@ -179,12 +174,7 @@ function SpeakPageInner() {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     recognition.onresult = (event: any) => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const transcript = Array.from(event.results as any[])
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        .map((r: any) => r[0].transcript)
-        .join(' ')
-        .toLowerCase()
-
+      const transcript = Array.from(event.results as any[]).map((r: any) => r[0].transcript).join(' ').toLowerCase()
       setIsSpeaking(true)
       if (speakTimerRef.current) clearTimeout(speakTimerRef.current)
       speakTimerRef.current = setTimeout(() => setIsSpeaking(false), 800)
@@ -206,16 +196,11 @@ function SpeakPageInner() {
 
     recognition.onerror = (event: { error: string }) => {
       if (!shouldListenRef.current) return
-      if (event.error === 'not-allowed') {
-        setIsListening(false)
-        return
-      }
-      // 오류 시 새 인스턴스로 재시작 (윈도우 호환)
+      if (event.error === 'not-allowed') { setIsListening(false); return }
       setTimeout(() => { if (shouldListenRef.current) startSTT() }, 200)
     }
 
     recognition.onend = () => {
-      // 종료 시 새 인스턴스로 재시작 (윈도우에서 같은 인스턴스 재시작 불가)
       setTimeout(() => { if (shouldListenRef.current) startSTT() }, 100)
     }
 
@@ -236,64 +221,52 @@ function SpeakPageInner() {
     return () => {
       shouldListenRef.current = false
       if (speakTimerRef.current) clearTimeout(speakTimerRef.current)
-      if (recognitionRef.current) {
-        recognitionRef.current.stop()
-      }
+      if (recognitionRef.current) recognitionRef.current.stop()
       if (streamRef.current) {
         streamRef.current.getTracks().forEach((t) => t.stop())
         streamRef.current = null
       }
+      // re-record 정리
+      if (reRecordRecorderRef.current && reRecordRecorderRef.current.state !== 'inactive') {
+        try { reRecordRecorderRef.current.stop() } catch { }
+      }
+      if (reRecordStreamRef.current) {
+        reRecordStreamRef.current.getTracks().forEach((t) => t.stop())
+        reRecordStreamRef.current = null
+      }
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [screen, startCamera, startSTT])
 
-  // handleComplete는 auto-complete useEffect보다 반드시 먼저 선언되어야 함 (TDZ 방지)
   const handleComplete = useCallback(() => {
     if (!affirmation) return
-
     pendingAffirmationRef.current = affirmation
-
     shouldListenRef.current = false
     if (recognitionRef.current) {
-      try { recognitionRef.current.stop() } catch { /* ignore */ }
+      try { recognitionRef.current.stop() } catch { }
       recognitionRef.current = null
     }
-
     stopMediaRecorder()
 
     const today = todayStr()
     if (!affirmation.completedDates.includes(today)) {
-      const updated = {
-        ...affirmation,
-        completedDates: [...affirmation.completedDates, today],
-      }
+      const updated = { ...affirmation, completedDates: [...affirmation.completedDates, today] }
       updateAffirmation(updated)
-
       const existing = getDayRecord(today)
       const newCount = (existing?.completedCount ?? 0) + 1
-      saveDayRecord({
-        date: today,
-        completedCount: newCount,
-        dominantCategory: affirmation.category,
-      })
-
+      saveDayRecord({ date: today, completedCount: newCount, dominantCategory: affirmation.category })
       completedCountRef.current = newCount
-
-      if (newCount >= 3) {
-        updateStreak(true)
-      }
+      if (newCount >= 3) updateStreak(true)
     }
-
     setScreen('celebration')
   }, [affirmation, stopMediaRecorder])
 
-  // affirmation 바뀌면 자동완료 플래그 및 누적 인식 리셋
   useEffect(() => {
     autoCompleteTriggeredRef.current = false
     if (autoCompleteTimerRef.current) clearTimeout(autoCompleteTimerRef.current)
     cumulativeRecognizedRef.current = new Set()
   }, [affirmation])
 
-  // 모든 단어 인식 시 자동 완료
   useEffect(() => {
     if (screen !== 'speak' || !affirmation || autoCompleteTriggeredRef.current) return
     const words = affirmation.text.split(' ').filter(Boolean)
@@ -304,14 +277,62 @@ function SpeakPageInner() {
     }
   }, [recognizedWords, screen, affirmation, handleComplete])
 
+  // ── 다시 녹음 ──────────────────────────────────────────────────────
+  const startReRecord = useCallback(async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      reRecordStreamRef.current = stream
+      const mimeType = getSupportedMimeType()
+      const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined)
+      reRecordChunksRef.current = []
+      recorder.ondataavailable = (e) => { if (e.data.size > 0) reRecordChunksRef.current.push(e.data) }
+      recorder.onstop = () => {
+        const blob = new Blob(reRecordChunksRef.current, { type: mimeType || 'audio/webm' })
+        reRecordBlobRef.current = blob.size > 0 ? blob : null
+        reRecordStreamRef.current?.getTracks().forEach((t) => t.stop())
+        reRecordStreamRef.current = null
+        setReRecordState('confirm')
+      }
+      recorder.start()
+      reRecordRecorderRef.current = recorder
+      setReRecordState('recording')
+    } catch { /* mic denied */ }
+  }, [])
+
+  const stopReRecord = useCallback(() => {
+    if (reRecordRecorderRef.current && reRecordRecorderRef.current.state !== 'inactive') {
+      reRecordRecorderRef.current.stop()
+    }
+  }, [])
+
+  const saveReRecord = useCallback(async () => {
+    const blob = reRecordBlobRef.current
+    if (blob && affirmation) {
+      try {
+        await saveAudioRecord({
+          id: `audio-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+          affirmationId: affirmation.id,
+          affirmationText: affirmation.text,
+          blob,
+          createdAt: Date.now(),
+          keepForever: false,
+        })
+      } catch { /* ignore */ }
+    }
+    reRecordBlobRef.current = null
+    setReRecordState('idle')
+  }, [affirmation])
+
+  const discardReRecord = useCallback(() => {
+    reRecordBlobRef.current = null
+    setReRecordState('idle')
+  }, [])
+
   const handleCelebrationNext = useCallback(() => {
     const nextIndex = currentIndex + 1
     const nextId = queue[nextIndex]
-
     if (nextId) {
-      if (typeof window !== 'undefined') {
-        sessionStorage.setItem('mornim-speak-index', String(nextIndex))
-      }
+      if (typeof window !== 'undefined') sessionStorage.setItem('mornim-speak-index', String(nextIndex))
       const all = getAffirmations()
       const next = all.find((a) => a.id === nextId)
       if (next) {
@@ -322,22 +343,14 @@ function SpeakPageInner() {
         return
       }
     }
-
-    // All base done
-    if (isTomorrowEnabled()) {
-      router.push('/tomorrow')
-    } else {
-      router.push('/home')
-    }
+    if (isTomorrowEnabled()) router.push('/tomorrow')
+    else router.push('/home')
   }, [currentIndex, queue, router])
 
   const handleMoreAffirmation = useCallback(() => {
     incrementTodayExtraCount()
     const all = getAffirmations()
-    if (all.length === 0) {
-      router.push('/tomorrow')
-      return
-    }
+    if (all.length === 0) { router.push('/tomorrow'); return }
     const pick = all[Math.floor(Math.random() * all.length)]
     isExtraMode.current = true
     setAffirmation(pick)
@@ -355,18 +368,11 @@ function SpeakPageInner() {
 
   if (!affirmation) {
     return (
-      <div
-        className="flex flex-col items-center justify-center gap-3"
-        style={{ minHeight: '100dvh', background: 'var(--color-bg-dark)' }}
-      >
+      <div className="flex flex-col items-center justify-center gap-3" style={{ minHeight: '100dvh', background: 'var(--color-bg-dark)' }}>
         <div style={{ color: 'var(--color-text-muted)', fontSize: '15px' }}>
           {dataLoaded ? '확언을 찾을 수 없어요' : '로딩 중...'}
         </div>
-        {dataLoaded && (
-          <div style={{ fontSize: '13px', color: 'var(--color-text-muted)', opacity: 0.6 }}>
-            잠시 후 홈으로 이동합니다
-          </div>
-        )}
+        {dataLoaded && <div style={{ fontSize: '13px', color: 'var(--color-text-muted)', opacity: 0.6 }}>잠시 후 홈으로 이동합니다</div>}
       </div>
     )
   }
@@ -393,210 +399,187 @@ function SpeakPageInner() {
         onTouchEnd={handleTouchEnd}
       >
         <div className="px-8 w-full">
-          <div
-            style={{
-              position: 'absolute',
-              top: '20px',
-              left: '50%',
-              transform: 'translateX(-50%)',
-              background: 'rgba(255,255,255,0.1)',
-              borderRadius: '20px',
-              padding: '4px 16px',
-              fontSize: '13px',
-              color: 'var(--color-text-muted)',
-            }}
-          >
+          <div style={{
+            position: 'absolute', top: '20px', left: '50%', transform: 'translateX(-50%)',
+            background: 'rgba(255,255,255,0.1)', borderRadius: '20px', padding: '4px 16px',
+            fontSize: '13px', color: 'var(--color-text-muted)',
+          }}>
             {isExtraMode.current ? `보너스 +${extraCount + 1}` : `${currentIndex + 1} / ${queue.length}`}
           </div>
           <DynamicText text={affirmation.text} darkBackground />
         </div>
-        <div
-          className="absolute bottom-12"
-          style={{
-            color: 'var(--color-text-muted)',
-            fontSize: '14px',
-            animation: 'bounce 1.5s ease-in-out infinite',
-          }}
-        >
+        <div className="absolute bottom-12" style={{ color: 'var(--color-text-muted)', fontSize: '14px', animation: 'bounce 1.5s ease-in-out infinite' }}>
           위로 스와이프 ↑
         </div>
       </div>
     )
   }
 
-  // Speak screen
+  // ── Speak screen ──────────────────────────────────────────────────
   const words = affirmation.text.split(' ')
 
   return (
-    <div
-      className="relative flex flex-col"
-      style={{ minHeight: '100dvh', background: 'var(--color-bg-dark)', overflow: 'hidden' }}
-    >
+    <div className="relative flex flex-col" style={{ minHeight: '100dvh', background: 'var(--color-bg-dark)', overflow: 'hidden' }}>
       {/* Camera */}
       <video
         ref={videoRef}
-        autoPlay
-        playsInline
-        muted
-        style={{
-          position: 'absolute',
-          inset: 0,
-          width: '100%',
-          height: '100%',
-          objectFit: 'cover',
-          transform: 'scaleX(-1)',
-          opacity: 0.7,
-        }}
+        autoPlay playsInline muted
+        style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', transform: 'scaleX(-1)', opacity: 0.7 }}
       />
-
-      <div
-        style={{
-          position: 'absolute',
-          inset: 0,
-          background: 'linear-gradient(to bottom, rgba(0,0,0,0.45) 0%, rgba(0,0,0,0.15) 40%, rgba(0,0,0,0.55) 100%)',
-          pointerEvents: 'none',
-        }}
-      />
-
-      {isSpeaking && (
-        <div
-          style={{
-            position: 'absolute',
-            inset: 0,
-            animation: 'speakGlow 0.6s ease-in-out',
-            pointerEvents: 'none',
-          }}
-        />
-      )}
+      <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, rgba(0,0,0,0.45) 0%, rgba(0,0,0,0.15) 40%, rgba(0,0,0,0.55) 100%)', pointerEvents: 'none' }} />
+      {isSpeaking && <div style={{ position: 'absolute', inset: 0, animation: 'speakGlow 0.6s ease-in-out', pointerEvents: 'none' }} />}
 
       {/* Progress */}
-      <div
-        style={{
-          position: 'relative',
-          zIndex: 10,
-          padding: '20px 16px 0',
-          textAlign: 'center',
-        }}
-      >
-        <div
-          style={{
-            display: 'inline-block',
-            background: 'rgba(0,0,0,0.5)',
-            borderRadius: '20px',
-            padding: '4px 16px',
-            fontSize: '13px',
-            color: 'var(--color-text-muted)',
-          }}
-        >
+      <div style={{ position: 'relative', zIndex: 10, padding: '20px 16px 0', textAlign: 'center' }}>
+        <div style={{ display: 'inline-block', background: 'rgba(0,0,0,0.5)', borderRadius: '20px', padding: '4px 16px', fontSize: '13px', color: 'var(--color-text-muted)' }}>
           {isExtraMode.current ? `보너스 +${extraCount + 1}` : `${currentIndex + 1} / ${queue.length}`}
         </div>
       </div>
 
       {/* Words overlay */}
-      <div
-        style={{
-          position: 'relative',
-          zIndex: 10,
-          flex: 1,
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          padding: '24px',
-        }}
-      >
-        <div
-          style={{
-            display: 'flex',
-            flexWrap: 'wrap',
-            gap: '8px',
-            justifyContent: 'center',
-            marginBottom: '32px',
-          }}
-        >
+      <div style={{ position: 'relative', zIndex: 10, flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '24px' }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', justifyContent: 'center', marginBottom: '32px' }}>
           {words.map((word, i) => (
-            <span
-              key={i}
-              style={{
-                fontSize: '22px',
-                fontWeight: 500,
-                padding: '4px 10px',
-                borderRadius: '8px',
-                background: recognizedWords.has(word)
-                  ? 'var(--color-accent-highlight)'
-                  : 'rgba(255,255,255,0.1)',
-                color: recognizedWords.has(word) ? 'white' : 'var(--color-text-onDark)',
-                transition: 'all 0.3s ease',
-              }}
-            >
+            <span key={i} style={{
+              fontSize: '22px', fontWeight: 500, padding: '4px 10px', borderRadius: '8px',
+              background: recognizedWords.has(word) ? 'var(--color-accent-highlight)' : 'rgba(255,255,255,0.1)',
+              color: recognizedWords.has(word) ? 'white' : 'var(--color-text-onDark)',
+              transition: 'all 0.3s ease',
+            }}>
               {word}
             </span>
           ))}
         </div>
-
         <div className="flex items-center gap-2" style={{ color: 'var(--color-text-muted)', fontSize: '14px' }}>
           {isListening && (
             <div className="flex items-end gap-0.5" style={{ height: '20px' }}>
               {[0, 1, 2, 3, 4].map((i) => (
-                <div
-                  key={i}
-                  style={{
-                    width: '3px',
-                    borderRadius: '2px',
-                    background: isSpeaking ? 'var(--color-accent-secondary)' : 'var(--color-text-muted)',
-                    animation: isSpeaking ? `waveBar 0.4s ease-in-out ${i * 0.08}s infinite` : 'none',
-                    height: isSpeaking ? undefined : '4px',
-                    transition: 'background 0.2s',
-                  }}
-                />
+                <div key={i} style={{
+                  width: '3px', borderRadius: '2px',
+                  background: isSpeaking ? 'var(--color-accent-secondary)' : 'var(--color-text-muted)',
+                  animation: isSpeaking ? `waveBar 0.4s ease-in-out ${i * 0.08}s infinite` : 'none',
+                  height: isSpeaking ? undefined : '4px',
+                  transition: 'background 0.2s',
+                }} />
               ))}
             </div>
           )}
-          {isSpeaking ? '인식 중...' : '듣고 있어요...'}
+          {reRecordState === 'recording' ? '다시 녹음 중...' : isSpeaking ? '인식 중...' : '듣고 있어요...'}
         </div>
       </div>
 
-      {/* Complete button */}
-      <div
-        style={{
-          position: 'relative',
-          zIndex: 10,
-          padding: '16px 32px 40px',
-        }}
-      >
+      {/* Bottom buttons */}
+      <div style={{ position: 'relative', zIndex: 10, padding: '12px 32px 40px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+        {/* 완료 버튼 */}
         <button
           onClick={handleComplete}
           style={{
-            width: '100%',
-            padding: '16px',
-            background: 'var(--color-accent-primary)',
-            border: 'none',
-            borderRadius: '16px',
-            color: 'white',
-            fontSize: '16px',
-            fontWeight: 600,
-            cursor: 'pointer',
+            width: '100%', padding: '16px', background: 'var(--color-accent-primary)',
+            border: 'none', borderRadius: '16px', color: 'white', fontSize: '16px', fontWeight: 600, cursor: 'pointer',
           }}
         >
           완료 ✓
         </button>
+
+        {/* 다시 녹음 버튼 (두 번째부터) */}
+        {hasExistingRecording && reRecordState === 'idle' && (
+          <button
+            onClick={startReRecord}
+            style={{
+              width: '100%', padding: '13px',
+              background: 'rgba(255,255,255,0.12)',
+              border: '1.5px solid rgba(255,255,255,0.25)',
+              backdropFilter: 'blur(8px)',
+              borderRadius: '16px', color: 'white', fontSize: '15px', fontWeight: 600, cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+            }}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="3" fill="currentColor" stroke="none"/>
+              <circle cx="12" cy="12" r="9"/>
+            </svg>
+            다시 녹음
+          </button>
+        )}
+
+        {/* 녹음 중 → 완료 버튼 */}
+        {reRecordState === 'recording' && (
+          <button
+            onClick={stopReRecord}
+            style={{
+              width: '100%', padding: '13px',
+              background: 'rgba(194,85,46,0.85)',
+              border: '1.5px solid rgba(255,255,255,0.25)',
+              backdropFilter: 'blur(8px)',
+              borderRadius: '16px', color: 'white', fontSize: '15px', fontWeight: 600, cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+            }}
+          >
+            <span style={{ width: 10, height: 10, borderRadius: 2, background: '#fff', display: 'inline-block' }} />
+            녹음 완료
+          </button>
+        )}
       </div>
+
+      {/* 저장 확인 모달 */}
+      {reRecordState === 'confirm' && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 50,
+          background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(6px)',
+          display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
+        }}>
+          <div style={{
+            width: '100%', maxWidth: 480,
+            background: 'var(--color-bg-card)',
+            borderRadius: '24px 24px 0 0',
+            padding: '28px 24px 48px',
+            display: 'flex', flexDirection: 'column', gap: 16,
+          }}>
+            <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--color-text-primary)', textAlign: 'center' }}>
+              이 녹음 파일로 저장할까요?
+            </div>
+            <div style={{ fontSize: 14, color: 'var(--color-text-muted)', textAlign: 'center', lineHeight: 1.5 }}>
+              새로 녹음한 파일이 기존 녹음을 대체합니다.
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 4 }}>
+              <button
+                onClick={saveReRecord}
+                style={{
+                  width: '100%', padding: '15px',
+                  background: 'var(--color-accent-primary)',
+                  border: 'none', borderRadius: '14px',
+                  color: 'white', fontSize: '16px', fontWeight: 700, cursor: 'pointer',
+                }}
+              >
+                저장하기
+              </button>
+              <button
+                onClick={discardReRecord}
+                style={{
+                  width: '100%', padding: '15px',
+                  background: 'transparent',
+                  border: '1.5px solid var(--color-border)',
+                  borderRadius: '14px',
+                  color: 'var(--color-text-muted)', fontSize: '15px', fontWeight: 600, cursor: 'pointer',
+                }}
+              >
+                취소
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
 
 export default function SpeakPage() {
   return (
-    <Suspense
-      fallback={
-        <div
-          className="flex items-center justify-center"
-          style={{ minHeight: '100dvh', background: 'var(--color-bg-dark)' }}
-        >
-          <div style={{ color: 'var(--color-text-muted)' }}>로딩 중...</div>
-        </div>
-      }
-    >
+    <Suspense fallback={
+      <div className="flex items-center justify-center" style={{ minHeight: '100dvh', background: 'var(--color-bg-dark)' }}>
+        <div style={{ color: 'var(--color-text-muted)' }}>로딩 중...</div>
+      </div>
+    }>
       <SpeakPageInner />
     </Suspense>
   )
