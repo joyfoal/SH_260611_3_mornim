@@ -33,13 +33,16 @@ The person looks happy, fulfilled, and successful. Watercolor and digital art mi
       n: 1,
       size: '1024x1024',
       quality: 'standard',
-      response_format: 'b64_json',
     })
 
-    const b64 = response.data?.[0]?.b64_json
-    if (!b64) {
+    const imageUrl = response.data?.[0]?.url
+    if (!imageUrl) {
       return NextResponse.json({ error: '이미지 생성에 실패했어요.' }, { status: 500 })
     }
+
+    const imageRes = await fetch(imageUrl)
+    const buffer = await imageRes.arrayBuffer()
+    const b64 = Buffer.from(buffer).toString('base64')
 
     return NextResponse.json({ url: `data:image/png;base64,${b64}` })
   } catch (err) {
