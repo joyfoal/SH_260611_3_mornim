@@ -142,6 +142,7 @@ export default function OnboardingPage() {
   // Screen 2: camera + STT + recording refs
   const onbVideoRef = useRef<HTMLVideoElement>(null)
   const onbStreamRef = useRef<MediaStream | null>(null)
+  const onbAudioStreamRef = useRef<MediaStream | null>(null)
   const onbRecorderRef = useRef<MediaRecorder | null>(null)
   const onbAudioChunksRef = useRef<Blob[]>([])
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -272,29 +273,12 @@ export default function OnboardingPage() {
       onbRecognitionRef.current = null
     }
 
-    // Stop recorder and save audio
-    const phraseText = getPhrase(catsRef.current)
+    // Stop recorder — onstop은 생성 시점에 이미 설정되어 있음
     if (onbRecorderRef.current && onbRecorderRef.current.state !== 'inactive') {
-      const mimeType = getSupportedMimeType()
-      onbRecorderRef.current.onstop = async () => {
-        const blob = new Blob(onbAudioChunksRef.current, { type: mimeType || 'audio/webm' })
-        if (blob.size > 0) {
-          try {
-            await saveAudioRecord({
-              id: `onb-audio-${Date.now()}`,
-              affirmationId: `voice-${Date.now()}`,
-              affirmationText: phraseText,
-              blob,
-              createdAt: Date.now(),
-              keepForever: false,
-            })
-          } catch { /* ignore */ }
-        }
-      }
       onbRecorderRef.current.stop()
     }
 
-    setTranscript(phraseText)
+    setTranscript(getPhrase(catsRef.current))
     setRec('done')
     import('canvas-confetti').then(({ default: confetti }) => {
       confetti({ particleCount: 80, spread: 60, origin: { y: 0.5 }, colors: ['#bd821f', '#e8c878', '#f3e6c8', '#ffffff'] })
@@ -326,30 +310,44 @@ export default function OnboardingPage() {
     setRec('recording')
 
     const startStream = async () => {
+      // 카메라는 audio 없이 별도로 시작
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: true })
-        onbStreamRef.current = stream
+        const videoStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false })
+        onbStreamRef.current = videoStream
         if (onbVideoRef.current) {
-          onbVideoRef.current.srcObject = stream
+          onbVideoRef.current.srcObject = videoStream
           onbVideoRef.current.play().catch(() => {})
         }
+      } catch { /* camera denied */ }
+
+      // 마이크는 별도로 요청 (카메라 실패와 무관하게 녹음 시도)
+      try {
+        const audioStream = await navigator.mediaDevices.getUserMedia({ audio: true })
+        onbAudioStreamRef.current = audioStream
         const mimeType = getSupportedMimeType()
-        const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined)
+        const recorder = new MediaRecorder(audioStream, mimeType ? { mimeType } : undefined)
         onbAudioChunksRef.current = []
         recorder.ondataavailable = (e) => { if (e.data.size > 0) onbAudioChunksRef.current.push(e.data) }
-        recorder.start()
-        onbRecorderRef.current = recorder
-      } catch {
-        // Try video only (no mic)
-        try {
-          const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false })
-          onbStreamRef.current = stream
-          if (onbVideoRef.current) {
-            onbVideoRef.current.srcObject = stream
-            onbVideoRef.current.play().catch(() => {})
+        // onstop을 생성 시점에 미리 설정 (speak 페이지와 동일한 패턴)
+        recorder.onstop = async () => {
+          const blob = new Blob(onbAudioChunksRef.current, { type: mimeType || 'audio/webm' })
+          if (blob.size > 0) {
+            try {
+              await saveAudioRecord({
+                id: `onb-audio-${Date.now()}`,
+                affirmationId: `voice-onb-${Date.now()}`,
+                affirmationText: getPhrase(catsRef.current),
+                blob,
+                createdAt: Date.now(),
+                keepForever: false,
+              })
+            } catch { /* ignore */ }
           }
-        } catch { /* camera denied */ }
-      }
+          audioStream.getTracks().forEach((t) => t.stop())
+        }
+        recorder.start(1000) // 1초 단위로 데이터 수집
+        onbRecorderRef.current = recorder
+      } catch { /* mic denied — recording unavailable */ }
     }
 
     startStream()
@@ -361,9 +359,16 @@ export default function OnboardingPage() {
         try { onbRecognitionRef.current.stop() } catch { /* ignore */ }
         onbRecognitionRef.current = null
       }
+      if (onbRecorderRef.current && onbRecorderRef.current.state !== 'inactive') {
+        try { onbRecorderRef.current.stop() } catch { /* ignore */ }
+      }
       if (onbStreamRef.current) {
         onbStreamRef.current.getTracks().forEach((t) => t.stop())
         onbStreamRef.current = null
+      }
+      if (onbAudioStreamRef.current) {
+        onbAudioStreamRef.current.getTracks().forEach((t) => t.stop())
+        onbAudioStreamRef.current = null
       }
       setOnbIsListening(false)
     }
@@ -389,13 +394,29 @@ export default function OnboardingPage() {
     onbCumulativeRef.current = new Set()
     setOnbRecognizedWords(new Set())
 
-    // Restart recorder on same stream
-    if (onbStreamRef.current) {
+    // 오디오 스트림으로 새 recorder 생성
+    if (onbAudioStreamRef.current) {
       const mimeType = getSupportedMimeType()
-      const recorder = new MediaRecorder(onbStreamRef.current, mimeType ? { mimeType } : undefined)
+      const recorder = new MediaRecorder(onbAudioStreamRef.current, mimeType ? { mimeType } : undefined)
       onbAudioChunksRef.current = []
       recorder.ondataavailable = (e) => { if (e.data.size > 0) onbAudioChunksRef.current.push(e.data) }
-      recorder.start()
+      recorder.onstop = async () => {
+        const blob = new Blob(onbAudioChunksRef.current, { type: mimeType || 'audio/webm' })
+        if (blob.size > 0) {
+          try {
+            await saveAudioRecord({
+              id: `onb-audio-${Date.now()}`,
+              affirmationId: `voice-onb-${Date.now()}`,
+              affirmationText: getPhrase(catsRef.current),
+              blob,
+              createdAt: Date.now(),
+              keepForever: false,
+            })
+          } catch { /* ignore */ }
+        }
+        onbAudioStreamRef.current?.getTracks().forEach((t) => t.stop())
+      }
+      recorder.start(1000)
       onbRecorderRef.current = recorder
     }
 
