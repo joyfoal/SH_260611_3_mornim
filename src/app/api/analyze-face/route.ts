@@ -20,7 +20,7 @@ export async function POST(req: NextRequest) {
       messages: [
         {
           role: 'system',
-          content: `You are a face analysis expert. Analyze the face in the photo and return ONLY a valid JSON object — no markdown, no explanation, no code fences — with exactly these 11 fields:
+          content: `You are a face analysis expert. Analyze the face in the photo and return ONLY a valid JSON object — no markdown, no explanation, no code fences — with exactly these 12 fields:
 {
   "faceShape": "oval|round|square|heart|diamond|oblong",
   "eyeShape": "almond|round|hooded|monolid|upturned|downturned",
@@ -32,7 +32,8 @@ export async function POST(req: NextRequest) {
   "cheekbonePosition": "high|average|low",
   "skinTone": "light warm|light cool|medium warm|medium cool|olive|tan|deep warm|deep cool",
   "distinctiveFeatures": "comma-separated notable features or none",
-  "generationPrompt": "a person with [all above features described naturally in one English sentence]"
+  "eyewear": "glasses|sunglasses|none",
+  "generationPrompt": "a person with [all above features described naturally in one English sentence, including eyewear if present]"
 }
 If no face is visible in the photo, return: {"error": "no face detected"}`,
         },
@@ -82,6 +83,7 @@ If no face is visible in the photo, return: {"error": "no face detected"}`,
         cheekbonePosition: parsed.cheekbonePosition ?? '',
         skinTone: parsed.skinTone ?? '',
         distinctiveFeatures: parsed.distinctiveFeatures ?? 'none',
+        eyewear: parsed.eyewear ?? 'none',
         generationPrompt: parsed.generationPrompt,
       },
     })

@@ -13,6 +13,7 @@ export interface FaceData {
   cheekbonePosition: string
   skinTone: string
   distinctiveFeatures: string
+  eyewear: string             // "glasses" | "sunglasses" | "none"
   generationPrompt: string
 }
 

@@ -237,7 +237,10 @@ export default function SuccessImagePage() {
                   FACE_TRAIT_LABELS[faceProfile.faceData.faceShape] ?? faceProfile.faceData.faceShape,
                   faceProfile.faceData.eyeShape,
                   faceProfile.faceData.skinTone,
-                ].map((trait) => (
+                  faceProfile.faceData.eyewear && faceProfile.faceData.eyewear !== 'none'
+                    ? faceProfile.faceData.eyewear === 'glasses' ? '안경' : '선글라스'
+                    : null,
+                ].filter(Boolean).map((trait) => (
                   <span
                     key={trait}
                     style={{

@@ -24,12 +24,12 @@ export async function POST(req: NextRequest) {
       const imageBuffer = Buffer.from(base64Data, 'base64')
       const imageFile = await toFile(imageBuffer, 'face.png', { type: 'image/png' })
 
-      const prompt = `Keep this person's exact face, facial features, skin tone, and hair completely unchanged.
-Transform the setting into a bright, inspiring professional environment with warm golden light.
-Make them look confident, successful, and radiant with a warm fulfilled smile.
-Change their clothing to professional, elegant attire.
-Add a soft bokeh background that feels uplifting and aspirational.
-Context from their personal affirmations: ${affText}`
+      const prompt = `Keep this person's exact face, facial features, skin tone, hair, and any glasses completely unchanged.
+Create a rich scene that visually tells the story of these affirmations: ${affText}
+The environment, objects, and setting should symbolize and represent the themes of these affirmations.
+Include meaningful visual elements: relevant objects, environments, achievements, or situations that embody the affirmations.
+The person looks confident, radiant, and fulfilled — surrounded by a world that reflects their affirmations becoming real.
+Style: warm golden light, uplifting, rich with meaningful detail, professional quality.`
 
       const response = await openai.images.edit({
         model: 'gpt-image-1',
@@ -42,15 +42,17 @@ Context from their personal affirmations: ${affText}`
     } else {
       // 얼굴 없음: gpt-image-1 텍스트 기반 생성
       const prompt = faceDescription
-        ? `A photorealistic success portrait of a person with these exact facial features: ${faceDescription}.
-The person looks confident, successful and radiant. Expression: warm, fulfilled smile.
-Bright inspiring setting with soft bokeh background.
-Context from personal affirmations: ${affText}
-Style: warm golden light, professional photography quality, uplifting atmosphere.`
-        : `An inspiring, warm, and uplifting illustration of a successful person radiating confidence and joy.
-The scene embodies these affirmations: ${affText}
-Style: warm golden light, painterly, positive and empowering atmosphere, soft bokeh background, Korean aesthetic sensibility.
-The person looks happy, fulfilled, and successful. Watercolor and digital art mixed style. Warm golden tones.`
+        ? `A photorealistic portrait of a person with these exact facial features: ${faceDescription}.
+Create a rich visual scene that tells the story of these affirmations: ${affText}
+The setting, objects, and environment should symbolize and embody the themes of the affirmations.
+Include meaningful visual elements — relevant achievements, objects, or environments that represent the affirmations.
+The person looks confident, successful and radiant with a warm fulfilled smile.
+Style: warm golden light, professional photography quality, uplifting and meaningful atmosphere.`
+        : `An inspiring illustrated scene that tells the visual story of these affirmations: ${affText}
+Show a successful person AND the rich world their affirmations have created around them.
+Include symbolic objects, environments, achievements, and meaningful visual elements that embody: ${affText}
+Do not just show a person — show their story, their world, their success made visible.
+Style: warm golden light, painterly, Korean aesthetic sensibility, rich with meaningful detail, uplifting and empowering.`
 
       const response = await openai.images.generate({
         model: 'gpt-image-1',
