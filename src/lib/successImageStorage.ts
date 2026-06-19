@@ -41,3 +41,12 @@ export async function getSuccessImage(): Promise<SuccessImageRecord | null> {
     req.onerror = () => reject(req.error)
   })
 }
+
+export async function clearSuccessImages(): Promise<void> {
+  return new Promise((resolve) => {
+    const req = indexedDB.deleteDatabase(DB_NAME)
+    req.onsuccess = () => resolve()
+    req.onerror = () => resolve()
+    req.onblocked = () => resolve()
+  })
+}

@@ -17,7 +17,9 @@ import {
   clearAlarmSettings,
   type AlarmSettings,
 } from '@/lib/storage'
-import { getAudioRecords, setAudioKeepForever, type AudioRecord } from '@/lib/audioStorage'
+import { getAudioRecords, setAudioKeepForever, clearAllAudioRecords, type AudioRecord } from '@/lib/audioStorage'
+import { clearFaceStorage } from '@/lib/faceStorage'
+import { clearSuccessImages } from '@/lib/successImageStorage'
 import { Pencil, Trash2, Check, X, Plus, Bell, Download } from 'lucide-react'
 import { WeeklyReportModal } from '@/components/ui/WeeklyReportModal'
 
@@ -469,9 +471,14 @@ export default function SettingsPage() {
     setTomorrowEnabled(newVal)
   }
 
-  const handleReset = () => {
+  const handleReset = async () => {
     if (confirm('모든 데이터를 초기화할까요? 이 작업은 되돌릴 수 없습니다.')) {
       clearAllData()
+      await Promise.all([
+        clearAllAudioRecords(),
+        clearFaceStorage(),
+        clearSuccessImages(),
+      ])
       window.location.href = '/'
     }
   }

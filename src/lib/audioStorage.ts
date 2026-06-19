@@ -114,3 +114,12 @@ export async function getRecentAudioRecord(): Promise<AudioRecord | null> {
 export function createAudioObjectUrl(blob: Blob): string {
   return URL.createObjectURL(blob)
 }
+
+export async function clearAllAudioRecords(): Promise<void> {
+  return new Promise((resolve) => {
+    const req = indexedDB.deleteDatabase(DB_NAME)
+    req.onsuccess = () => resolve()
+    req.onerror = () => resolve()
+    req.onblocked = () => resolve()
+  })
+}

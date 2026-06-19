@@ -7,10 +7,12 @@ import {
   getFaceProfile,
   saveFaceProfile,
   deleteFaceProfile,
+  clearFaceStorage,
   type FaceProfile,
   type FaceData,
 } from '@/lib/faceStorage'
-import { saveSuccessImage } from '@/lib/successImageStorage'
+import { saveSuccessImage, clearSuccessImages } from '@/lib/successImageStorage'
+import { clearAllAudioRecords } from '@/lib/audioStorage'
 
 function resizeImage(file: File | Blob, maxPx = 900, format: 'jpeg' | 'png' = 'jpeg'): Promise<string> {
   return new Promise((resolve) => {
@@ -369,8 +371,13 @@ export default function SuccessImagePage() {
             </div>
             <button
               onClick={async () => {
-                await deleteFaceProfile().catch(() => {})
-                clearAllData() // 성공의 말 포함 모든 데이터 초기화
+                clearAllData()
+                await Promise.all([
+                  deleteFaceProfile().catch(() => {}),
+                  clearFaceStorage().catch(() => {}),
+                  clearSuccessImages().catch(() => {}),
+                  clearAllAudioRecords().catch(() => {}),
+                ])
                 // 프로필 관련
                 setSavedProfile(null)
                 setSavedProfileUrl(null)

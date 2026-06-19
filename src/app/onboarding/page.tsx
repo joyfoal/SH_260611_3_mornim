@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { CATEGORIES } from '@/lib/categories'
-import { saveAffirmation, setOnboarded, saveTodayAffirmationIds, saveAlarmSettings } from '@/lib/storage'
+import { saveAffirmation, setOnboarded, saveTodayAffirmationIds, saveAlarmSettings, saveDayRecord, todayStr } from '@/lib/storage'
 import { saveAudioRecord } from '@/lib/audioStorage'
 
 /* ── Design tokens (warm gold) ───────────────────────────────── */
@@ -450,9 +450,11 @@ export default function OnboardingPage() {
     const now = Date.now()
     const ids: string[] = []
 
-    // 1. 녹음한 성공의 말 (화면 2에서 말한 문장)
+    // 1. 녹음한 성공의 말 — 오늘 1회 완료 처리
+    const today = todayStr()
     const voiceId = `voice-${now}`
-    saveAffirmation({ id: voiceId, text: affText, category, createdAt: new Date().toISOString(), completedDates: [] })
+    saveAffirmation({ id: voiceId, text: affText, category, createdAt: new Date().toISOString(), completedDates: [today] })
+    saveDayRecord({ date: today, completedCount: 1, dominantCategory: category })
     ids.push(voiceId)
 
     // 2. 화면 1에서 추천된 성공의 말 — 선택한 카테고리당 1개씩만

@@ -72,3 +72,12 @@ export async function deleteFaceProfile(): Promise<void> {
     tx.onerror = () => reject(tx.error)
   })
 }
+
+export async function clearFaceStorage(): Promise<void> {
+  return new Promise((resolve) => {
+    const req = indexedDB.deleteDatabase(DB_NAME)
+    req.onsuccess = () => resolve()
+    req.onerror = () => resolve()
+    req.onblocked = () => resolve()
+  })
+}
