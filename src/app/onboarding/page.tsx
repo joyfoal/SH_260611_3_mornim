@@ -142,7 +142,6 @@ export default function OnboardingPage() {
   // Screen 2: camera + STT + recording refs
   const onbVideoRef = useRef<HTMLVideoElement>(null)
   const onbStreamRef = useRef<MediaStream | null>(null)
-  const onbAudioStreamRef = useRef<MediaStream | null>(null)
   const onbRecorderRef = useRef<MediaRecorder | null>(null)
   const onbAudioChunksRef = useRef<Blob[]>([])
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -310,25 +309,18 @@ export default function OnboardingPage() {
     setRec('recording')
 
     const startStream = async () => {
-      // 카메라는 audio 없이 별도로 시작
       try {
-        const videoStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false })
-        onbStreamRef.current = videoStream
+        // speak 페이지와 동일: video+audio 하나의 스트림으로 카메라+녹음 동시 처리
+        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: true })
+        onbStreamRef.current = stream
         if (onbVideoRef.current) {
-          onbVideoRef.current.srcObject = videoStream
+          onbVideoRef.current.srcObject = stream
           onbVideoRef.current.play().catch(() => {})
         }
-      } catch { /* camera denied */ }
-
-      // 마이크는 별도로 요청 (카메라 실패와 무관하게 녹음 시도)
-      try {
-        const audioStream = await navigator.mediaDevices.getUserMedia({ audio: true })
-        onbAudioStreamRef.current = audioStream
         const mimeType = getSupportedMimeType()
-        const recorder = new MediaRecorder(audioStream, mimeType ? { mimeType } : undefined)
+        const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined)
         onbAudioChunksRef.current = []
         recorder.ondataavailable = (e) => { if (e.data.size > 0) onbAudioChunksRef.current.push(e.data) }
-        // onstop을 생성 시점에 미리 설정 (speak 페이지와 동일한 패턴)
         recorder.onstop = async () => {
           const blob = new Blob(onbAudioChunksRef.current, { type: mimeType || 'audio/webm' })
           if (blob.size > 0) {
@@ -343,15 +335,42 @@ export default function OnboardingPage() {
               })
             } catch { /* ignore */ }
           }
-          audioStream.getTracks().forEach((t) => t.stop())
         }
-        recorder.start(1000) // 1초 단위로 데이터 수집
+        recorder.start()
         onbRecorderRef.current = recorder
-      } catch { /* mic denied — recording unavailable */ }
+      } catch {
+        // 카메라 없이 오디오만 시도
+        try {
+          const audioStream = await navigator.mediaDevices.getUserMedia({ audio: true })
+          onbStreamRef.current = audioStream
+          const mimeType = getSupportedMimeType()
+          const recorder = new MediaRecorder(audioStream, mimeType ? { mimeType } : undefined)
+          onbAudioChunksRef.current = []
+          recorder.ondataavailable = (e) => { if (e.data.size > 0) onbAudioChunksRef.current.push(e.data) }
+          recorder.onstop = async () => {
+            const blob = new Blob(onbAudioChunksRef.current, { type: mimeType || 'audio/webm' })
+            if (blob.size > 0) {
+              try {
+                await saveAudioRecord({
+                  id: `onb-audio-${Date.now()}`,
+                  affirmationId: `voice-onb-${Date.now()}`,
+                  affirmationText: getPhrase(catsRef.current),
+                  blob,
+                  createdAt: Date.now(),
+                  keepForever: false,
+                })
+              } catch { /* ignore */ }
+            }
+          }
+          recorder.start()
+          onbRecorderRef.current = recorder
+        } catch { /* mic also denied */ }
+      }
+      // 스트림 확보 후 STT 시작 (마이크 충돌 방지)
+      startOnbSTT()
     }
 
     startStream()
-    startOnbSTT()
 
     return () => {
       onbShouldListenRef.current = false
@@ -365,10 +384,6 @@ export default function OnboardingPage() {
       if (onbStreamRef.current) {
         onbStreamRef.current.getTracks().forEach((t) => t.stop())
         onbStreamRef.current = null
-      }
-      if (onbAudioStreamRef.current) {
-        onbAudioStreamRef.current.getTracks().forEach((t) => t.stop())
-        onbAudioStreamRef.current = null
       }
       setOnbIsListening(false)
     }
@@ -394,10 +409,10 @@ export default function OnboardingPage() {
     onbCumulativeRef.current = new Set()
     setOnbRecognizedWords(new Set())
 
-    // 오디오 스트림으로 새 recorder 생성
-    if (onbAudioStreamRef.current) {
+    // 기존 스트림으로 새 recorder 생성
+    if (onbStreamRef.current) {
       const mimeType = getSupportedMimeType()
-      const recorder = new MediaRecorder(onbAudioStreamRef.current, mimeType ? { mimeType } : undefined)
+      const recorder = new MediaRecorder(onbStreamRef.current, mimeType ? { mimeType } : undefined)
       onbAudioChunksRef.current = []
       recorder.ondataavailable = (e) => { if (e.data.size > 0) onbAudioChunksRef.current.push(e.data) }
       recorder.onstop = async () => {
@@ -414,9 +429,8 @@ export default function OnboardingPage() {
             })
           } catch { /* ignore */ }
         }
-        onbAudioStreamRef.current?.getTracks().forEach((t) => t.stop())
       }
-      recorder.start(1000)
+      recorder.start()
       onbRecorderRef.current = recorder
     }
 
