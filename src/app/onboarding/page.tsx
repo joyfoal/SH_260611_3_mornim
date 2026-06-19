@@ -882,8 +882,14 @@ export default function OnboardingPage() {
               </div>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <div style={{ display: 'flex', alignItems: 'flex-end', gap: 4, height: 26 }}>
-                  {Array.from({ length: 7 }).map((_, k) => (
-                    <span key={k} style={{ display: 'block', width: 4, borderRadius: 2, background: T.gold, height: '30%' }} />
+                  {[40, 70, 55, 90, 60, 80, 45].map((pct, k) => (
+                    <span key={k} style={{
+                      display: 'block', width: 4, borderRadius: 2, background: T.gold,
+                      height: onbIsPlaying ? undefined : `${pct}%`,
+                      minHeight: onbIsPlaying ? 4 : undefined,
+                      animation: onbIsPlaying ? `waveBar 0.45s ease-in-out ${k * 0.07}s infinite` : 'none',
+                      transition: 'height 0.2s',
+                    }} />
                   ))}
                 </div>
                 <button
