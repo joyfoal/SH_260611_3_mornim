@@ -564,7 +564,7 @@ export default function HomePage() {
             }}
           >
             <div style={{ fontSize: '15px', color: 'var(--color-text-secondary)', marginBottom: '14px' }}>
-              오늘의 성공의 말을 모두 완료했어요 🎉
+              오늘의 성공의 말하기 완료했어요 🎉
             </div>
             <button
               onClick={handleMore}
