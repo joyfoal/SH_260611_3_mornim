@@ -1,7 +1,9 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
+import { useRouter } from 'next/navigation'
 import { AppLayout } from '@/components/ui/AppLayout'
+import { ArrowLeft } from 'lucide-react'
 import type { CategoryName } from '@/lib/categories'
 import { saveAffirmation, getCategories, type AffirmationCategory } from '@/lib/storage'
 
@@ -13,6 +15,7 @@ interface ChatMessage {
 }
 
 export default function CreatePage() {
+  const router = useRouter()
   const [activeTab, setActiveTab] = useState<Tab>('직접 입력')
   const [categories, setCategories] = useState<string[]>([])
   const chatBottomRef = useRef<HTMLDivElement>(null)
@@ -166,9 +169,23 @@ export default function CreatePage() {
   return (
     <AppLayout activeTab="성공의 말">
       <div style={{ padding: '20px 16px' }}>
-        <h1 style={{ fontSize: '20px', fontWeight: 600, color: 'var(--color-text-primary)', marginBottom: '16px' }}>
-          성공의 말 만들기
-        </h1>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
+          <button
+            onClick={() => router.push('/affirmations')}
+            style={{
+              width: '34px', height: '34px', borderRadius: '50%',
+              background: 'var(--color-bg-card)',
+              border: '1px solid var(--color-border)',
+              cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+              flexShrink: 0,
+            }}
+          >
+            <ArrowLeft size={16} color="var(--color-text-primary)" />
+          </button>
+          <h1 style={{ fontSize: '20px', fontWeight: 600, color: 'var(--color-text-primary)' }}>
+            성공의 말 만들기
+          </h1>
+        </div>
 
         {/* Tabs */}
         <div
