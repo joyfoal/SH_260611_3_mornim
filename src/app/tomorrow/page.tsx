@@ -84,24 +84,36 @@ export default function TomorrowPage() {
         <p style={{ fontSize: '18px', color: 'var(--color-text-onDark)', marginBottom: '10px', fontWeight: 700 }}>
           오늘의 나에게
         </p>
-        <textarea
-          value={message}
-          onChange={(e) => setMessage(e.target.value)}
-          placeholder={`${placeholder}\n메시지를 입력하세요`}
-          rows={3}
-          style={{
-            width: '100%',
-            padding: '14px',
-            background: 'var(--color-bg-surface)',
-            border: '1px solid rgba(255,255,255,0.1)',
-            borderRadius: '14px',
-            fontSize: '15px',
-            color: 'var(--color-text-onDark)',
-            resize: 'none',
-            outline: 'none',
-            lineHeight: 1.6,
-          }}
-        />
+        <div style={{ position: 'relative' }}>
+          <textarea
+            value={message}
+            onChange={(e) => setMessage(e.target.value)}
+            placeholder={placeholder}
+            rows={3}
+            style={{
+              width: '100%',
+              padding: '14px',
+              background: 'var(--color-bg-surface)',
+              border: '1px solid rgba(255,255,255,0.1)',
+              borderRadius: '14px',
+              fontSize: '15px',
+              color: 'var(--color-text-onDark)',
+              resize: 'none',
+              outline: 'none',
+              lineHeight: 1.6,
+            }}
+          />
+          <span style={{
+            position: 'absolute',
+            bottom: '10px',
+            right: '14px',
+            fontSize: '11px',
+            color: 'var(--color-text-muted)',
+            pointerEvents: 'none',
+          }}>
+            메시지를 입력하세요
+          </span>
+        </div>
       </div>
 
       {/* Tomorrow's affirmation picker */}
