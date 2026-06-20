@@ -513,22 +513,6 @@ export default function HomePage() {
   return (
     <AppLayout activeTab="홈">
       <div style={{ paddingBottom: '16px' }}>
-        {/* 오늘 나에게 */}
-        {tomorrowNote && (
-          <div
-            style={{
-              margin: '16px 16px 0',
-              padding: '14px 16px',
-              background: '#FFFAE6',
-              borderRadius: '16px',
-              border: '1px solid #F5E066',
-            }}
-          >
-            <div style={{ fontSize: '11px', color: '#9B8A00', marginBottom: '4px' }}>오늘 나에게</div>
-            <div style={{ fontSize: '14px', color: '#4A3C00', lineHeight: 1.5 }}>{tomorrowNote}</div>
-          </div>
-        )}
-
         {/* Greeting + Motto */}
         <div style={{ padding: '20px 16px 8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ fontSize: '14px', color: 'var(--color-text-muted)' }}>
@@ -597,6 +581,21 @@ export default function HomePage() {
             >
               더 말하기
             </button>
+            {tomorrowNote && (
+              <div
+                style={{
+                  marginTop: '16px',
+                  padding: '14px 16px',
+                  background: '#FFFAE6',
+                  borderRadius: '12px',
+                  border: '1px solid #F5E066',
+                  textAlign: 'left',
+                }}
+              >
+                <div style={{ fontSize: '11px', color: '#9B8A00', marginBottom: '4px' }}>오늘 나에게</div>
+                <div style={{ fontSize: '14px', color: '#4A3C00', lineHeight: 1.5 }}>{tomorrowNote}</div>
+              </div>
+            )}
           </div>
         ) : !hasAffirmations ? (
           <div
