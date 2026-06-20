@@ -10,22 +10,20 @@ interface ThemeContextValue {
 }
 
 const ThemeContext = createContext<ThemeContextValue>({
-  theme: themes.green,
-  themeName: 'green',
+  theme: themes.warm,
+  themeName: 'warm',
   setTheme: () => {},
 })
 
-export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [themeName, setThemeName] = useState<ThemeName>('green')
+function getInitialTheme(): ThemeName {
+  if (typeof window === 'undefined') return 'warm'
+  const stored = localStorage.getItem('mornim-theme') as ThemeName | null
+  if (stored && stored in themes) return stored
+  return 'warm'
+}
 
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const stored = localStorage.getItem('mornim-theme') as ThemeName | null
-      if (stored && stored in themes) {
-        setThemeName(stored)
-      }
-    }
-  }, [])
+export function ThemeProvider({ children }: { children: React.ReactNode }) {
+  const [themeName, setThemeName] = useState<ThemeName>(getInitialTheme)
 
   useEffect(() => {
     if (typeof window === 'undefined') return
