@@ -566,7 +566,7 @@ export default function HomePage() {
           >
             {repeatDone ? (
               <div style={{ fontSize: '15px', color: 'var(--color-text-secondary)' }}>
-                오늘의 성공의 말하기 반복까지 완료했어요 🎉
+                오늘의 성공의 말하기는 반복까지 완료했어요 🎉
               </div>
             ) : (
               <>
