@@ -470,12 +470,8 @@ export default function HomePage() {
     setAllDone(notDone.length === 0 && affirmations.length > 0)
     setStreakData(getStreakData())
     setTodayCount(getDayRecord(todayStr())?.completedCount ?? 0)
-    if (isTomorrowEnabled()) {
-      const note = getTomorrowNote()
-      if (note && note.date === today && note.message) {
-        setTomorrowNote(note.message)
-      }
-    }
+    const dayNote = getDayNote(today)
+    if (dayNote) setTomorrowNote(dayNote)
   }, [])
 
   useEffect(() => {
