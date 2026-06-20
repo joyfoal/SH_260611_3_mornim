@@ -12,6 +12,7 @@ import {
   saveDayRecord,
   isTomorrowEnabled,
   todayStr,
+  setTodayRepeatDone,
   type Affirmation,
 } from '@/lib/storage'
 import { updateStreak } from '@/lib/streak'
@@ -289,8 +290,12 @@ function SpeakPageInner() {
       setCelebrationVariant('progress')
     } else {
       const phase = speakPhaseRef.current
-      if (phase === 'repeat') setCelebrationVariant('repeat_done')
-      else setCelebrationVariant('batch_done')
+      if (phase === 'repeat') {
+        setTodayRepeatDone()
+        setCelebrationVariant('repeat_done')
+      } else {
+        setCelebrationVariant('batch_done')
+      }
     }
 
     setScreen('celebration')

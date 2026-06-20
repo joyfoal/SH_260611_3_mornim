@@ -51,6 +51,7 @@ const KEYS = {
   ALARM_LAST_SHOWN: 'mornim-alarm-last-shown',
   DAY_NOTES: 'mornim-day-notes',
   WEEKLY_SHIELDS: 'mornim-weekly-shields',
+  TODAY_REPEAT_DONE: 'mornim-today-repeat-done',
 } as const
 
 const DEFAULT_CATEGORIES = [
@@ -321,6 +322,16 @@ export function getWeekKey(date: Date): string {
   const d = new Date(date)
   d.setDate(d.getDate() - d.getDay())
   return d.toISOString().split('T')[0]
+}
+
+// Today repeat done
+export function getTodayRepeatDone(): boolean {
+  const data = safeGet<{ date: string }>(KEYS.TODAY_REPEAT_DONE, { date: '' })
+  return data.date === todayStr()
+}
+
+export function setTodayRepeatDone(): void {
+  safeSet(KEYS.TODAY_REPEAT_DONE, { date: todayStr() })
 }
 
 // Clear all data

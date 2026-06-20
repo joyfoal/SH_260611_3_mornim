@@ -20,6 +20,7 @@ import {
   getWeeklyReportShown,
   setWeeklyReportShown,
   getWeekKey,
+  getTodayRepeatDone,
   type Affirmation,
   type DayRecord,
   type StreakData,
@@ -424,6 +425,7 @@ export default function HomePage() {
   const router = useRouter()
   const [todayAffirmation, setTodayAffirmation] = useState<Affirmation | null>(null)
   const [allDone, setAllDone] = useState(false)
+  const [repeatDone, setRepeatDone] = useState(false)
   const [hasAffirmations, setHasAffirmations] = useState(true)
   const [streakData, setStreakData] = useState<StreakData>({ currentStreak: 0, lastCompletedDate: null, shields: 0 })
   const [todayCount, setTodayCount] = useState(0)
@@ -467,6 +469,7 @@ export default function HomePage() {
     setHasAffirmations(affirmations.length > 0)
     setTodayAffirmation(notDone[0] ?? null)
     setAllDone(notDone.length === 0 && affirmations.length > 0)
+    setRepeatDone(getTodayRepeatDone())
     setStreakData(getStreakData())
     setTodayCount(getDayRecord(todayStr())?.completedCount ?? 0)
     const dayNote = getDayNote(today)
@@ -561,24 +564,32 @@ export default function HomePage() {
               textAlign: 'center',
             }}
           >
-            <div style={{ fontSize: '15px', color: 'var(--color-text-secondary)', marginBottom: '14px' }}>
-              오늘의 성공의 말하기 완료했어요 🎉
-            </div>
-            <button
-              onClick={handleMore}
-              style={{
-                padding: '12px 28px',
-                background: 'var(--color-accent-primary)',
-                color: 'white',
-                border: 'none',
-                borderRadius: '14px',
-                fontSize: '14px',
-                fontWeight: 600,
-                cursor: 'pointer',
-              }}
-            >
-              더 말하기
-            </button>
+            {repeatDone ? (
+              <div style={{ fontSize: '15px', color: 'var(--color-text-secondary)' }}>
+                오늘의 성공의 말하기 반복까지 완료했어요 🎉
+              </div>
+            ) : (
+              <>
+                <div style={{ fontSize: '15px', color: 'var(--color-text-secondary)', marginBottom: '14px' }}>
+                  오늘의 성공의 말하기 완료했어요 🎉
+                </div>
+                <button
+                  onClick={handleMore}
+                  style={{
+                    padding: '12px 28px',
+                    background: 'var(--color-accent-primary)',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '14px',
+                    fontSize: '14px',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                  }}
+                >
+                  더 말하기
+                </button>
+              </>
+            )}
             {tomorrowNote && (
               <div
                 style={{
