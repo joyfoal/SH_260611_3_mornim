@@ -308,7 +308,6 @@ function CalendarView() {
             <>
               <div style={{ marginBottom: '8px', color: 'var(--color-text-muted)' }}>
                 완료: {selectedDay.completedCount}개
-                {selectedDay.dominantCategory && ` · ${selectedDay.dominantCategory}`}
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '8px' }}>
                 {selectedAffirmations.length > 0 ? selectedAffirmations.map((a) => (
