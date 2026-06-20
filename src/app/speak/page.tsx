@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, useCallback } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Suspense } from 'react'
 import { DynamicText } from '@/components/ui/DynamicText'
-import { CelebrationScreen } from '@/components/ui/CelebrationScreen'
+import { CelebrationScreen, type CelebrationVariant } from '@/components/ui/CelebrationScreen'
 import {
   getAffirmations,
   updateAffirmation,
@@ -12,14 +12,12 @@ import {
   saveDayRecord,
   isTomorrowEnabled,
   todayStr,
-  getTodayExtraCount,
-  incrementTodayExtraCount,
   type Affirmation,
 } from '@/lib/storage'
 import { updateStreak } from '@/lib/streak'
 import { saveAudioRecord, getAudioRecords, deleteAudioRecordsByAffirmationId } from '@/lib/audioStorage'
 
-const MAX_EXTRA = 4
+type SpeakPhase = 'initial' | 'extra' | 'repeat'
 
 function useSwipeUp(onSwipeUp: () => void) {
   const startY = useRef(0)
@@ -49,11 +47,12 @@ function SpeakPageInner() {
   const [recognizedWords, setRecognizedWords] = useState<Set<string>>(new Set())
   const [isListening, setIsListening] = useState(false)
   const [isSpeaking, setIsSpeaking] = useState(false)
+  const [celebrationVariant, setCelebrationVariant] = useState<CelebrationVariant>('progress')
 
   // Re-record state: idle | recording | confirm
   const [reRecordState, setReRecordState] = useState<'idle' | 'recording' | 'confirm'>('idle')
   const [hasExistingRecording, setHasExistingRecording] = useState(false)
-  const hasExistingRecordingRef = useRef(false) // ref로도 유지 — startCamera 클로저에서 사용
+  const hasExistingRecordingRef = useRef(false)
   const reRecordBlobRef = useRef<Blob | null>(null)
   const reRecordRecorderRef = useRef<MediaRecorder | null>(null)
   const reRecordChunksRef = useRef<Blob[]>([])
@@ -69,19 +68,28 @@ function SpeakPageInner() {
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const audioChunksRef = useRef<Blob[]>([])
   const pendingAffirmationRef = useRef<Affirmation | null>(null)
-  const streamRef = useRef<MediaStream | null>(null)     // 카메라 (video-only)
-  const audioStreamRef = useRef<MediaStream | null>(null) // 마이크 (audio-only)
-  const isExtraMode = useRef(false)
+  const streamRef = useRef<MediaStream | null>(null)
+  const audioStreamRef = useRef<MediaStream | null>(null)
+  const speakPhaseRef = useRef<SpeakPhase>('initial')
   const autoCompleteTriggeredRef = useRef(false)
   const autoCompleteTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const cumulativeRecognizedRef = useRef<Set<string>>(new Set())
+
+  // queue / currentIndex를 ref로도 유지 — handleComplete 클로저에서 최신값 사용
+  const queueRef = useRef<string[]>([])
+  const currentIndexRef = useRef(0)
+
+  useEffect(() => { queueRef.current = queue }, [queue])
+  useEffect(() => { currentIndexRef.current = currentIndex }, [currentIndex])
 
   useEffect(() => {
     if (typeof window === 'undefined') return
     const storedQueue = sessionStorage.getItem('mornim-speak-queue')
     const storedIndex = sessionStorage.getItem('mornim-speak-index')
+    const storedPhase = sessionStorage.getItem('mornim-speak-phase') as SpeakPhase | null
     const q = storedQueue ? (JSON.parse(storedQueue) as string[]) : []
     const idx = storedIndex ? parseInt(storedIndex) : 0
+    if (storedPhase) speakPhaseRef.current = storedPhase
     setQueue(q)
     setCurrentIndex(idx)
     const idFromParam = searchParams.get('id')
@@ -94,7 +102,6 @@ function SpeakPageInner() {
     setDataLoaded(true)
   }, [searchParams])
 
-  // 기존 녹음 여부 확인 — ID 또는 텍스트가 일치하는 녹음이 있으면 있는 것으로 판단
   useEffect(() => {
     if (!affirmation) return
     getAudioRecords().then((records) => {
@@ -122,7 +129,6 @@ function SpeakPageInner() {
   }, [])
 
   const startCamera = useCallback(async () => {
-    // 1. 카메라 (video-only) — 오디오와 분리해서 안정적으로 시작
     try {
       const videoStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false })
       streamRef.current = videoStream
@@ -130,9 +136,8 @@ function SpeakPageInner() {
         videoRef.current.srcObject = videoStream
         videoRef.current.play().catch(() => {})
       }
-    } catch { /* 카메라 권한 없음 — 계속 진행 */ }
+    } catch { /* 카메라 권한 없음 */ }
 
-    // 2. 마이크 (audio-only) — 첫 녹음일 때만 자동 시작
     if (!hasExistingRecordingRef.current) {
       try {
         const audioStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false })
@@ -161,7 +166,7 @@ function SpeakPageInner() {
             } catch { /* ignore */ }
           }
         }
-        recorder.start(500) // 500ms 단위로 청크 수집 — 유실 방지
+        recorder.start(500)
         mediaRecorderRef.current = recorder
       } catch { /* 마이크 권한 없음 */ }
     }
@@ -246,7 +251,6 @@ function SpeakPageInner() {
         audioStreamRef.current.getTracks().forEach((t) => t.stop())
         audioStreamRef.current = null
       }
-      // re-record 정리
       if (reRecordRecorderRef.current && reRecordRecorderRef.current.state !== 'inactive') {
         try { reRecordRecorderRef.current.stop() } catch { }
       }
@@ -278,6 +282,17 @@ function SpeakPageInner() {
       completedCountRef.current = newCount
       if (newCount >= 3) updateStreak(true)
     }
+
+    // 큐에 다음 항목이 있으면 progress, 없으면 phase에 따라 variant 결정
+    const nextIndex = currentIndexRef.current + 1
+    if (queueRef.current[nextIndex]) {
+      setCelebrationVariant('progress')
+    } else {
+      const phase = speakPhaseRef.current
+      if (phase === 'repeat') setCelebrationVariant('repeat_done')
+      else setCelebrationVariant('batch_done')
+    }
+
     setScreen('celebration')
   }, [affirmation, stopMediaRecorder])
 
@@ -349,39 +364,93 @@ function SpeakPageInner() {
     setReRecordState('idle')
   }, [])
 
-  const handleCelebrationNext = useCallback(() => {
-    const nextIndex = currentIndex + 1
-    const nextId = queue[nextIndex]
-    if (nextId) {
-      if (typeof window !== 'undefined') sessionStorage.setItem('mornim-speak-index', String(nextIndex))
-      const all = getAffirmations()
-      const next = all.find((a) => a.id === nextId)
-      if (next) {
-        setAffirmation(next)
-        setCurrentIndex(nextIndex)
-        setRecognizedWords(new Set())
-        setScreen('text')
-        return
-      }
+  // ── 큐 전환 헬퍼 ───────────────────────────────────────────────────
+  const startQueue = useCallback((ids: string[], phase: SpeakPhase) => {
+    if (ids.length === 0) return
+    speakPhaseRef.current = phase
+    if (typeof window !== 'undefined') {
+      sessionStorage.setItem('mornim-speak-queue', JSON.stringify(ids))
+      sessionStorage.setItem('mornim-speak-index', '0')
+      sessionStorage.setItem('mornim-speak-phase', phase)
+    }
+    const all = getAffirmations()
+    const first = all.find((a) => a.id === ids[0])
+    if (!first) return
+    setQueue(ids)
+    setCurrentIndex(0)
+    setAffirmation(first)
+    setRecognizedWords(new Set())
+    setScreen('text')
+  }, [])
+
+  // ── progress 자동 진행 ─────────────────────────────────────────────
+  const handleAutoAdvance = useCallback(() => {
+    const nextIndex = currentIndexRef.current + 1
+    const nextId = queueRef.current[nextIndex]
+    if (!nextId) return
+    if (typeof window !== 'undefined') sessionStorage.setItem('mornim-speak-index', String(nextIndex))
+    const all = getAffirmations()
+    const next = all.find((a) => a.id === nextId)
+    if (next) {
+      setAffirmation(next)
+      setCurrentIndex(nextIndex)
+      setRecognizedWords(new Set())
+      setScreen('text')
+    }
+  }, [])
+
+  // ── 오늘은 여기까지 ────────────────────────────────────────────────
+  const handleGoHome = useCallback(() => {
+    if (typeof window !== 'undefined') {
+      sessionStorage.removeItem('mornim-speak-queue')
+      sessionStorage.removeItem('mornim-speak-index')
+      sessionStorage.removeItem('mornim-speak-phase')
     }
     if (isTomorrowEnabled()) router.push('/tomorrow')
     else { router.refresh(); router.push('/home') }
-  }, [currentIndex, queue, router])
-
-  const handleMoreAffirmation = useCallback(() => {
-    incrementTodayExtraCount()
-    const all = getAffirmations()
-    if (all.length === 0) { router.push('/tomorrow'); return }
-    const pick = all[Math.floor(Math.random() * all.length)]
-    isExtraMode.current = true
-    setAffirmation(pick)
-    setRecognizedWords(new Set())
-    setScreen('text')
   }, [router])
 
-  const isAllDone = completedCountRef.current >= queue.length && queue.length > 0
-  const extraCount = isAllDone ? getTodayExtraCount() : 0
-  const allowMore = isAllDone && extraCount < MAX_EXTRA
+  // ── 오늘 더 말하고 싶어요 ──────────────────────────────────────────
+  const handleWantMore = useCallback(() => {
+    const today = todayStr()
+    const all = getAffirmations()
+
+    // 오늘 아직 하지 않은 성공의 말 중 랜덤 3개
+    const unseen = all
+      .filter((a) => !a.completedDates.includes(today))
+      .sort(() => Math.random() - 0.5)
+
+    if (unseen.length === 0) {
+      // 모두 완료 → all_done 화면으로
+      setCelebrationVariant('all_done')
+      return
+    }
+
+    startQueue(unseen.slice(0, 3).map((a) => a.id), 'extra')
+  }, [startQueue])
+
+  // ── 반복하기 ──────────────────────────────────────────────────────
+  const handleRepeat = useCallback(() => {
+    const all = getAffirmations()
+    if (all.length === 0) return
+    const shuffled = [...all].sort(() => Math.random() - 0.5)
+    const ids = shuffled.slice(0, Math.min(3, shuffled.length)).map((a) => a.id)
+    startQueue(ids, 'repeat')
+  }, [startQueue])
+
+  // ── 성공의 말 추가하기 ────────────────────────────────────────────
+  const handleAddAffirmation = useCallback(() => {
+    router.push('/create')
+  }, [router])
+
+  // ── 진행 표시 레이블 ──────────────────────────────────────────────
+  const progressLabel = (() => {
+    const phase = speakPhaseRef.current
+    const pos = `${currentIndex + 1} / ${queue.length}`
+    if (phase === 'extra') return `추가 ${pos}`
+    if (phase === 'repeat') return `반복 ${pos}`
+    return pos
+  })()
 
   const { handleTouchStart, handleTouchEnd } = useSwipeUp(() => {
     if (screen === 'text') setScreen('speak')
@@ -403,9 +472,11 @@ function SpeakPageInner() {
       <CelebrationScreen
         completedCount={completedCountRef.current}
         totalCount={queue.length}
-        onNext={handleCelebrationNext}
-        allowMore={allowMore}
-        onMore={handleMoreAffirmation}
+        variant={celebrationVariant}
+        onNext={celebrationVariant === 'progress' ? handleAutoAdvance : handleGoHome}
+        onMore={handleWantMore}
+        onAddAffirmation={handleAddAffirmation}
+        onRepeat={handleRepeat}
       />
     )
   }
@@ -423,9 +494,9 @@ function SpeakPageInner() {
           <div style={{
             position: 'absolute', top: '20px', left: '50%', transform: 'translateX(-50%)',
             background: 'rgba(255,255,255,0.1)', borderRadius: '20px', padding: '4px 16px',
-            fontSize: '13px', color: 'var(--color-text-muted)',
+            fontSize: '13px', color: 'var(--color-text-muted)', whiteSpace: 'nowrap',
           }}>
-            {isExtraMode.current ? `보너스 +${extraCount + 1}` : `${currentIndex + 1} / ${queue.length}`}
+            {progressLabel}
           </div>
           <DynamicText text={affirmation.text} darkBackground />
         </div>
@@ -453,7 +524,7 @@ function SpeakPageInner() {
       {/* Progress + 녹음 표시 */}
       <div style={{ position: 'relative', zIndex: 10, padding: '20px 16px 0', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
         <div style={{ display: 'inline-block', background: 'rgba(0,0,0,0.5)', borderRadius: '20px', padding: '4px 16px', fontSize: '13px', color: 'var(--color-text-muted)' }}>
-          {isExtraMode.current ? `보너스 +${extraCount + 1}` : `${currentIndex + 1} / ${queue.length}`}
+          {progressLabel}
         </div>
         {isRecording && (
           <div style={{
@@ -504,7 +575,6 @@ function SpeakPageInner() {
 
       {/* Bottom buttons */}
       <div style={{ position: 'relative', zIndex: 10, padding: '12px 32px 40px', display: 'flex', flexDirection: 'column', gap: 10 }}>
-        {/* 완료 버튼 */}
         <button
           onClick={handleComplete}
           style={{
@@ -515,7 +585,6 @@ function SpeakPageInner() {
           완료 ✓
         </button>
 
-        {/* 다시 녹음 — 기존 녹음 있을 때만 표시 */}
         {hasExistingRecording && reRecordState === 'idle' && (
           <button
             onClick={startReRecord}

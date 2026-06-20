@@ -232,18 +232,12 @@ export function generateTodayQueue(): string[] {
   const today = todayStr()
   const note = getTomorrowNote()
   if (note && note.date === today && note.selectedAffirmationIds.length > 0) {
-    return note.selectedAffirmationIds.slice(0, 3)
+    // 어제 선택한 최대 7개를 랜덤 순서로
+    return [...note.selectedAffirmationIds].sort(() => Math.random() - 0.5)
   }
   const affirmations = getAffirmations()
   if (affirmations.length === 0) return []
-  const notRecentlyDone = affirmations
-    .filter((a) => !a.completedDates.includes(today))
-    .sort(() => Math.random() - 0.5)
-  const recentlyDone = affirmations
-    .filter((a) => a.completedDates.includes(today))
-    .sort(() => Math.random() - 0.5)
-  const combined = [...notRecentlyDone, ...recentlyDone]
-  return combined.slice(0, 3).map((a) => a.id)
+  return [...affirmations].sort(() => Math.random() - 0.5).slice(0, 3).map((a) => a.id)
 }
 
 // Affirmations by date (active + trashed, so deleted items still appear in calendar)

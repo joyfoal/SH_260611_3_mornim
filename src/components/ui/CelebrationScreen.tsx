@@ -2,6 +2,12 @@
 
 import { useEffect, useState } from 'react'
 
+export type CelebrationVariant =
+  | 'progress'      // 큐 중간 — 자동 다음으로
+  | 'batch_done'    // 배치(초기/추가) 완료 — 더 말하기 / 여기까지
+  | 'all_done'      // 오늘 성공의 말 전부 완료 — 추가하기 / 반복하기
+  | 'repeat_done'   // 반복 1사이클 완료 — 축하 + 여기까지만
+
 const PHRASES = [
   '잘했어요! ✨', '멋져요! 🌟', '오늘도 해냈어요! 💪', '최고예요! 🏆', '정말 잘하고 있어요! 🌺',
   '대단해요! 🎯', '훌륭해요! 🌸', '스스로를 자랑스러워하세요! 💫', '오늘도 성장했어요! 🌱',
@@ -26,24 +32,38 @@ const PHRASES = [
 interface CelebrationScreenProps {
   completedCount: number
   totalCount: number
-  onNext: () => void
-  allowMore?: boolean
-  onMore?: () => void
+  variant: CelebrationVariant
+  onNext: () => void              // progress → 자동 진행 / done 상태 → 오늘은 여기까지
+  onMore?: () => void             // 오늘 더 말하고 싶어요
+  onAddAffirmation?: () => void   // 성공의 말 추가하기
+  onRepeat?: () => void           // 반복하기
 }
 
-export function CelebrationScreen({ completedCount, totalCount, onNext, allowMore, onMore }: CelebrationScreenProps) {
+export function CelebrationScreen({
+  completedCount,
+  totalCount,
+  variant,
+  onNext,
+  onMore,
+  onAddAffirmation,
+  onRepeat,
+}: CelebrationScreenProps) {
   const [phrase] = useState(() => PHRASES[Math.floor(Math.random() * PHRASES.length)])
   const [visible, setVisible] = useState(false)
 
-  const isAllDone = completedCount >= totalCount
+  const isBig = variant !== 'progress'
 
   useEffect(() => {
     setVisible(true)
 
-    // Fire confetti
     if (typeof window !== 'undefined') {
       import('canvas-confetti').then(({ default: confetti }) => {
-        if (isAllDone) {
+        if (variant === 'repeat_done') {
+          confetti({ particleCount: 150, spread: 90, origin: { y: 0.5 }, colors: ['#BD821F', '#E8C878', '#F3E6C8', '#ffffff', '#FFD700'] })
+          setTimeout(() => confetti({ particleCount: 100, angle: 60, spread: 70, origin: { x: 0, y: 0.6 }, colors: ['#BD821F', '#FFA500', '#FFD700'] }), 200)
+          setTimeout(() => confetti({ particleCount: 100, angle: 120, spread: 70, origin: { x: 1, y: 0.6 }, colors: ['#BD821F', '#FFA500', '#FFD700'] }), 400)
+          setTimeout(() => confetti({ particleCount: 80, spread: 70, origin: { y: 0.4 }, colors: ['#FF69B4', '#7B68EE', '#00CED1'] }), 700)
+        } else if (isBig) {
           confetti({ particleCount: 120, spread: 80, origin: { y: 0.55 }, colors: ['#BD821F', '#E8C878', '#F3E6C8', '#ffffff', '#FFD700'] })
           setTimeout(() => confetti({ particleCount: 80, angle: 60, spread: 60, origin: { x: 0, y: 0.6 }, colors: ['#BD821F', '#FFA500', '#FFD700'] }), 200)
           setTimeout(() => confetti({ particleCount: 80, angle: 120, spread: 60, origin: { x: 1, y: 0.6 }, colors: ['#BD821F', '#FFA500', '#FFD700'] }), 400)
@@ -53,19 +73,28 @@ export function CelebrationScreen({ completedCount, totalCount, onNext, allowMor
       }).catch(() => {})
     }
 
-    if (!isAllDone || !allowMore) {
-      const timer = setTimeout(onNext, isAllDone ? 2800 : 1500)
+    if (variant === 'progress') {
+      const timer = setTimeout(onNext, 1500)
       return () => clearTimeout(timer)
     }
-  }, [onNext, isAllDone, allowMore])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [variant])
+
+  const mainEmoji =
+    variant === 'repeat_done' ? '🎉' :
+    isBig ? '🎊' : '🌟'
+
+  const mainMessage =
+    variant === 'all_done' ? '오늘 나의 성공의 말을\n다하셨어요!' :
+    variant === 'repeat_done' ? '반복까지 완료하셨어요!\n정말 대단해요! 💪' :
+    phrase
 
   return (
     <div
       className="flex flex-col items-center justify-center"
       style={{ minHeight: '100dvh', background: 'var(--color-bg-dark)', padding: '32px 24px' }}
     >
-      {/* Stars background */}
-      {isAllDone && (
+      {isBig && (
         <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', overflow: 'hidden' }}>
           {[...Array(12)].map((_, i) => (
             <span
@@ -93,49 +122,52 @@ export function CelebrationScreen({ completedCount, totalCount, onNext, allowMor
           transform: visible ? 'scale(1) translateY(0)' : 'scale(0.6) translateY(20px)',
           opacity: visible ? 1 : 0,
           transition: 'opacity 0.5s cubic-bezier(0.34,1.56,0.64,1), transform 0.5s cubic-bezier(0.34,1.56,0.64,1)',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          width: '100%',
+          maxWidth: '320px',
         }}
       >
-        {/* Main emoji */}
-        <div style={{ fontSize: isAllDone ? '72px' : '56px', marginBottom: '16px', lineHeight: 1 }}>
-          {isAllDone ? '🎊' : '🌟'}
+        <div style={{ fontSize: isBig ? '72px' : '56px', marginBottom: '16px', lineHeight: 1 }}>
+          {mainEmoji}
         </div>
 
-        {/* Main message */}
         <div
           style={{
-            fontSize: isAllDone ? '28px' : '26px',
+            fontSize: '26px',
             fontWeight: 700,
             color: 'var(--color-text-onDark)',
             marginBottom: '12px',
-            lineHeight: 1.3,
+            lineHeight: 1.4,
+            whiteSpace: 'pre-line',
           }}
         >
-          {phrase}
+          {mainMessage}
         </div>
 
-        {/* Progress */}
-        <div
-          style={{
-            fontSize: '15px',
-            color: 'var(--color-accent-light)',
-            marginBottom: isAllDone && allowMore ? '40px' : '0',
-            opacity: visible ? 1 : 0,
-            transition: 'opacity 0.4s ease 0.3s',
-          }}
-        >
-          {completedCount > 0 ? `오늘 ${completedCount}회 완료` : ''}
-        </div>
+        {completedCount > 0 && (
+          <div
+            style={{
+              fontSize: '15px',
+              color: 'var(--color-accent-light)',
+              marginBottom: isBig ? '32px' : '0',
+              opacity: visible ? 1 : 0,
+              transition: 'opacity 0.4s ease 0.3s',
+            }}
+          >
+            오늘 {completedCount}회 완료
+          </div>
+        )}
 
-        {/* Buttons for all-done + allowMore */}
-        {isAllDone && allowMore && (
+        {/* batch_done: 더 말하고 싶어요 + 여기까지 */}
+        {variant === 'batch_done' && (
           <div
             style={{
               display: 'flex',
               flexDirection: 'column',
               gap: '12px',
               width: '100%',
-              maxWidth: '280px',
-              alignSelf: 'center',
               opacity: visible ? 1 : 0,
               transition: 'opacity 0.4s ease 0.5s',
             }}
@@ -164,6 +196,93 @@ export function CelebrationScreen({ completedCount, totalCount, onNext, allowMor
                 borderRadius: '16px',
                 color: 'var(--color-text-muted)',
                 fontSize: '15px',
+                cursor: 'pointer',
+              }}
+            >
+              오늘은 여기까지
+            </button>
+          </div>
+        )}
+
+        {/* all_done: 성공의 말 추가하기 + 반복하기 */}
+        {variant === 'all_done' && (
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '12px',
+              width: '100%',
+              opacity: visible ? 1 : 0,
+              transition: 'opacity 0.4s ease 0.5s',
+            }}
+          >
+            <button
+              onClick={onAddAffirmation}
+              style={{
+                padding: '16px',
+                background: 'var(--color-accent-primary)',
+                border: 'none',
+                borderRadius: '16px',
+                color: 'white',
+                fontSize: '16px',
+                fontWeight: 600,
+                cursor: 'pointer',
+              }}
+            >
+              성공의 말 추가하기
+            </button>
+            <button
+              onClick={onRepeat}
+              style={{
+                padding: '14px',
+                background: 'transparent',
+                border: '1px solid rgba(255,255,255,0.3)',
+                borderRadius: '16px',
+                color: 'var(--color-text-onDark)',
+                fontSize: '15px',
+                fontWeight: 500,
+                cursor: 'pointer',
+              }}
+            >
+              반복하기
+            </button>
+          </div>
+        )}
+
+        {/* repeat_done: 반복 완료 축하 + 여기까지만 */}
+        {variant === 'repeat_done' && (
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '16px',
+              width: '100%',
+              alignItems: 'center',
+              opacity: visible ? 1 : 0,
+              transition: 'opacity 0.4s ease 0.5s',
+            }}
+          >
+            <div
+              style={{
+                fontSize: '14px',
+                color: 'var(--color-text-muted)',
+                textAlign: 'center',
+                lineHeight: 1.6,
+              }}
+            >
+              카메라 말하기는 내일 다시 만나요 👋
+            </div>
+            <button
+              onClick={onNext}
+              style={{
+                width: '100%',
+                padding: '16px',
+                background: 'var(--color-accent-primary)',
+                border: 'none',
+                borderRadius: '16px',
+                color: 'white',
+                fontSize: '16px',
+                fontWeight: 600,
                 cursor: 'pointer',
               }}
             >
