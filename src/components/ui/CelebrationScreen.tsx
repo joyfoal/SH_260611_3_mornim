@@ -122,7 +122,7 @@ export function CelebrationScreen({ completedCount, totalCount, onNext, allowMor
             transition: 'opacity 0.4s ease 0.3s',
           }}
         >
-          {completedCount} / {totalCount} 완료
+          오늘 {completedCount}회 완료
         </div>
 
         {/* Buttons for all-done + allowMore */}
