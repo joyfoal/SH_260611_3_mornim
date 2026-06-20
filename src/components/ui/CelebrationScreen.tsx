@@ -134,6 +134,7 @@ export function CelebrationScreen({ completedCount, totalCount, onNext, allowMor
               gap: '12px',
               width: '100%',
               maxWidth: '280px',
+              alignSelf: 'center',
               opacity: visible ? 1 : 0,
               transition: 'opacity 0.4s ease 0.5s',
             }}
