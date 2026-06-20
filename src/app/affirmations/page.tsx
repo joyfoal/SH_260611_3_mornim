@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { AppLayout } from '@/components/ui/AppLayout'
-import { Plus, Trash2, Play, Pause } from 'lucide-react'
+import { Plus, Trash2, Play, Pause, Download } from 'lucide-react'
 import { getAffirmations, moveToTrash, getCategories, type Affirmation } from '@/lib/storage'
 import { getCategoryColor } from '@/lib/categories'
 import { getAudioRecords, moveAudioToTrash, type AudioRecord } from '@/lib/audioStorage'
@@ -80,6 +80,18 @@ export default function AffirmationsPage() {
       setPlayingId(null)
     }
     audio.play().catch(() => setPlayingId(null))
+  }
+
+  const handleDownloadAudio = (affirmationId: string, affirmationText: string) => {
+    const record = audioMap[affirmationId]
+    if (!record) return
+    const url = URL.createObjectURL(record.blob)
+    const a = document.createElement('a')
+    a.href = url
+    const ext = record.blob.type.includes('mp4') ? 'mp4' : record.blob.type.includes('ogg') ? 'ogg' : 'webm'
+    a.download = `${affirmationText.slice(0, 20).replace(/\s+/g, '_')}.${ext}`
+    a.click()
+    URL.revokeObjectURL(url)
   }
 
   const handleDeleteAudio = async (affirmationId: string) => {
@@ -277,6 +289,20 @@ export default function AffirmationsPage() {
                             {new Date(record.createdAt).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' })} 녹음
                           </span>
 
+                          {/* 다운로드 버튼 */}
+                          <button
+                            onClick={() => handleDownloadAudio(affirmation.id, affirmation.text)}
+                            style={{
+                              padding: '4px 10px', border: '1px solid var(--color-border)',
+                              borderRadius: 8, background: 'transparent', cursor: 'pointer',
+                              fontSize: '11px', color: 'var(--color-text-muted)',
+                              display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0,
+                            }}
+                          >
+                            <Download size={11} />
+                            저장
+                          </button>
+
                           {/* 녹음 삭제 버튼 */}
                           <button
                             onClick={() => handleDeleteAudio(affirmation.id)}
@@ -288,7 +314,7 @@ export default function AffirmationsPage() {
                             }}
                           >
                             <Trash2 size={11} />
-                            녹음 삭제
+                            삭제
                           </button>
                         </div>
                       )}

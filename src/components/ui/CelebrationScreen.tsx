@@ -11,14 +11,16 @@ const PHRASES = [
   '매일 성장하는 당신을 응원해요! 🌈', '이 순간이 당신을 바꾸고 있어요! ⭐',
   '말의 힘을 믿어요! 계속 해요! 🎇', '자신에게 친절한 당신, 정말 멋져요! 🌻',
   '오늘도 최선을 다한 당신, 수고했어요! 🎉',
-]
-
-const ALL_DONE_MESSAGES = [
-  '오늘의 성공의 말 모두 완료! 🎉🎊',
-  '3개 모두 완성! 당신은 진짜 해냈어요! 🏆✨',
-  '완벽해요! 오늘 하루도 성장했어요! 🌟💫',
-  '모두 완료! 오늘의 나에게 박수를! 👏🎉',
-  '세 번 모두 말했어요! 말의 힘이 싹트고 있어요! 🌱✨',
+  '오늘의 당신, 정말 빛나요! 💎', '믿음이 현실이 되고 있어요! 🌙',
+  '당신의 말 한마디가 세상을 바꿔요! 🌍', '꾸준함이 기적을 만들어요! ✨',
+  '오늘도 멋지게 해냈어요! 🎊', '당신은 이미 충분해요! 🤍',
+  '계속 나아가는 당신이 자랑스러워요! 🦋', '말로 씨앗을 심었어요! 🌷',
+  '작은 습관이 인생을 바꿔요! 🔑', '오늘도 자신을 믿어줘서 고마워요! 🫶',
+  '긍정의 말이 에너지가 돼요! ⚡', '당신은 날마다 더 강해지고 있어요! 💪',
+  '포기 없이 여기까지 왔어요! 🛤️', '마음속 씨앗이 자라고 있어요! 🌿',
+  '오늘의 한마디가 내일을 바꿔요! 🌅', '스스로에게 주는 최고의 선물이에요! 🎁',
+  '당신의 가능성은 무한해요! ♾️', '말하는 당신이 이미 달라지고 있어요! 🌠',
+  '진심으로 수고했어요! 🌸', '매 순간이 소중한 변화예요! 💜',
 ]
 
 interface CelebrationScreenProps {
@@ -31,7 +33,6 @@ interface CelebrationScreenProps {
 
 export function CelebrationScreen({ completedCount, totalCount, onNext, allowMore, onMore }: CelebrationScreenProps) {
   const [phrase] = useState(() => PHRASES[Math.floor(Math.random() * PHRASES.length)])
-  const [allDoneMsg] = useState(() => ALL_DONE_MESSAGES[Math.floor(Math.random() * ALL_DONE_MESSAGES.length)])
   const [visible, setVisible] = useState(false)
 
   const isAllDone = completedCount >= totalCount
@@ -109,7 +110,7 @@ export function CelebrationScreen({ completedCount, totalCount, onNext, allowMor
             lineHeight: 1.3,
           }}
         >
-          {isAllDone ? allDoneMsg : phrase}
+          {phrase}
         </div>
 
         {/* Progress */}

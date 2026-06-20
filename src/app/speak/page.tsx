@@ -17,7 +17,7 @@ import {
   type Affirmation,
 } from '@/lib/storage'
 import { updateStreak } from '@/lib/streak'
-import { saveAudioRecord, getAudioRecords } from '@/lib/audioStorage'
+import { saveAudioRecord, getAudioRecords, deleteAudioRecordsByAffirmationId } from '@/lib/audioStorage'
 
 const MAX_EXTRA = 4
 
@@ -329,6 +329,7 @@ function SpeakPageInner() {
     const blob = reRecordBlobRef.current
     if (blob && affirmation) {
       try {
+        await deleteAudioRecordsByAffirmationId(affirmation.id)
         await saveAudioRecord({
           id: `audio-${Date.now()}-${Math.random().toString(36).slice(2)}`,
           affirmationId: affirmation.id,
@@ -514,6 +515,56 @@ function SpeakPageInner() {
           완료 ✓
         </button>
 
+        {/* 다시 녹음 — 기존 녹음 있을 때만 표시 */}
+        {hasExistingRecording && reRecordState === 'idle' && (
+          <button
+            onClick={startReRecord}
+            style={{
+              width: '100%', padding: '13px', background: 'transparent',
+              border: '1px solid rgba(255,255,255,0.25)', borderRadius: '16px',
+              color: 'var(--color-text-muted)', fontSize: '14px', cursor: 'pointer',
+            }}
+          >
+            🎙 다시 녹음
+          </button>
+        )}
+
+        {reRecordState === 'recording' && (
+          <button
+            onClick={stopReRecord}
+            style={{
+              width: '100%', padding: '13px', background: 'rgba(194,60,40,0.85)',
+              border: 'none', borderRadius: '16px', color: 'white', fontSize: '14px', fontWeight: 600, cursor: 'pointer',
+            }}
+          >
+            ■ 녹음 중지
+          </button>
+        )}
+
+        {reRecordState === 'confirm' && (
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button
+              onClick={saveReRecord}
+              style={{
+                flex: 1, padding: '13px', background: 'rgba(255,255,255,0.15)',
+                border: '1px solid rgba(255,255,255,0.3)', borderRadius: '16px',
+                color: 'white', fontSize: '14px', fontWeight: 600, cursor: 'pointer',
+              }}
+            >
+              저장
+            </button>
+            <button
+              onClick={discardReRecord}
+              style={{
+                flex: 1, padding: '13px', background: 'transparent',
+                border: '1px solid rgba(255,255,255,0.15)', borderRadius: '16px',
+                color: 'var(--color-text-muted)', fontSize: '14px', cursor: 'pointer',
+              }}
+            >
+              취소
+            </button>
+          </div>
+        )}
       </div>
     </div>
   )

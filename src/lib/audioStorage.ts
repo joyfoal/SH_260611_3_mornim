@@ -182,6 +182,22 @@ export async function deleteAudioRecord(id: string): Promise<void> {
   })
 }
 
+export async function deleteAudioRecordsByAffirmationId(affirmationId: string): Promise<void> {
+  const db = await openDB()
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE_NAME, 'readwrite')
+    const store = tx.objectStore(STORE_NAME)
+    const req = store.getAll()
+    req.onsuccess = () => {
+      ;(req.result as AudioRecord[])
+        .filter((r) => r.affirmationId === affirmationId)
+        .forEach((r) => store.delete(r.id))
+    }
+    tx.oncomplete = () => resolve()
+    tx.onerror = () => reject(tx.error)
+  })
+}
+
 export async function clearAllAudioRecords(): Promise<void> {
   return new Promise((resolve) => {
     const req = indexedDB.deleteDatabase(DB_NAME)
