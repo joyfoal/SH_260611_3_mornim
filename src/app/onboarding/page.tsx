@@ -478,7 +478,7 @@ export default function OnboardingPage() {
 
     if (notifAllowed) {
       // 알람 audioId를 온보딩 녹음 ID로 연결
-      saveAlarmSettings({ audioId: onbAudioRecordIdRef.current, hour: Math.floor(notifTime / 60), minute: notifTime % 60 })
+      saveAlarmSettings({ affirmationId: '', audioId: onbAudioRecordIdRef.current, hour: Math.floor(notifTime / 60), minute: notifTime % 60, repeatDays: [], endType: 'none', endDate: '', endCount: 0, firedCount: 0 })
       import('@/lib/alarmScheduler').then(({ registerSW, scheduleAlarm }) =>
         registerSW().then(() => scheduleAlarm())
       )

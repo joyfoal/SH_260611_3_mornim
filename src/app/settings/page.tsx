@@ -13,7 +13,7 @@ import {
   getCalendar, getStreakData,
   getHomeDisplaySettings, setHomeDisplaySetting, deleteDayRecord,
   todayStr,
-  type AlarmSettings,
+  type AlarmSettings, type Affirmation,
 } from '@/lib/storage'
 import {
   getAudioRecords, setAudioKeepForever, clearAllAudioRecords,
@@ -220,67 +220,96 @@ function TogglePanel() {
 }
 
 // ─── 알림 패널 ────────────────────────────────────────────────────────────────
+const DAY_LABELS = ['일', '월', '화', '수', '목', '금', '토']
+
 function AlarmPanel() {
-  const [recordings, setRecordings] = useState<AudioRecord[]>([])
   const [alarm, setAlarm] = useState<AlarmSettings | null>(null)
-  const [selectedAudioId, setSelectedAudioId] = useState<string>('')
+  const [affirmations, setAffirmations] = useState<Affirmation[]>([])
+  const [categories, setCategories] = useState<string[]>([])
+  const [audioMap, setAudioMap] = useState<Record<string, AudioRecord>>({})
+  const [selectedAffId, setSelectedAffId] = useState('')
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
   const [hour, setHour] = useState(7)
   const [minute, setMinute] = useState(0)
+  const [repeatDays, setRepeatDays] = useState<number[]>([])
+  const [endType, setEndType] = useState<'none' | 'date' | 'count'>('none')
+  const [endDate, setEndDate] = useState('')
+  const [endCount, setEndCount] = useState(30)
   const [saving, setSaving] = useState(false)
   const [notifPerm, setNotifPerm] = useState<NotificationPermission>('default')
-  const urlRef = useRef<Record<string, string>>({})
+  const audioRef = useRef<HTMLAudioElement | null>(null)
 
   useEffect(() => {
     const current = getAlarmSettings()
     setAlarm(current)
-    if (current) { setSelectedAudioId(current.audioId); setHour(current.hour); setMinute(current.minute) }
-    const affIds = new Set(getAffirmations().map((a) => a.id))
-    getAudioRecords().then((recs) => setRecordings(recs.filter((r) => affIds.has(r.affirmationId)))).catch(() => {})
-    if (typeof window !== 'undefined' && 'Notification' in window) {
-      setNotifPerm(Notification.permission)
+    if (current) {
+      setSelectedAffId(current.affirmationId ?? '')
+      setHour(current.hour)
+      setMinute(current.minute)
+      setRepeatDays(current.repeatDays ?? [])
+      setEndType(current.endType ?? 'none')
+      setEndDate(current.endDate ?? '')
+      setEndCount(current.endCount ?? 30)
     }
+    const affs = getAffirmations()
+    setAffirmations(affs)
+    setCategories(getCategories())
+    getAudioRecords().then((recs) => {
+      const map: Record<string, AudioRecord> = {}
+      for (const r of recs) {
+        if (!map[r.affirmationId] || r.createdAt > map[r.affirmationId].createdAt) map[r.affirmationId] = r
+      }
+      setAudioMap(map)
+    }).catch(() => {})
+    if (typeof window !== 'undefined' && 'Notification' in window) setNotifPerm(Notification.permission)
   }, [])
 
   const requestPermission = async () => {
     if (!('Notification' in window)) return
-    const perm = await Notification.requestPermission()
-    setNotifPerm(perm)
+    setNotifPerm(await Notification.requestPermission())
+  }
+
+  const toggleDay = (day: number) =>
+    setRepeatDays((prev) => prev.includes(day) ? prev.filter((d) => d !== day) : [...prev, day])
+
+  const playPreview = (affId: string) => {
+    const rec = audioMap[affId]
+    if (!rec) return
+    if (audioRef.current) { audioRef.current.pause(); audioRef.current = null }
+    const url = URL.createObjectURL(rec.blob)
+    const audio = new Audio(url)
+    audioRef.current = audio
+    audio.onended = () => { URL.revokeObjectURL(url); audioRef.current = null }
+    audio.play().catch(() => URL.revokeObjectURL(url))
   }
 
   const handleSave = async () => {
-    if (!selectedAudioId) return
+    if (!selectedAffId) return
     setSaving(true)
     if ('Notification' in window && Notification.permission !== 'granted') {
-      const perm = await Notification.requestPermission()
-      setNotifPerm(perm)
+      setNotifPerm(await Notification.requestPermission())
     }
-    saveAlarmSettings({ audioId: selectedAudioId, hour, minute })
-    setAlarm({ audioId: selectedAudioId, hour, minute })
+    const settings: AlarmSettings = {
+      affirmationId: selectedAffId,
+      hour, minute, repeatDays, endType,
+      endDate: endType === 'date' ? endDate : '',
+      endCount: endType === 'count' ? endCount : 0,
+      firedCount: alarm?.firedCount ?? 0,
+    }
+    saveAlarmSettings(settings)
+    setAlarm(settings)
     import('@/lib/alarmScheduler').then(({ scheduleAlarm }) => scheduleAlarm())
     setSaving(false)
   }
 
   const handleClear = () => {
-    clearAlarmSettings()
-    setAlarm(null)
+    clearAlarmSettings(); setAlarm(null)
     import('@/lib/alarmScheduler').then(({ cancelAlarm }) => cancelAlarm())
   }
 
-  const handleDownload = (rec: AudioRecord) => {
-    const url = urlRef.current[rec.id] ?? URL.createObjectURL(rec.blob)
-    urlRef.current[rec.id] = url
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `mornim-${rec.affirmationId.slice(0, 8)}.webm`
-    a.click()
-  }
-
-  const handleKeepForever = async (rec: AudioRecord) => {
-    await setAudioKeepForever(rec.id, !rec.keepForever)
-    setRecordings((prev) => prev.map((r) => r.id === rec.id ? { ...r, keepForever: !r.keepForever } : r))
-  }
-
   const fmtHour = (h: number) => `${h < 12 ? '오전' : '오후'} ${((h + 11) % 12) + 1}시`
+  const catAffs = selectedCategory ? affirmations.filter((a) => a.category === selectedCategory) : []
+  const selectedAff = affirmations.find((a) => a.id === selectedAffId)
 
   return (
     <Panel>
@@ -289,7 +318,7 @@ function AlarmPanel() {
         {alarm ? `${fmtHour(alarm.hour)} ${String(alarm.minute).padStart(2, '0')}분 알림 설정됨` : '설정된 알림 없음'}
       </p>
 
-      {/* Notification permission */}
+      {/* 알림 권한 */}
       <div style={{ padding: '12px', background: notifPerm === 'granted' ? '#E8F5E9' : '#FFF3E0', borderRadius: '12px', marginBottom: '16px' }}>
         <div className="flex items-center justify-between">
           <div>
@@ -301,72 +330,105 @@ function AlarmPanel() {
             </p>
           </div>
           {notifPerm === 'default' && (
-            <button onClick={requestPermission} style={{ padding: '7px 14px', background: 'var(--color-accent-primary)', color: 'white', border: 'none', borderRadius: '10px', fontSize: '12px', cursor: 'pointer', flexShrink: 0 }}>
-              <Bell size={12} style={{ marginRight: 4 }} />허용
+            <button onClick={requestPermission} style={{ padding: '7px 14px', background: 'var(--color-accent-primary)', color: 'white', border: 'none', borderRadius: '10px', fontSize: '12px', cursor: 'pointer', flexShrink: 0, display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <Bell size={12} />허용
             </button>
           )}
         </div>
       </div>
 
-      {/* Time picker */}
+      {/* 알림 시간 */}
       <p style={{ fontSize: '13px', color: 'var(--color-text-muted)', marginBottom: '8px' }}>알림 시간</p>
-      <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
-        <select
-          value={hour}
-          onChange={(e) => setHour(Number(e.target.value))}
-          style={{ flex: 1, padding: '10px', border: '1px solid var(--color-border)', borderRadius: '10px', fontSize: '14px', background: 'var(--color-bg-primary)', color: 'var(--color-text-primary)', outline: 'none' }}
-        >
-          {Array.from({ length: 24 }, (_, i) => (
-            <option key={i} value={i}>{fmtHour(i)}</option>
-          ))}
+      <div style={{ display: 'flex', gap: '8px', marginBottom: '20px' }}>
+        <select value={hour} onChange={(e) => setHour(Number(e.target.value))} style={{ flex: 1, padding: '10px', border: '1px solid var(--color-border)', borderRadius: '10px', fontSize: '14px', background: 'var(--color-bg-primary)', color: 'var(--color-text-primary)', outline: 'none' }}>
+          {Array.from({ length: 24 }, (_, i) => <option key={i} value={i}>{fmtHour(i)}</option>)}
         </select>
-        <select
-          value={minute}
-          onChange={(e) => setMinute(Number(e.target.value))}
-          style={{ width: '100px', padding: '10px', border: '1px solid var(--color-border)', borderRadius: '10px', fontSize: '14px', background: 'var(--color-bg-primary)', color: 'var(--color-text-primary)', outline: 'none' }}
-        >
-          {[0, 10, 20, 30, 40, 50].map((m) => (
-            <option key={m} value={m}>{String(m).padStart(2, '0')}분</option>
-          ))}
+        <select value={minute} onChange={(e) => setMinute(Number(e.target.value))} style={{ width: '100px', padding: '10px', border: '1px solid var(--color-border)', borderRadius: '10px', fontSize: '14px', background: 'var(--color-bg-primary)', color: 'var(--color-text-primary)', outline: 'none' }}>
+          {[0, 10, 20, 30, 40, 50].map((m) => <option key={m} value={m}>{String(m).padStart(2, '0')}분</option>)}
         </select>
       </div>
 
-      {/* Recording picker */}
-      <p style={{ fontSize: '13px', color: 'var(--color-text-muted)', marginBottom: '8px' }}>재생할 녹음 선택</p>
-      {recordings.length === 0 ? (
-        <p style={{ fontSize: '13px', color: 'var(--color-text-muted)', fontStyle: 'italic', marginBottom: '16px' }}>
-          녹음된 내용이 없어요. 말하기 화면에서 성공의 말을 말해보세요.
-        </p>
-      ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '200px', overflowY: 'auto', marginBottom: '16px' }}>
-          {recordings.map((rec) => (
-            <div
-              key={rec.id}
-              style={{ padding: '10px 12px', background: selectedAudioId === rec.id ? 'var(--color-accent-light)' : 'var(--color-bg-surface)', border: selectedAudioId === rec.id ? '1.5px solid var(--color-accent-primary)' : '1px solid transparent', borderRadius: '10px', cursor: 'pointer' }}
-              onClick={() => setSelectedAudioId(rec.id)}
-            >
-              <div style={{ fontSize: '13px', color: 'var(--color-text-onDark)', marginBottom: '4px' }}>
-                {selectedAudioId === rec.id && '✓ '}{rec.affirmationText}
+      {/* 성공의 말 선택 */}
+      <p style={{ fontSize: '13px', color: 'var(--color-text-muted)', marginBottom: '8px' }}>성공의 말 선택</p>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '10px' }}>
+        {categories.map((cat) => (
+          <button key={cat} onClick={() => setSelectedCategory(selectedCategory === cat ? null : cat)}
+            style={{ padding: '5px 12px', borderRadius: '16px', fontSize: '12px', cursor: 'pointer', border: selectedCategory === cat ? '1.5px solid var(--color-accent-primary)' : '1px solid var(--color-border)', background: selectedCategory === cat ? 'var(--color-accent-light)' : 'transparent', color: selectedCategory === cat ? 'var(--color-accent-primary)' : 'var(--color-text-muted)', fontWeight: selectedCategory === cat ? 600 : 400 }}>
+            {cat}
+          </button>
+        ))}
+      </div>
+
+      {selectedCategory && catAffs.length > 0 && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '220px', overflowY: 'auto', marginBottom: '12px' }}>
+          {catAffs.map((aff) => {
+            const hasRec = !!audioMap[aff.id]
+            const isSel = selectedAffId === aff.id
+            return (
+              <div key={aff.id} onClick={() => setSelectedAffId(aff.id)}
+                style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px', background: isSel ? 'var(--color-accent-light)' : 'var(--color-bg-primary)', border: isSel ? '1.5px solid var(--color-accent-primary)' : '1px solid var(--color-border)', borderRadius: '10px', cursor: 'pointer' }}>
+                <span style={{ flex: 1, fontSize: '13px', color: 'var(--color-text-primary)', lineHeight: 1.4 }}>{aff.text}</span>
+                {hasRec && (
+                  <button onClick={(e) => { e.stopPropagation(); playPreview(aff.id) }}
+                    style={{ width: '28px', height: '28px', borderRadius: '50%', background: 'var(--color-accent-primary)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <span style={{ color: 'white', fontSize: '10px' }}>▶</span>
+                  </button>
+                )}
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span style={{ fontSize: '10px', color: 'var(--color-text-muted)' }}>
-                  {new Date(rec.createdAt).toLocaleDateString('ko-KR')}
-                  {rec.keepForever ? ' · 영구 보관' : ' · 7일 후 삭제'}
-                </span>
-                <button onClick={(e) => { e.stopPropagation(); handleKeepForever(rec) }} style={{ fontSize: '10px', padding: '2px 6px', background: rec.keepForever ? 'var(--color-accent-primary)' : 'transparent', border: '1px solid var(--color-border)', borderRadius: '6px', cursor: 'pointer', color: rec.keepForever ? 'white' : 'var(--color-text-muted)' }}>
-                  {rec.keepForever ? '영구 보관 중' : '계속 보관'}
-                </button>
-                <button onClick={(e) => { e.stopPropagation(); handleDownload(rec) }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text-muted)', padding: '2px' }} title="다운로드">
-                  <Download size={12} />
-                </button>
-              </div>
-            </div>
-          ))}
+            )
+          })}
         </div>
       )}
 
+      {/* 선택된 성공의 말 표시 */}
+      {selectedAff && (
+        <div style={{ padding: '10px 14px', background: 'var(--color-bg-primary)', borderRadius: '10px', border: '1px solid var(--color-accent-primary)', marginBottom: '20px' }}>
+          <p style={{ fontSize: '11px', color: 'var(--color-accent-primary)', marginBottom: '4px', fontWeight: 600 }}>선택된 성공의 말</p>
+          <p style={{ fontSize: '13px', color: 'var(--color-text-primary)', lineHeight: 1.4 }}>{selectedAff.text}</p>
+          <p style={{ fontSize: '11px', color: 'var(--color-text-muted)', marginTop: '4px' }}>
+            {audioMap[selectedAffId] ? '🎙 녹음 있음 — 알림 시 재생됩니다' : '알림 시 성공의 말 텍스트만 표시됩니다'}
+          </p>
+        </div>
+      )}
+
+      {/* 반복 설정 */}
+      <p style={{ fontSize: '13px', color: 'var(--color-text-muted)', marginBottom: '8px' }}>반복 요일 <span style={{ fontSize: '11px' }}>(선택 없음 = 매일)</span></p>
+      <div style={{ display: 'flex', gap: '6px', marginBottom: '16px' }}>
+        {DAY_LABELS.map((label, day) => (
+          <button key={day} onClick={() => toggleDay(day)}
+            style={{ flex: 1, padding: '8px 0', borderRadius: '8px', fontSize: '12px', fontWeight: 600, cursor: 'pointer', border: repeatDays.includes(day) ? '1.5px solid var(--color-accent-primary)' : '1px solid var(--color-border)', background: repeatDays.includes(day) ? 'var(--color-accent-light)' : 'transparent', color: repeatDays.includes(day) ? 'var(--color-accent-primary)' : 'var(--color-text-muted)' }}>
+            {label}
+          </button>
+        ))}
+      </div>
+
+      <p style={{ fontSize: '13px', color: 'var(--color-text-muted)', marginBottom: '8px' }}>종료 설정</p>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '20px' }}>
+        {(['none', 'date', 'count'] as const).map((type) => (
+          <label key={type} style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}>
+            <input type="radio" checked={endType === type} onChange={() => setEndType(type)} style={{ accentColor: 'var(--color-accent-primary)', width: '16px', height: '16px' }} />
+            {type === 'none' && <span style={{ fontSize: '13px', color: 'var(--color-text-primary)' }}>무제한 반복</span>}
+            {type === 'date' && (
+              <span style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1 }}>
+                <span style={{ fontSize: '13px', color: 'var(--color-text-primary)', flexShrink: 0 }}>종료 날짜</span>
+                <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} onClick={() => setEndType('date')}
+                  style={{ flex: 1, padding: '6px 10px', border: '1px solid var(--color-border)', borderRadius: '8px', fontSize: '13px', background: 'var(--color-bg-primary)', color: 'var(--color-text-primary)', outline: 'none' }} />
+              </span>
+            )}
+            {type === 'count' && (
+              <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <input type="number" min={1} value={endCount} onChange={(e) => setEndCount(Number(e.target.value))} onClick={() => setEndType('count')}
+                  style={{ width: '64px', padding: '6px 10px', border: '1px solid var(--color-border)', borderRadius: '8px', fontSize: '13px', background: 'var(--color-bg-primary)', color: 'var(--color-text-primary)', outline: 'none', textAlign: 'center' }} />
+                <span style={{ fontSize: '13px', color: 'var(--color-text-primary)' }}>회 반복 후 종료</span>
+              </span>
+            )}
+          </label>
+        ))}
+      </div>
+
       <div style={{ display: 'flex', gap: '8px' }}>
-        <button onClick={handleSave} disabled={!selectedAudioId || saving} style={{ flex: 1, padding: '12px', background: selectedAudioId ? 'var(--color-accent-primary)' : 'var(--color-border)', color: 'white', border: 'none', borderRadius: '12px', fontSize: '14px', fontWeight: 600, cursor: selectedAudioId ? 'pointer' : 'not-allowed' }}>
+        <button onClick={handleSave} disabled={!selectedAffId || saving}
+          style={{ flex: 1, padding: '12px', background: selectedAffId ? 'var(--color-accent-primary)' : 'var(--color-border)', color: 'white', border: 'none', borderRadius: '12px', fontSize: '14px', fontWeight: 600, cursor: selectedAffId ? 'pointer' : 'not-allowed' }}>
           {saving ? '저장 중...' : '알림 설정 저장'}
         </button>
         {alarm && (
@@ -526,16 +588,12 @@ function StatsPanel() {
 function SearchPanel() {
   const [query, setQuery] = useState('')
   const [dateQuery, setDateQuery] = useState('')
+  const [dateQueryEnd, setDateQueryEnd] = useState('')
 
   const affirmations = getAffirmations()
-  const calendar = getCalendar()
 
   const textResults = query.trim()
     ? affirmations.filter((a) => a.text.includes(query.trim()))
-    : []
-
-  const dateResults = dateQuery
-    ? affirmations.filter((a) => a.completedDates.includes(dateQuery))
     : []
 
   const handleExportText = () => {
@@ -556,19 +614,6 @@ function SearchPanel() {
     downloadText(lines.join('\n'), `mornim-search-${todayStr()}.txt`)
   }
 
-  const handleExportDate = () => {
-    if (!dateQuery || dateResults.length === 0) return
-    const dayRecord = calendar.find((c) => c.date === dateQuery)
-    const lines = [
-      `=== ${dateQuery} 기록 ===`,
-      `생성: ${new Date().toLocaleString('ko-KR')}`,
-      `완료 수: ${dayRecord?.completedCount ?? 0}회`,
-      '',
-      '완료한 성공의 말:',
-      ...dateResults.map((a) => `- "${a.text}" (${a.category})`),
-    ]
-    downloadText(lines.join('\n'), `mornim-date-${dateQuery}.txt`)
-  }
 
   return (
     <Panel>
@@ -618,49 +663,71 @@ function SearchPanel() {
         )}
       </div>
 
-      {/* Date search */}
+      {/* Date range search */}
       <div>
-        <p style={{ fontSize: '13px', color: 'var(--color-text-muted)', marginBottom: '8px' }}>날짜별 검색</p>
-        <div style={{ display: 'flex', gap: '8px', marginBottom: '10px' }}>
-          <input
-            type="date"
-            value={dateQuery}
-            onChange={(e) => setDateQuery(e.target.value)}
-            style={{ flex: 1, padding: '10px 12px', border: '1px solid var(--color-border)', borderRadius: '10px', fontSize: '13px', background: 'var(--color-bg-primary)', color: 'var(--color-text-primary)', outline: 'none' }}
-          />
-          {dateResults.length > 0 && (
-            <button onClick={handleExportDate} style={{ padding: '10px 12px', background: 'transparent', border: '1px solid var(--color-border)', borderRadius: '10px', cursor: 'pointer', color: 'var(--color-text-muted)', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px' }}>
-              <Download size={12} />텍스트
-            </button>
-          )}
+        <p style={{ fontSize: '13px', color: 'var(--color-text-muted)', marginBottom: '8px' }}>날짜 범위 검색</p>
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '10px', flexWrap: 'wrap' }}>
+          <input type="date" value={dateQuery} onChange={(e) => setDateQuery(e.target.value)}
+            style={{ flex: 1, minWidth: '120px', padding: '10px 12px', border: '1px solid var(--color-border)', borderRadius: '10px', fontSize: '13px', background: 'var(--color-bg-primary)', color: 'var(--color-text-primary)', outline: 'none' }} />
+          <span style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>~</span>
+          <input type="date" value={dateQueryEnd} onChange={(e) => setDateQueryEnd(e.target.value)}
+            style={{ flex: 1, minWidth: '120px', padding: '10px 12px', border: '1px solid var(--color-border)', borderRadius: '10px', fontSize: '13px', background: 'var(--color-bg-primary)', color: 'var(--color-text-primary)', outline: 'none' }} />
         </div>
         {dateQuery && (
-          <div>
+          <>
             {(() => {
-              const dayRecord = calendar.find((c) => c.date === dateQuery)
+              const endStr = dateQueryEnd || dateQuery
+              const dateRangeResults = affirmations.filter((a) =>
+                a.completedDates.some((d) => d >= dateQuery && d <= endStr)
+              )
+              const totalInRange = dateRangeResults.reduce((sum, a) => sum + a.completedDates.filter((d) => d >= dateQuery && d <= endStr).length, 0)
+
+              const handleExportRange = () => {
+                if (dateRangeResults.length === 0) return
+                const lines = [
+                  `=== ${dateQuery} ~ ${endStr} 기록 ===`,
+                  `생성: ${new Date().toLocaleString('ko-KR')}`,
+                  `기간 내 완료 횟수: ${totalInRange}회`,
+                  '',
+                  ...dateRangeResults.map((a) => {
+                    const datesInRange = a.completedDates.filter((d) => d >= dateQuery && d <= endStr)
+                    return `"${a.text}" (${a.category}) — ${datesInRange.length}회\n  ${datesInRange.join(', ')}`
+                  }),
+                ]
+                downloadText(lines.join('\n'), `mornim-search-${dateQuery}-${endStr}.txt`)
+              }
+
               return (
                 <>
-                  {dayRecord && (
-                    <p style={{ fontSize: '12px', color: 'var(--color-accent-primary)', marginBottom: '8px', fontWeight: 600 }}>
-                      {dateQuery} — {dayRecord.completedCount}회 완료
+                  <div className="flex items-center justify-between" style={{ marginBottom: '8px' }}>
+                    <p style={{ fontSize: '12px', color: 'var(--color-accent-primary)', fontWeight: 600 }}>
+                      {dateRangeResults.length}개 · 총 {totalInRange}회 완료
                     </p>
-                  )}
-                  {dateResults.length === 0 ? (
-                    <p style={{ fontSize: '13px', color: 'var(--color-text-muted)', fontStyle: 'italic' }}>이 날 완료한 성공의 말이 없어요</p>
+                    {dateRangeResults.length > 0 && (
+                      <button onClick={handleExportRange} style={{ padding: '5px 10px', background: 'transparent', border: '1px solid var(--color-border)', borderRadius: '8px', cursor: 'pointer', color: 'var(--color-text-muted)', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px' }}>
+                        <Download size={11} />텍스트
+                      </button>
+                    )}
+                  </div>
+                  {dateRangeResults.length === 0 ? (
+                    <p style={{ fontSize: '13px', color: 'var(--color-text-muted)', fontStyle: 'italic' }}>해당 기간에 완료한 성공의 말이 없어요</p>
                   ) : (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                      {dateResults.map((a) => (
-                        <div key={a.id} style={{ padding: '10px 12px', background: 'var(--color-bg-primary)', borderRadius: '10px', border: '1px solid var(--color-border)' }}>
-                          <p style={{ fontSize: '13px', color: 'var(--color-text-primary)', lineHeight: 1.4 }}>{a.text}</p>
-                          <p style={{ fontSize: '11px', color: 'var(--color-text-muted)', marginTop: '4px' }}>{a.category} · 총 {a.completedDates.length}회 완료</p>
-                        </div>
-                      ))}
+                      {dateRangeResults.map((a) => {
+                        const cnt = a.completedDates.filter((d) => d >= dateQuery && d <= endStr).length
+                        return (
+                          <div key={a.id} style={{ padding: '10px 12px', background: 'var(--color-bg-primary)', borderRadius: '10px', border: '1px solid var(--color-border)' }}>
+                            <p style={{ fontSize: '13px', color: 'var(--color-text-primary)', lineHeight: 1.4 }}>{a.text}</p>
+                            <p style={{ fontSize: '11px', color: 'var(--color-text-muted)', marginTop: '4px' }}>{a.category} · 기간 내 {cnt}회 완료</p>
+                          </div>
+                        )
+                      })}
                     </div>
                   )}
                 </>
               )
             })()}
-          </div>
+          </>
         )}
       </div>
     </Panel>
@@ -669,70 +736,59 @@ function SearchPanel() {
 
 // ─── 백업 패널 ────────────────────────────────────────────────────────────────
 function BackupPanel() {
-  const affirmations = getAffirmations()
-  const categories = getCategories()
-  const calendar = getCalendar()
-  const streak = getStreakData()
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const handleBackup = () => {
     downloadJSON({
       version: '1.0',
       app: '모님',
       exportedAt: new Date().toISOString(),
-      affirmations,
-      categories,
-      calendar,
-      streak,
+      affirmations: getAffirmations(),
+      categories: getCategories(),
+      calendar: getCalendar(),
+      streak: getStreakData(),
     }, `mornim-backup-${todayStr()}.json`)
   }
 
-  const handleExportText = () => {
-    const lines = [
-      '=== 모님 데이터 백업 ===',
-      `생성: ${new Date().toLocaleString('ko-KR')}`,
-      '',
-      `▸ 성공의 말 (${affirmations.length}개)`,
-      ...affirmations.map((a, i) => [
-        `${i + 1}. "${a.text}"`,
-        `   카테고리: ${a.category}`,
-        `   생성: ${a.createdAt}`,
-        `   완료: ${a.completedDates.length}회 (${a.completedDates.join(', ') || '없음'})`,
-      ].join('\n')),
-      '',
-      `▸ 카테고리 (${categories.length}개)`,
-      categories.join(', '),
-      '',
-      `▸ 달력 기록 (${calendar.filter(c => c.completedCount > 0).length}일)`,
-      ...calendar.filter(c => c.completedCount > 0).map((c) => `${c.date}: ${c.completedCount}회`),
-    ]
-    downloadText(lines.join('\n'), `mornim-backup-${todayStr()}.txt`)
+  const handleRestoreFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = (ev) => {
+      try {
+        const data = JSON.parse(ev.target?.result as string)
+        if (!data.affirmations) { alert('올바른 백업 파일이 아니에요.'); return }
+        const dateStr = data.exportedAt ? new Date(data.exportedAt).toLocaleString('ko-KR') : '알 수 없음'
+        if (!confirm(`${dateStr} 백업을 복구할까요?\n현재 데이터가 덮어씌워집니다.`)) return
+        if (typeof window === 'undefined') return
+        localStorage.setItem('mornim-affirmations', JSON.stringify(data.affirmations ?? []))
+        localStorage.setItem('mornim-categories', JSON.stringify(data.categories ?? []))
+        localStorage.setItem('mornim-calendar', JSON.stringify(data.calendar ?? []))
+        localStorage.setItem('mornim-streak', JSON.stringify(data.streak ?? { currentStreak: 0, lastCompletedDate: null, shields: 0 }))
+        alert('복구 완료! 앱을 다시 시작해요.')
+        window.location.reload()
+      } catch { alert('파일을 읽을 수 없어요.') }
+    }
+    reader.readAsText(file)
+    e.target.value = ''
   }
 
   return (
     <Panel>
       <p style={{ fontSize: '15px', fontWeight: 600, color: 'var(--color-text-primary)', marginBottom: '8px' }}>백업</p>
-      <p style={{ fontSize: '12px', color: 'var(--color-text-muted)', marginBottom: '16px' }}>
-        모든 데이터를 파일로 저장해요
+      <p style={{ fontSize: '12px', color: 'var(--color-text-muted)', marginBottom: '20px' }}>
+        성공의 말, 카테고리, 달력 기록을 JSON 파일로 저장하고 복구해요
       </p>
-
-      {/* Summary */}
-      <div style={{ padding: '14px', background: 'var(--color-bg-primary)', borderRadius: '12px', marginBottom: '16px' }}>
-        <p style={{ fontSize: '13px', color: 'var(--color-text-primary)', marginBottom: '8px', fontWeight: 500 }}>포함 데이터</p>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-          <p style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>✦ 성공의 말 {affirmations.length}개 (완료 기록 포함)</p>
-          <p style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>✦ 카테고리 {categories.length}개</p>
-          <p style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>✦ 달력 기록 {calendar.filter(c => c.completedCount > 0).length}일</p>
-          <p style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>✦ 연속 기록 · 스트릭 데이터</p>
-        </div>
-      </div>
-
-      <div style={{ display: 'flex', gap: '8px' }}>
-        <button onClick={handleBackup} style={{ flex: 1, padding: '13px', background: 'var(--color-accent-primary)', color: 'white', border: 'none', borderRadius: '12px', fontSize: '14px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
-          <Download size={14} />JSON 백업
+      <div style={{ display: 'flex', gap: '10px' }}>
+        <button onClick={handleBackup}
+          style={{ flex: 1, padding: '14px', background: 'var(--color-accent-primary)', color: 'white', border: 'none', borderRadius: '14px', fontSize: '15px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+          <Download size={16} />백업
         </button>
-        <button onClick={handleExportText} style={{ flex: 1, padding: '13px', background: 'transparent', border: '1px solid var(--color-border)', borderRadius: '12px', fontSize: '14px', color: 'var(--color-text-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
-          <Download size={14} />텍스트 백업
+        <button onClick={() => fileInputRef.current?.click()}
+          style={{ flex: 1, padding: '14px', background: 'transparent', border: '1.5px solid var(--color-accent-primary)', borderRadius: '14px', fontSize: '15px', fontWeight: 600, color: 'var(--color-accent-primary)', cursor: 'pointer' }}>
+          복구
         </button>
+        <input ref={fileInputRef} type="file" accept=".json" onChange={handleRestoreFile} style={{ display: 'none' }} />
       </div>
     </Panel>
   )
@@ -740,21 +796,17 @@ function BackupPanel() {
 
 // ─── 지우기 패널 ──────────────────────────────────────────────────────────────
 function DeletePanel() {
-  const [dateToDelete, setDateToDelete] = useState('')
+  const [dateFrom, setDateFrom] = useState('')
+  const [dateTo, setDateTo] = useState('')
   const [msg, setMsg] = useState('')
 
-  const showMsg = (text: string) => {
-    setMsg(text)
-    setTimeout(() => setMsg(''), 3000)
-  }
+  const showMsg = (text: string) => { setMsg(text); setTimeout(() => setMsg(''), 3000) }
 
   const handleDeleteAll = async () => {
-    if (!confirm('모든 성공의 말과 녹음을 삭제할까요?\n이 작업은 되돌릴 수 없습니다.')) return
-    const affs = getAffirmations()
-    for (const a of affs) {
+    if (!confirm('모든 성공의 말과 녹음을 삭제할까요?')) return
+    for (const a of getAffirmations()) {
       try { await deleteAudioRecordsByAffirmationId(a.id) } catch { /* ignore */ }
     }
-    // Clear affirmations from storage
     if (typeof window !== 'undefined') {
       localStorage.removeItem('mornim-affirmations')
       localStorage.removeItem('mornim-today-affirmations')
@@ -768,22 +820,28 @@ function DeletePanel() {
     showMsg('모든 녹음이 삭제됐어요.')
   }
 
-  const handleDeleteDate = () => {
-    if (!dateToDelete) return
+  const handleDeleteDateRange = () => {
+    if (!dateFrom) return
+    const endStr = dateTo || dateFrom
     const affs = getAffirmations()
-    const completedOnDate = affs.filter((a) => a.completedDates.includes(dateToDelete))
-    if (completedOnDate.length === 0) {
-      showMsg('해당 날짜에 기록이 없어요.')
-      return
+    const dates: string[] = []
+    const d = new Date(dateFrom)
+    const end = new Date(endStr)
+    while (d <= end) {
+      dates.push(d.toISOString().split('T')[0])
+      d.setDate(d.getDate() + 1)
     }
-    if (!confirm(`${dateToDelete} 날의 기록(${completedOnDate.length}개)을 삭제할까요?`)) return
-    deleteDayRecord(dateToDelete)
-    setDateToDelete('')
-    showMsg(`${dateToDelete} 기록이 삭제됐어요.`)
+    const totalRecords = affs.reduce((sum, a) => sum + a.completedDates.filter((c) => dates.includes(c)).length, 0)
+    if (totalRecords === 0) { showMsg('해당 기간에 기록이 없어요.'); return }
+    const label = dateFrom === endStr ? dateFrom : `${dateFrom} ~ ${endStr}`
+    if (!confirm(`${label} 기간의 기록 ${totalRecords}개를 삭제할까요?`)) return
+    dates.forEach((date) => deleteDayRecord(date))
+    setDateFrom(''); setDateTo('')
+    showMsg(`${label} 기록이 삭제됐어요.`)
   }
 
   const handleReset = async () => {
-    if (!confirm('모든 데이터를 초기화할까요?\n성공의 말, 녹음, 달력, 설정이 모두 삭제됩니다.\n이 작업은 되돌릴 수 없습니다.')) return
+    if (!confirm('모든 데이터를 초기화할까요?\n이 작업은 되돌릴 수 없습니다.')) return
     clearAllData()
     await Promise.all([clearAllAudioRecords(), clearFaceStorage(), clearSuccessImages()])
     window.location.href = '/'
@@ -805,39 +863,32 @@ function DeletePanel() {
       )}
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-        {/* 날짜 선택 지우기 */}
+        {/* 날짜 범위 지우기 */}
         <div style={{ padding: '14px', background: 'var(--color-bg-primary)', borderRadius: '12px', border: '1px solid var(--color-border)' }}>
-          <p style={{ fontSize: '13px', fontWeight: 500, color: 'var(--color-text-primary)', marginBottom: '4px' }}>날짜 선택 지우기</p>
-          <p style={{ fontSize: '11px', color: 'var(--color-text-muted)', marginBottom: '10px' }}>선택한 날짜의 완료 기록을 삭제해요</p>
-          <div style={{ display: 'flex', gap: '8px' }}>
-            <input
-              type="date"
-              value={dateToDelete}
-              onChange={(e) => setDateToDelete(e.target.value)}
-              style={{ flex: 1, padding: '9px 12px', border: '1px solid var(--color-border)', borderRadius: '10px', fontSize: '13px', background: 'white', color: 'var(--color-text-primary)', outline: 'none' }}
-            />
-            <button onClick={handleDeleteDate} disabled={!dateToDelete} style={{ padding: '9px 16px', background: dateToDelete ? '#FF7043' : 'var(--color-border)', color: 'white', border: 'none', borderRadius: '10px', fontSize: '13px', cursor: dateToDelete ? 'pointer' : 'not-allowed', fontWeight: 500 }}>
-              삭제
-            </button>
+          <p style={{ fontSize: '13px', fontWeight: 500, color: 'var(--color-text-primary)', marginBottom: '10px' }}>날짜 선택 지우기</p>
+          <div style={{ display: 'flex', gap: '6px', alignItems: 'center', marginBottom: '8px', flexWrap: 'wrap' }}>
+            <input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)}
+              style={{ flex: 1, minWidth: '110px', padding: '8px 10px', border: '1px solid var(--color-border)', borderRadius: '8px', fontSize: '13px', background: 'white', color: 'var(--color-text-primary)', outline: 'none' }} />
+            <span style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>~</span>
+            <input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)}
+              style={{ flex: 1, minWidth: '110px', padding: '8px 10px', border: '1px solid var(--color-border)', borderRadius: '8px', fontSize: '13px', background: 'white', color: 'var(--color-text-primary)', outline: 'none' }} />
           </div>
+          <button onClick={handleDeleteDateRange} disabled={!dateFrom}
+            style={{ width: '100%', padding: '9px', background: dateFrom ? '#FF7043' : 'var(--color-border)', color: 'white', border: 'none', borderRadius: '8px', fontSize: '13px', cursor: dateFrom ? 'pointer' : 'not-allowed', fontWeight: 500 }}>
+            삭제
+          </button>
         </div>
 
-        {/* 오디오 지우기 */}
         <button onClick={handleDeleteAudio} style={btnStyle('var(--color-text-primary)', 'var(--color-bg-primary)', '1px solid var(--color-border)')}>
-          <span style={{ display: 'block', fontWeight: 500, marginBottom: '2px' }}>🎙 오디오 지우기</span>
-          <span style={{ fontSize: '11px', color: 'var(--color-text-muted)', fontWeight: 400 }}>저장된 모든 녹음 파일 삭제</span>
+          🎙 모든 녹음 파일 삭제
         </button>
 
-        {/* 성공의 말 지우기 */}
         <button onClick={handleDeleteAll} style={btnStyle('#E65100', '#FFF3E0', '1px solid #FFCCBC')}>
-          <span style={{ display: 'block', fontWeight: 500, marginBottom: '2px' }}>✦ 성공의 말 전체 지우기</span>
-          <span style={{ fontSize: '11px', fontWeight: 400 }}>모든 성공의 말과 녹음 삭제 (되돌릴 수 없음)</span>
+          ✦ 성공의 말 전체 지우기
         </button>
 
-        {/* 초기화 */}
         <button onClick={handleReset} style={btnStyle('#C62828', 'transparent', '1px solid #E53935')}>
-          <span style={{ display: 'block', fontWeight: 600, marginBottom: '2px' }}>⚠ 전체 초기화</span>
-          <span style={{ fontSize: '11px', fontWeight: 400 }}>모든 데이터, 설정, 기록 초기화</span>
+          <span style={{ fontWeight: 600 }}>⚠ 전체 초기화</span>
         </button>
       </div>
     </Panel>
