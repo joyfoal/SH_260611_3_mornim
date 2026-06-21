@@ -776,7 +776,7 @@ function BackupPanel() {
   return (
     <Panel>
       <p style={{ fontSize: '15px', fontWeight: 600, color: 'var(--color-text-primary)', marginBottom: '8px' }}>백업</p>
-      <p style={{ fontSize: '12px', color: 'var(--color-text-muted)', marginBottom: '20px' }}>
+      <p style={{ fontSize: '12px', color: 'var(--color-text-muted)', marginBottom: '2px' }}>
         성공의 말, 카테고리, 달력 기록을 JSON 파일로 저장하고 복구해요
       </p>
       <p style={{ fontSize: '12px', color: 'var(--color-text-muted)', marginBottom: '20px' }}>
