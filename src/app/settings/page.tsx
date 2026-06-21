@@ -1374,60 +1374,81 @@ const BUTTONS: { id: string; icon: LucideIcon; label: string; danger?: boolean }
   { id: 'manual',   icon: BookOpen,   label: '설명서' },
 ]
 
+function renderPanel(id: string) {
+  switch (id) {
+    case 'theme':    return <ThemePanel />
+    case 'toggle':   return <TogglePanel />
+    case 'alarm':    return <AlarmPanel />
+    case 'stats':    return <StatsPanel />
+    case 'search':   return <SearchPanel />
+    case 'backup':   return <BackupPanel />
+    case 'delete':   return <DeletePanel />
+    case 'trash':    return <TrashPanel />
+    case 'category': return <CategoryPanel />
+    case 'manual':   return <ManualPanel />
+    default:         return null
+  }
+}
+
 export default function SettingsPage() {
   const [active, setActive] = useState<string | null>(null)
   const toggle = (id: string) => setActive((prev) => prev === id ? null : id)
+
+  const chipBg = 'color-mix(in srgb, var(--color-accent-light) 28%, var(--color-bg-card))'
+  const rows: typeof BUTTONS[] = []
+  for (let i = 0; i < BUTTONS.length; i += 2) rows.push(BUTTONS.slice(i, i + 2))
 
   return (
     <AppLayout activeTab="설정">
       <div style={{ padding: '20px 16px' }}>
         <h1 style={{ fontSize: '20px', fontWeight: 700, color: 'var(--color-text-primary)', marginBottom: '20px' }}>설정</h1>
 
-        {/* Button grid */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px', marginBottom: '24px' }}>
-          {BUTTONS.map((btn) => {
-            const isActive = active === btn.id
-            const chipBg = 'color-mix(in srgb, var(--color-accent-light) 28%, var(--color-bg-card))'
-            const iconColor = 'var(--color-accent-primary)'
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          {rows.map((row, rowIdx) => {
+            const rowActive = row.find((btn) => btn.id === active)
             return (
-              <button
-                key={btn.id}
-                onClick={() => toggle(btn.id)}
-                style={{
-                  padding: '18px 16px',
-                  background: 'var(--color-bg-card)',
-                  border: isActive ? '1.5px solid var(--color-accent-primary)' : '1.5px solid transparent',
-                  borderRadius: '20px',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '14px',
-                  textAlign: 'left',
-                  transition: 'border-color 0.15s',
-                }}
-              >
-                <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: chipBg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  <btn.icon size={19} strokeWidth={1.9} color={iconColor} />
+              <div key={rowIdx}>
+                {/* 버튼 행 */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px' }}>
+                  {row.map((btn) => {
+                    const isActive = active === btn.id
+                    return (
+                      <button
+                        key={btn.id}
+                        onClick={() => toggle(btn.id)}
+                        style={{
+                          padding: '18px 16px',
+                          background: 'var(--color-bg-card)',
+                          border: isActive ? '1.5px solid var(--color-accent-primary)' : '1.5px solid transparent',
+                          borderRadius: rowActive ? (isActive ? '20px 20px 8px 8px' : '20px') : '20px',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '14px',
+                          textAlign: 'left',
+                          transition: 'border-color 0.15s, border-radius 0.15s',
+                        }}
+                      >
+                        <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: chipBg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                          <btn.icon size={19} strokeWidth={1.9} color="var(--color-accent-primary)" />
+                        </div>
+                        <span style={{ fontSize: '15px', fontWeight: 600, color: 'var(--color-text-primary)' }}>
+                          {btn.label}
+                        </span>
+                      </button>
+                    )
+                  })}
                 </div>
-                <span style={{ fontSize: '15px', fontWeight: 600, color: 'var(--color-text-primary)' }}>
-                  {btn.label}
-                </span>
-              </button>
+                {/* 해당 행의 패널 */}
+                {rowActive && (
+                  <div style={{ marginTop: '2px' }}>
+                    {renderPanel(rowActive.id)}
+                  </div>
+                )}
+              </div>
             )
           })}
         </div>
-
-        {/* Active panel */}
-        {active === 'theme' && <ThemePanel />}
-        {active === 'toggle' && <TogglePanel />}
-        {active === 'alarm' && <AlarmPanel />}
-        {active === 'stats' && <StatsPanel />}
-        {active === 'search' && <SearchPanel />}
-        {active === 'backup' && <BackupPanel />}
-        {active === 'delete' && <DeletePanel />}
-        {active === 'trash' && <TrashPanel />}
-        {active === 'category' && <CategoryPanel />}
-        {active === 'manual' && <ManualPanel />}
       </div>
     </AppLayout>
   )
