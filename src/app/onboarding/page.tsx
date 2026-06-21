@@ -115,11 +115,17 @@ function MicIcon({ size = 32 }: { size?: number }) {
   )
 }
 
-const ENCOURAGEMENTS = [
-  '당신은 정말 해낼 수 있어요!',
-  '시작이 반이에요! 오늘도 멋지게!',
-  '이 한 문장이 당신의 하루를 바꿀 거예요!',
+const ALL_ENCOURAGEMENTS = [
+  '당신의 말에는 힘이 있어요.',
+  '당신이 말하는 대로 이루어져요.',
   '용기 있어요! 계속 나아가요!',
+  '당신은 정말 해낼 수 있어요!',
+  '성공의 말이 당신의 삶을 바꿀 거예요!',
+]
+
+const MANUAL_ENCOURAGEMENTS = [
+  '용기 있어요! 계속 나아가요!',
+  '당신은 정말 해낼 수 있어요!',
 ]
 
 /* ── Main component ──────────────────────────────────────────── */
@@ -146,7 +152,7 @@ export default function OnboardingPage() {
   const recRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const [recAffirmations, setRecAffirmations] = useState<string[]>([])
-  const [encouragement] = useState(() => ENCOURAGEMENTS[Math.floor(Math.random() * ENCOURAGEMENTS.length)])
+  const [encouragement, setEncouragement] = useState('')
 
   // Screen 2: camera + STT + recording refs
   const onbVideoRef = useRef<HTMLVideoElement>(null)
@@ -295,6 +301,8 @@ export default function OnboardingPage() {
     }
 
     setTranscript(onbPhraseRef.current)
+    const pool = onbAutoCompleteRef.current ? ALL_ENCOURAGEMENTS : MANUAL_ENCOURAGEMENTS
+    setEncouragement(pool[Math.floor(Math.random() * pool.length)])
     setRec('done')
     import('canvas-confetti').then(({ default: confetti }) => {
       confetti({ particleCount: 80, spread: 60, origin: { y: 0.5 }, colors: ['#bd821f', '#e8c878', '#f3e6c8', '#ffffff'] })
