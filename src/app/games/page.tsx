@@ -47,7 +47,7 @@ export default function GamesPage() {
                 cursor: 'pointer',
               }}
             >
-              플레이
+              시작하기
             </button>
           </div>
 
@@ -81,7 +81,7 @@ export default function GamesPage() {
                 cursor: 'pointer',
               }}
             >
-              플레이
+              시작하기
             </button>
           </div>
         </div>
