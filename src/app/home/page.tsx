@@ -435,6 +435,7 @@ export default function HomePage() {
   const [hasAffirmations, setHasAffirmations] = useState(true)
   const [streakData, setStreakData] = useState<StreakData>({ currentStreak: 0, lastCompletedDate: null, shields: 0 })
   const [todayCount, setTodayCount] = useState(0)
+  const [totalCount, setTotalCount] = useState(0)
   const [tomorrowNote, setTomorrowNote] = useState<string | null>(null)
   const [tomorrowEnabled, setTomorrowEnabled] = useState(false)
   const [naegeSavedToday, setNaegeSavedToday] = useState(false)
@@ -507,6 +508,7 @@ export default function HomePage() {
     setRepeatDone(getTodayRepeatDone())
     setStreakData(getStreakData())
     setTodayCount(getDayRecord(todayStr())?.completedCount ?? 0)
+    setTotalCount(affirmations.reduce((s, a) => s + a.completedDates.length, 0))
     const dayNote = getDayNote(today)
     if (dayNote) setTomorrowNote(dayNote)
     setTomorrowEnabled(isTomorrowEnabled())
@@ -692,38 +694,37 @@ export default function HomePage() {
           </div>
         ) : null}
 
-        {/* Streak */}
-        {streakData.currentStreak > 0 && (
-          <div
-            style={{
-              margin: '0 16px 16px',
-              padding: '12px 16px',
-              background: 'var(--color-bg-card)',
-              borderRadius: '16px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '12px',
-            }}
-          >
-            <span style={{ fontSize: '24px' }}>🔥</span>
-            <div style={{ flex: 1 }}>
-              <div style={{ fontSize: '16px', fontWeight: 600, color: 'var(--color-text-primary)' }}>
-                {streakData.currentStreak}일 연속
-              </div>
-              {streakData.shields > 0 && (
-                <div style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>
-                  🛡 스트릭 보호막 {streakData.shields}개
+        {/* Stats */}
+        <div style={{ margin: '0 16px 16px', padding: '12px 16px', background: 'var(--color-bg-card)', borderRadius: '16px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+          {streakData.currentStreak > 0 ? (
+            <>
+              <span style={{ fontSize: '24px' }}>🔥</span>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: '16px', fontWeight: 600, color: 'var(--color-text-primary)' }}>
+                  {streakData.currentStreak}일 연속
                 </div>
-              )}
-            </div>
-            <div style={{ textAlign: 'right' }}>
-              <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--color-accent-primary)' }}>
-                성공의 말 {todayCount}개
+                {streakData.shields > 0 && (
+                  <div style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>
+                    🛡 스트릭 보호막 {streakData.shields}개
+                  </div>
+                )}
               </div>
+            </>
+          ) : (
+            <div style={{ flex: 1 }} />
+          )}
+          <div style={{ display: 'flex', gap: '16px' }}>
+            <div style={{ textAlign: 'center' }}>
+              <div style={{ fontSize: '16px', fontWeight: 700, color: 'var(--color-accent-primary)' }}>{todayCount}</div>
               <div style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>오늘 완료</div>
             </div>
+            <div style={{ width: '1px', background: 'var(--color-border)' }} />
+            <div style={{ textAlign: 'center' }}>
+              <div style={{ fontSize: '16px', fontWeight: 700, color: 'var(--color-text-primary)' }}>{totalCount}</div>
+              <div style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>누적</div>
+            </div>
           </div>
-        )}
+        </div>
 
         {/* Calendar */}
         {displaySettings.showCalendar && <CalendarView />}
