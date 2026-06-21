@@ -261,7 +261,7 @@ function CustomSelect({ value, onChange, options, width }: {
 
 function AlarmPanel() {
   const [alarmList, setAlarmList] = useState<AlarmEntry[]>([])
-  const [editingId, setEditingId] = useState<string | null>(null) // null=닫힘, 'new'=새 알람, id=편집
+  const [editingId, setEditingId] = useState<string | null>(null) // null=닫힘, 'new'=새 알림, id=편집
   const [affirmations, setAffirmations] = useState<Affirmation[]>([])
   const [categories, setCategories] = useState<string[]>([])
   const [audioMap, setAudioMap] = useState<Record<string, AudioRecord>>({})
@@ -393,10 +393,10 @@ function AlarmPanel() {
         )}
       </div>
 
-      {/* 설정된 알람 카드 목록 */}
+      {/* 설정된 알림 카드 목록 */}
       {alarmList.length === 0 && editingId === null && (
         <div style={{ padding: '20px', textAlign: 'center', color: 'var(--color-text-muted)', fontSize: '13px', background: 'var(--color-bg-primary)', borderRadius: '14px', marginBottom: '12px' }}>
-          설정된 알람이 없어요
+          설정된 알림이 없어요
         </div>
       )}
       {alarmList.length > 0 && (
@@ -427,18 +427,18 @@ function AlarmPanel() {
         </div>
       )}
 
-      {/* 알람 추가 버튼 */}
+      {/* 알림 추가 버튼 */}
       {editingId === null && (
         <button onClick={openNew} style={{ width: '100%', padding: '13px', border: '1.5px dashed var(--color-border)', borderRadius: '14px', background: 'transparent', color: 'var(--color-text-muted)', fontSize: '14px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', marginBottom: '4px' }}>
-          <Plus size={16} /> 알람 추가
+          <Plus size={16} /> 알림 추가
         </button>
       )}
 
-      {/* 알람 설정 폼 */}
+      {/* 알림 설정 폼 */}
       {editingId !== null && (
         <div style={{ background: 'var(--color-bg-primary)', borderRadius: '16px', padding: '16px', border: '1px solid var(--color-border)', marginTop: '4px' }}>
           <p style={{ fontSize: '13px', fontWeight: 600, color: 'var(--color-accent-primary)', marginBottom: '16px' }}>
-            {editingId === 'new' ? '새 알람 추가' : '알람 편집'}
+            {editingId === 'new' ? '새 알림 추가' : '알림 편집'}
           </p>
 
           {/* 알림 시간 */}
