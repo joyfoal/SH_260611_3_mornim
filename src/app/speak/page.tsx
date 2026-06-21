@@ -376,12 +376,14 @@ function SpeakPageInner() {
     }
     reRecordBlobRef.current = null
     setReRecordState('idle')
-  }, [affirmation])
+    handleComplete()
+  }, [affirmation, handleComplete])
 
   const discardReRecord = useCallback(() => {
     reRecordBlobRef.current = null
     setReRecordState('idle')
-  }, [])
+    handleComplete()
+  }, [handleComplete])
 
   // ── 큐 전환 헬퍼 ───────────────────────────────────────────────────
   const startQueue = useCallback((ids: string[], phase: SpeakPhase) => {
