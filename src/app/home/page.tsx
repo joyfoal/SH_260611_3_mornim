@@ -488,6 +488,8 @@ export default function HomePage() {
     if (typeof window !== 'undefined') {
       sessionStorage.setItem('mornim-speak-queue', JSON.stringify(ids))
       sessionStorage.setItem('mornim-speak-index', String(startIndex))
+      sessionStorage.setItem('mornim-speak-phase', 'initial')
+      sessionStorage.removeItem('mornim-repeat-remaining')
     }
     router.push(`/speak?id=${todayAffirmation.id}`)
   }
