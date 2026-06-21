@@ -3,10 +3,11 @@
 import { useEffect, useState } from 'react'
 
 export type CelebrationVariant =
-  | 'progress'      // 큐 중간 — 자동 다음으로
-  | 'batch_done'    // 배치(초기/추가) 완료 — 더 말하기 / 여기까지
-  | 'all_done'      // 오늘 성공의 말 전부 완료 — 추가하기 / 반복하기
-  | 'repeat_done'   // 반복 1사이클 완료 — 축하 + 여기까지만
+  | 'progress'           // 큐 중간 — 자동 다음으로
+  | 'batch_done'         // 배치(초기/추가) 완료 — 더 말하기 / 여기까지
+  | 'all_done'           // 오늘 성공의 말 전부 완료 — 추가하기 / 반복하기
+  | 'repeat_batch_done'  // 반복 중 한 배치 완료 — 계속 반복하기 / 여기까지
+  | 'repeat_done'        // 모든 성공의 말 반복 완료 — 축하 + 여기까지만
 
 const PHRASES = [
   '잘했어요! ✨', '멋져요! 🌟', '오늘도 해냈어요! 💪', '최고예요! 🏆', '정말 잘하고 있어요! 🌺',
@@ -37,6 +38,7 @@ interface CelebrationScreenProps {
   onMore?: () => void             // 오늘 더 말하고 싶어요
   onAddAffirmation?: () => void   // 성공의 말 추가하기
   onRepeat?: () => void           // 반복하기
+  onRepeatMore?: () => void       // 반복 계속하기
 }
 
 export function CelebrationScreen({
@@ -47,6 +49,7 @@ export function CelebrationScreen({
   onMore,
   onAddAffirmation,
   onRepeat,
+  onRepeatMore,
 }: CelebrationScreenProps) {
   const [phrase] = useState(() => PHRASES[Math.floor(Math.random() * PHRASES.length)])
   const [visible, setVisible] = useState(false)
@@ -86,7 +89,8 @@ export function CelebrationScreen({
 
   const mainMessage =
     variant === 'all_done' ? '오늘 나의 성공의 말을\n다하셨어요!' :
-    variant === 'repeat_done' ? '반복까지 완료하셨어요!\n정말 대단해요! 💪' :
+    variant === 'repeat_done' ? '모든 성공의 말을\n반복했어요! 🎉' :
+    variant === 'repeat_batch_done' ? '잘 하고 있어요!\n계속 반복할까요?' :
     phrase
 
   return (
@@ -249,7 +253,51 @@ export function CelebrationScreen({
           </div>
         )}
 
-        {/* repeat_done: 반복 완료 축하 + 여기까지만 */}
+        {/* repeat_batch_done: 한 배치 완료 — 계속 반복하기 / 여기까지 */}
+        {variant === 'repeat_batch_done' && (
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '12px',
+              width: '100%',
+              opacity: visible ? 1 : 0,
+              transition: 'opacity 0.4s ease 0.5s',
+            }}
+          >
+            <button
+              onClick={onRepeatMore}
+              style={{
+                padding: '16px',
+                background: 'var(--color-accent-primary)',
+                border: 'none',
+                borderRadius: '16px',
+                color: 'white',
+                fontSize: '16px',
+                fontWeight: 600,
+                cursor: 'pointer',
+              }}
+            >
+              계속 반복하기 💪
+            </button>
+            <button
+              onClick={onNext}
+              style={{
+                padding: '14px',
+                background: 'transparent',
+                border: '1px solid rgba(255,255,255,0.2)',
+                borderRadius: '16px',
+                color: 'var(--color-text-muted)',
+                fontSize: '15px',
+                cursor: 'pointer',
+              }}
+            >
+              오늘은 여기까지
+            </button>
+          </div>
+        )}
+
+        {/* repeat_done: 모든 성공의 말 반복 완료 */}
         {variant === 'repeat_done' && (
           <div
             style={{
@@ -270,7 +318,7 @@ export function CelebrationScreen({
                 lineHeight: 1.6,
               }}
             >
-              카메라 말하기는 내일 다시 만나요 👋
+              정말 대단해요! 내일도 함께해요 👋
             </div>
             <button
               onClick={onNext}

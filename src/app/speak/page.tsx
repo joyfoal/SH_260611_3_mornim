@@ -291,8 +291,14 @@ function SpeakPageInner() {
     } else {
       const phase = speakPhaseRef.current
       if (phase === 'repeat') {
-        setTodayRepeatDone()
-        setCelebrationVariant('repeat_done')
+        const remaining: string[] = JSON.parse(sessionStorage.getItem('mornim-repeat-remaining') ?? '[]')
+        if (remaining.length > 0) {
+          setCelebrationVariant('repeat_batch_done')
+        } else {
+          sessionStorage.removeItem('mornim-repeat-remaining')
+          setTodayRepeatDone()
+          setCelebrationVariant('repeat_done')
+        }
       } else {
         setCelebrationVariant('batch_done')
       }
@@ -439,8 +445,25 @@ function SpeakPageInner() {
     const all = getAffirmations()
     if (all.length === 0) return
     const shuffled = [...all].sort(() => Math.random() - 0.5)
-    const ids = shuffled.slice(0, Math.min(3, shuffled.length)).map((a) => a.id)
-    startQueue(ids, 'repeat')
+    const first3 = shuffled.slice(0, 3)
+    const rest = shuffled.slice(3)
+    sessionStorage.setItem('mornim-repeat-remaining', JSON.stringify(rest.map((a) => a.id)))
+    startQueue(first3.map((a) => a.id), 'repeat')
+  }, [startQueue])
+
+  // ── 반복 계속하기 ─────────────────────────────────────────────────
+  const handleRepeatMore = useCallback(() => {
+    const remaining: string[] = JSON.parse(sessionStorage.getItem('mornim-repeat-remaining') ?? '[]')
+    if (remaining.length === 0) {
+      sessionStorage.removeItem('mornim-repeat-remaining')
+      setTodayRepeatDone()
+      setCelebrationVariant('repeat_done')
+      return
+    }
+    const next3 = remaining.slice(0, 3)
+    const rest = remaining.slice(3)
+    sessionStorage.setItem('mornim-repeat-remaining', JSON.stringify(rest))
+    startQueue(next3, 'repeat')
   }, [startQueue])
 
   // ── 성공의 말 추가하기 ────────────────────────────────────────────
@@ -482,6 +505,7 @@ function SpeakPageInner() {
         onMore={handleWantMore}
         onAddAffirmation={handleAddAffirmation}
         onRepeat={handleRepeat}
+        onRepeatMore={handleRepeatMore}
       />
     )
   }

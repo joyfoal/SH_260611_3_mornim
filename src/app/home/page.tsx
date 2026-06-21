@@ -484,9 +484,10 @@ export default function HomePage() {
   const handlePlay = () => {
     if (!todayAffirmation) return
     const ids = getTodayAffirmationIds()
+    const startIndex = Math.max(0, ids.indexOf(todayAffirmation.id))
     if (typeof window !== 'undefined') {
       sessionStorage.setItem('mornim-speak-queue', JSON.stringify(ids))
-      sessionStorage.setItem('mornim-speak-index', '0')
+      sessionStorage.setItem('mornim-speak-index', String(startIndex))
     }
     router.push(`/speak?id=${todayAffirmation.id}`)
   }

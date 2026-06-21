@@ -240,7 +240,7 @@ export default function AffirmationsPage() {
                             {affirmation.text}
                           </p>
                           <span style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>
-                            완료 {affirmation.completedDates.length}회
+                            {affirmation.completedDates.length}일 완료
                           </span>
                         </div>
                         <button
