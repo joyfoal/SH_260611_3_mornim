@@ -145,7 +145,7 @@ export default function WordSortPage() {
       {gameState === 'idle' && (
         <div className="flex flex-col items-center justify-center flex-1 gap-6">
           <p style={{ color: 'var(--color-text-muted)', fontSize: '14px', textAlign: 'center' }}>
-            뒤섞인 확언 단어를 올바른 순서로<br />드래그해서 맞춰보세요!
+            뒤섞인 성공의 말 단어를 올바른 순서로<br />드래그해서 맞춰보세요!
           </p>
           <button
             onClick={initGame}

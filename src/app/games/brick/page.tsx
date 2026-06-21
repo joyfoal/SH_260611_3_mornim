@@ -289,7 +289,7 @@ export default function BrickGamePage() {
       {gameState === 'idle' && (
         <div className="flex flex-col items-center justify-center flex-1 gap-6">
           <p style={{ color: 'var(--color-text-muted)', fontSize: '14px', textAlign: 'center' }}>
-            성공의 말 단어들이 벽돌로 숨어 있어요.<br />공을 튕겨 모두 깨면 성공의 말 완성!
+            성공의 말 단어들이 벽돌 뒤에 있어요.<br />공을 튕겨 모두 깨면 성공의 말 완성!
           </p>
           <button
             onClick={initGame}

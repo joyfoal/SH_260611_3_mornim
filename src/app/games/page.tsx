@@ -13,7 +13,7 @@ export default function GamesPage() {
           게임
         </h1>
         <p style={{ fontSize: '14px', color: 'var(--color-text-muted)', marginBottom: '24px' }}>
-          게임으로 확언을 익혀보세요
+          게임으로 성공의 말을 익혀보세요
         </p>
 
         <div className="flex flex-col gap-4">
@@ -31,7 +31,7 @@ export default function GamesPage() {
               벽돌 깨기
             </h2>
             <p style={{ fontSize: '13px', color: 'var(--color-text-muted)', marginBottom: '16px', lineHeight: 1.5 }}>
-              확언의 단어들이 벽돌이 되어요. 모두 깨면 확언을 완성!
+              성공의 말 단어들이 벽돌 뒤에 있어요. 모두 깨면 성공의 말 완성!
             </p>
             <button
               onClick={() => router.push('/games/brick')}
@@ -65,7 +65,7 @@ export default function GamesPage() {
               단어 정렬
             </h2>
             <p style={{ fontSize: '13px', color: 'var(--color-text-muted)', marginBottom: '16px', lineHeight: 1.5 }}>
-              뒤섞인 확언 단어를 올바른 순서로 맞춰보세요!
+              뒤섞인 성공의 말 단어를 올바른 순서로 맞춰보세요!
             </p>
             <button
               onClick={() => router.push('/games/word-sort')}
