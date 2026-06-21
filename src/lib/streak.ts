@@ -63,10 +63,11 @@ export function updateStreak(completedToday: boolean): void {
 
   saveStreakData(data)
 
-  // Shield for completing all days of a Sun-Sat week
+  // Shield for completing all 7 days of a Sun-Sat week (only check on Saturday)
   const weekKey = getWeekKey(new Date())
   const weeklyShields = getWeeklyShields()
-  if (!weeklyShields.includes(weekKey) && isCurrentWeekComplete()) {
+  const isSaturday = new Date().getDay() === 6
+  if (isSaturday && !weeklyShields.includes(weekKey) && isCurrentWeekComplete()) {
     data.shields++
     saveStreakData(data)
     weeklyShields.push(weekKey)
