@@ -537,7 +537,7 @@ export default function OnboardingPage() {
               <div style={{ fontSize: 30, fontWeight: 800, letterSpacing: '-0.6px', color: T.ink, lineHeight: 1.28, marginBottom: 10 }}>
                 어떤 성공을<br />이루고 싶으세요?
               </div>
-              <div style={{ fontSize: 16, fontWeight: 500, color: T.ink2, marginBottom: 20 }}>끌리는 걸 모두 눌러주세요.</div>
+              <div style={{ fontSize: 16, fontWeight: 500, color: T.ink2, marginBottom: 20 }}>끌리는 걸 3개 이상 눌러주세요.</div>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                 {CATEGORIES.map((cat) => {
                   const on = cats.includes(cat)
@@ -589,8 +589,8 @@ export default function OnboardingPage() {
           </div>
           <div style={{ padding: '12px 26px 48px' }}>
             <button
-              style={cats.length > 0 ? btnPrimary : btnDisabled}
-              disabled={!cats.length}
+              style={cats.length >= 3 ? btnPrimary : btnDisabled}
+              disabled={cats.length < 3}
               onClick={() => goTo(2)}
             >
               다음
