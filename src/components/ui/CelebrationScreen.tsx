@@ -160,7 +160,7 @@ export function CelebrationScreen({
               transition: 'opacity 0.4s ease 0.3s',
             }}
           >
-            오늘 {completedCount}회 완료
+            성공의 말 {completedCount}개 완료
           </div>
         )}
 
