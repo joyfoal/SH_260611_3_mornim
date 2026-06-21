@@ -354,90 +354,82 @@ export default function CreatePage() {
               </button>
             </div>
 
-            <p style={{ fontSize: '13px', color: 'var(--color-text-muted)', marginBottom: '10px' }}>
-              카테고리
-            </p>
-            <div className="grid grid-cols-2 gap-2 mb-3">
+            <div className="flex flex-wrap gap-2 mb-3">
               {categories.map((cat) => (
                 <button
                   key={cat}
-                  onClick={() => setDirectCategory(cat)}
+                  onClick={() => setDirectCategory(directCategory === cat ? null : cat)}
                   style={{
-                    padding: '10px',
-                    borderRadius: '10px',
+                    padding: '6px 12px',
+                    borderRadius: '20px',
                     border: directCategory === cat
-                      ? '2px solid var(--color-accent-primary)'
+                      ? '1px solid var(--color-accent-primary)'
                       : '1px solid var(--color-border)',
                     background: directCategory === cat
-                      ? 'var(--color-bg-card)'
+                      ? 'var(--color-accent-light)'
                       : 'transparent',
                     color: directCategory === cat
                       ? 'var(--color-accent-primary)'
                       : 'var(--color-text-muted)',
-                    fontSize: '13px',
+                    fontSize: '12px',
                     cursor: 'pointer',
                   }}
                 >
                   {cat}
                 </button>
               ))}
-            </div>
-
-            {addCatMode ? (
-              <div className="flex gap-2 mb-6">
-                <input
-                  autoFocus
-                  value={newCatName}
-                  onChange={(e) => setNewCatName(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && !e.nativeEvent.isComposing) handleAddCategory()
-                    if (e.key === 'Escape') { setAddCatMode(false); setNewCatName('') }
-                  }}
-                  placeholder="새 카테고리 이름"
+              {addCatMode ? (
+                <div className="flex gap-2 w-full mt-1">
+                  <input
+                    autoFocus
+                    value={newCatName}
+                    onChange={(e) => setNewCatName(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && !e.nativeEvent.isComposing) handleAddCategory()
+                      if (e.key === 'Escape') { setAddCatMode(false); setNewCatName('') }
+                    }}
+                    placeholder="새 카테고리 이름"
+                    style={{
+                      flex: 1,
+                      padding: '8px 12px',
+                      background: 'var(--color-bg-card)',
+                      border: '1px solid var(--color-border)',
+                      borderRadius: '10px',
+                      fontSize: '13px',
+                      color: 'var(--color-text-primary)',
+                      outline: 'none',
+                    }}
+                  />
+                  <button
+                    onClick={handleAddCategory}
+                    style={{ padding: '8px 14px', background: 'var(--color-accent-primary)', color: 'white', border: 'none', borderRadius: '10px', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}
+                  >
+                    추가
+                  </button>
+                  <button
+                    onClick={() => { setAddCatMode(false); setNewCatName('') }}
+                    style={{ padding: '8px 10px', background: 'transparent', border: '1px solid var(--color-border)', borderRadius: '10px', fontSize: '13px', color: 'var(--color-text-muted)', cursor: 'pointer' }}
+                  >
+                    ✕
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => setAddCatMode(true)}
                   style={{
-                    flex: 1,
-                    padding: '10px 12px',
-                    background: 'var(--color-bg-card)',
-                    border: '1px solid var(--color-border)',
-                    borderRadius: '10px',
-                    fontSize: '13px',
-                    color: 'var(--color-text-primary)',
-                    outline: 'none',
+                    padding: '6px 12px',
+                    borderRadius: '20px',
+                    border: '1.5px dashed var(--color-border)',
+                    background: 'transparent',
+                    color: 'var(--color-text-muted)',
+                    fontSize: '12px',
+                    cursor: 'pointer',
                   }}
-                />
-                <button
-                  onClick={handleAddCategory}
-                  style={{ padding: '10px 16px', background: 'var(--color-accent-primary)', color: 'white', border: 'none', borderRadius: '10px', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}
                 >
-                  추가
+                  + 추가
                 </button>
-                <button
-                  onClick={() => { setAddCatMode(false); setNewCatName('') }}
-                  style={{ padding: '10px 12px', background: 'transparent', border: '1px solid var(--color-border)', borderRadius: '10px', fontSize: '13px', color: 'var(--color-text-muted)', cursor: 'pointer' }}
-                >
-                  ✕
-                </button>
-              </div>
-            ) : (
-              <button
-                onClick={() => setAddCatMode(true)}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  padding: '8px 14px',
-                  background: 'transparent',
-                  border: '1.5px dashed var(--color-border)',
-                  borderRadius: '10px',
-                  color: 'var(--color-text-muted)',
-                  fontSize: '12px',
-                  cursor: 'pointer',
-                  marginBottom: '16px',
-                }}
-              >
-                + 카테고리 추가
-              </button>
-            )}
+              )}
+            </div>
 
             {negativeBanner && (
               <div
