@@ -113,6 +113,8 @@ function CategoryManager() {
   const [dragIdx, setDragIdx] = useState<number | null>(null)
   const [overIdx, setOverIdx] = useState<number | null>(null)
   const dragStartYRef = useRef(0)
+  const [addingCat, setAddingCat] = useState(false)
+  const [catAlternative, setCatAlternative] = useState<string | null>(null)
 
   useEffect(() => {
     setCategories(getCategories())
@@ -174,15 +176,35 @@ function CategoryManager() {
     setEditingIdx(null)
   }
 
-  const handleAdd = () => {
-    const name = newCatName.trim()
-    if (!name) return
-    if (categories.includes(name)) { alert('이미 있는 카테고리예요.'); return }
+  const doAddCategory = (name: string) => {
     const updated = [...categories, name]
     saveCategories(updated)
     setCategories(updated)
     setNewCatName('')
+    setCatAlternative(null)
     setAddMode(false)
+  }
+
+  const handleAdd = async () => {
+    const name = newCatName.trim()
+    if (!name) return
+    if (categories.includes(name)) { alert('이미 있는 카테고리예요.'); return }
+    setAddingCat(true)
+    try {
+      const res = await fetch('/api/detect-negative', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: name }),
+      })
+      const data = await res.json() as { isNegative: boolean; alternative: string | null }
+      if (data.isNegative && data.alternative) {
+        setCatAlternative(data.alternative)
+        setAddingCat(false)
+        return
+      }
+    } catch { /* 네트워크 오류 시 통과 */ }
+    setAddingCat(false)
+    doAddCategory(name)
   }
 
   const handleDeleteConfirm = (targetCategory: string | null) => {
@@ -293,24 +315,46 @@ function CategoryManager() {
       </div>}
 
       {open && (addMode ? (
-        <div style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>
-          <input
-            autoFocus
-            value={newCatName}
-            onChange={(e) => setNewCatName(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && !e.nativeEvent.isComposing) handleAdd()
-              if (e.key === 'Escape') { setAddMode(false); setNewCatName('') }
-            }}
-            placeholder="새 카테고리 이름"
-            style={{ flex: 1, padding: '10px 12px', background: 'white', border: '1px solid var(--color-border)', borderRadius: '10px', fontSize: '13px', color: 'var(--color-text-primary)', outline: 'none' }}
-          />
-          <button onClick={handleAdd} style={{ padding: '10px 16px', background: 'var(--color-accent-primary)', color: 'white', border: 'none', borderRadius: '10px', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}>
-            추가
-          </button>
-          <button onClick={() => { setAddMode(false); setNewCatName('') }} style={{ padding: '10px', background: 'transparent', border: '1px solid var(--color-border)', borderRadius: '10px', cursor: 'pointer', color: 'var(--color-text-muted)' }}>
-            <X size={14} />
-          </button>
+        <div style={{ marginTop: '10px' }}>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <input
+              autoFocus
+              value={newCatName}
+              onChange={(e) => { setNewCatName(e.target.value); setCatAlternative(null) }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.nativeEvent.isComposing) handleAdd()
+                if (e.key === 'Escape') { setAddMode(false); setNewCatName(''); setCatAlternative(null) }
+              }}
+              placeholder="새 카테고리 이름"
+              style={{ flex: 1, padding: '10px 12px', background: 'white', border: '1px solid var(--color-border)', borderRadius: '10px', fontSize: '13px', color: 'var(--color-text-primary)', outline: 'none' }}
+            />
+            <button onClick={handleAdd} disabled={addingCat} style={{ padding: '10px 16px', background: 'var(--color-accent-primary)', color: 'white', border: 'none', borderRadius: '10px', fontSize: '13px', fontWeight: 600, cursor: 'pointer', opacity: addingCat ? 0.6 : 1 }}>
+              {addingCat ? '확인 중...' : '추가'}
+            </button>
+            <button onClick={() => { setAddMode(false); setNewCatName(''); setCatAlternative(null) }} style={{ padding: '10px', background: 'transparent', border: '1px solid var(--color-border)', borderRadius: '10px', cursor: 'pointer', color: 'var(--color-text-muted)' }}>
+              <X size={14} />
+            </button>
+          </div>
+          {catAlternative && (
+            <div style={{ marginTop: '8px', padding: '12px', background: '#FFF3CD', borderRadius: '10px', border: '1px solid #FFE082' }}>
+              <p style={{ fontSize: '12px', color: '#795548', marginBottom: '6px' }}>부정적인 표현이 감지됐어요. 이렇게 바꿔볼까요?</p>
+              <p style={{ fontSize: '13px', fontWeight: 600, color: '#4E342E', marginBottom: '10px' }}>{catAlternative}</p>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => doAddCategory(catAlternative)}
+                  style={{ flex: 1, padding: '8px', background: 'var(--color-accent-primary)', color: 'white', border: 'none', borderRadius: '8px', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}
+                >
+                  이 이름으로 추가
+                </button>
+                <button
+                  onClick={() => { setNewCatName(''); setCatAlternative(null) }}
+                  style={{ flex: 1, padding: '8px', background: 'transparent', color: '#795548', border: '1px solid #FFE082', borderRadius: '8px', fontSize: '12px', cursor: 'pointer' }}
+                >
+                  다시 쓰기
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       ) : (
         <button
