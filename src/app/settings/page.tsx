@@ -22,7 +22,7 @@ import {
 } from '@/lib/audioStorage'
 import { clearFaceStorage, getFaceProfileFromTrash, restoreFaceProfileFromTrash, type FaceProfile } from '@/lib/faceStorage'
 import { clearSuccessImages, getSuccessImageFromTrash, restoreSuccessImageFromTrash, type SuccessImageRecord } from '@/lib/successImageStorage'
-import { Pencil, Trash2, Check, X, Plus, Bell, Download, GripVertical } from 'lucide-react'
+import { Pencil, Trash2, Check, X, Plus, Bell, Download, GripVertical, Palette, Power, BarChart3, Search, HardDrive, RotateCcw, Folder, BookOpen, ChevronDown, Ban } from 'lucide-react'
 import { WeeklyReportModal } from '@/components/ui/WeeklyReportModal'
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
@@ -222,6 +222,42 @@ function TogglePanel() {
 // ─── 알림 패널 ────────────────────────────────────────────────────────────────
 const DAY_LABELS = ['일', '월', '화', '수', '목', '금', '토']
 
+function CustomSelect({ value, onChange, options, width }: {
+  value: number
+  onChange: (v: number) => void
+  options: { value: number; label: string }[]
+  width?: string
+}) {
+  const [open, setOpen] = useState(false)
+  const label = options.find((o) => o.value === value)?.label ?? ''
+  return (
+    <div style={{ position: 'relative', width: width ?? '100%' }}>
+      {open && <div style={{ position: 'fixed', inset: 0, zIndex: 49 }} onClick={() => setOpen(false)} />}
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        style={{ width: '100%', padding: '11px 14px', border: '1.5px solid var(--color-accent-primary)', borderRadius: '12px', fontSize: '14px', background: 'var(--color-bg-primary)', color: 'var(--color-text-primary)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}
+      >
+        <span>{label}</span>
+        <ChevronDown size={16} color="var(--color-accent-primary)" style={{ transition: 'transform 0.2s', transform: open ? 'rotate(180deg)' : 'none', flexShrink: 0 }} />
+      </button>
+      {open && (
+        <div style={{ position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0, zIndex: 50, background: 'var(--color-bg-card)', border: '1.5px solid var(--color-accent-primary)', borderRadius: '12px', maxHeight: '200px', overflowY: 'auto', boxShadow: '0 8px 24px rgba(0,0,0,0.12)' }}>
+          {options.map((opt) => (
+            <div
+              key={opt.value}
+              onClick={() => { onChange(opt.value); setOpen(false) }}
+              style={{ padding: '11px 14px', fontSize: '14px', color: opt.value === value ? 'var(--color-accent-primary)' : 'var(--color-text-primary)', background: opt.value === value ? 'var(--color-accent-light)' : 'transparent', cursor: 'pointer', fontWeight: opt.value === value ? 600 : 400 }}
+            >
+              {opt.label}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 function AlarmPanel() {
   const [alarm, setAlarm] = useState<AlarmSettings | null>(null)
   const [affirmations, setAffirmations] = useState<Affirmation[]>([])
@@ -319,44 +355,53 @@ function AlarmPanel() {
       </p>
 
       {/* 알림 권한 */}
-      <div style={{ padding: '12px', background: notifPerm === 'granted' ? '#E8F5E9' : '#FFF3E0', borderRadius: '12px', marginBottom: '16px' }}>
-        <div className="flex items-center justify-between">
-          <div>
-            <p style={{ fontSize: '13px', fontWeight: 500, color: notifPerm === 'granted' ? '#2E7D32' : '#E65100' }}>
-              {notifPerm === 'granted' ? '✅ 알림 허용됨' : notifPerm === 'denied' ? '🚫 알림 차단됨' : '🔔 알림 권한 필요'}
-            </p>
-            <p style={{ fontSize: '11px', color: 'var(--color-text-muted)', marginTop: '2px' }}>
-              {notifPerm === 'denied' ? '기기 설정에서 알림을 허용해주세요' : notifPerm === 'granted' ? '백그라운드에서도 알림을 받을 수 있어요' : '알림을 받으려면 권한을 허용해주세요'}
-            </p>
-          </div>
-          {notifPerm === 'default' && (
-            <button onClick={requestPermission} style={{ padding: '7px 14px', background: 'var(--color-accent-primary)', color: 'white', border: 'none', borderRadius: '10px', fontSize: '12px', cursor: 'pointer', flexShrink: 0, display: 'flex', alignItems: 'center', gap: '4px' }}>
-              <Bell size={12} />허용
-            </button>
-          )}
+      <div style={{ padding: '12px 14px', background: notifPerm === 'denied' ? '#FFF0EE' : notifPerm === 'granted' ? '#F0FBF0' : 'var(--color-accent-light)', borderRadius: '12px', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+        <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: notifPerm === 'denied' ? '#FFDDD9' : notifPerm === 'granted' ? '#C8F0C8' : 'var(--color-accent-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          {notifPerm === 'denied' ? <Ban size={16} color="#E53935" /> : notifPerm === 'granted' ? <Check size={16} color="#2E7D32" /> : <Bell size={16} color="var(--color-accent-primary)" />}
         </div>
+        <div style={{ flex: 1 }}>
+          <p style={{ fontSize: '13px', fontWeight: 600, color: notifPerm === 'denied' ? '#E53935' : notifPerm === 'granted' ? '#2E7D32' : 'var(--color-accent-primary)' }}>
+            {notifPerm === 'granted' ? '알림 허용됨' : notifPerm === 'denied' ? '알림 차단됨' : '알림 권한 필요'}
+          </p>
+          <p style={{ fontSize: '11px', color: 'var(--color-text-muted)', marginTop: '1px' }}>
+            {notifPerm === 'denied' ? '기기 설정에서 알림을 허용해주세요' : notifPerm === 'granted' ? '백그라운드에서도 알림을 받을 수 있어요' : '알림을 받으려면 권한을 허용해주세요'}
+          </p>
+        </div>
+        {notifPerm === 'default' && (
+          <button onClick={requestPermission} style={{ padding: '7px 14px', background: 'var(--color-accent-primary)', color: 'white', border: 'none', borderRadius: '10px', fontSize: '12px', fontWeight: 600, cursor: 'pointer', flexShrink: 0 }}>
+            허용
+          </button>
+        )}
       </div>
 
       {/* 알림 시간 */}
-      <p style={{ fontSize: '13px', color: 'var(--color-text-muted)', marginBottom: '8px' }}>알림 시간</p>
+      <p style={{ fontSize: '13px', fontWeight: 500, color: 'var(--color-text-muted)', marginBottom: '8px' }}>알림 시간</p>
       <div style={{ display: 'flex', gap: '8px', marginBottom: '20px' }}>
-        <select value={hour} onChange={(e) => setHour(Number(e.target.value))} style={{ flex: 1, padding: '10px', border: '1px solid var(--color-border)', borderRadius: '10px', fontSize: '14px', background: 'var(--color-bg-primary)', color: 'var(--color-text-primary)', outline: 'none' }}>
-          {Array.from({ length: 24 }, (_, i) => <option key={i} value={i}>{fmtHour(i)}</option>)}
-        </select>
-        <select value={minute} onChange={(e) => setMinute(Number(e.target.value))} style={{ width: '100px', padding: '10px', border: '1px solid var(--color-border)', borderRadius: '10px', fontSize: '14px', background: 'var(--color-bg-primary)', color: 'var(--color-text-primary)', outline: 'none' }}>
-          {[0, 10, 20, 30, 40, 50].map((m) => <option key={m} value={m}>{String(m).padStart(2, '0')}분</option>)}
-        </select>
+        <CustomSelect
+          value={hour}
+          onChange={setHour}
+          options={Array.from({ length: 24 }, (_, i) => ({ value: i, label: fmtHour(i) }))}
+        />
+        <CustomSelect
+          value={minute}
+          onChange={setMinute}
+          options={[0, 10, 20, 30, 40, 50].map((m) => ({ value: m, label: `${String(m).padStart(2, '0')}분` }))}
+          width="110px"
+        />
       </div>
 
       {/* 성공의 말 선택 */}
-      <p style={{ fontSize: '13px', color: 'var(--color-text-muted)', marginBottom: '8px' }}>성공의 말 선택</p>
+      <p style={{ fontSize: '13px', fontWeight: 500, color: 'var(--color-text-muted)', marginBottom: '8px' }}>성공의 말 선택</p>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '10px' }}>
-        {categories.map((cat) => (
-          <button key={cat} onClick={() => setSelectedCategory(selectedCategory === cat ? null : cat)}
-            style={{ padding: '5px 12px', borderRadius: '16px', fontSize: '12px', cursor: 'pointer', border: selectedCategory === cat ? '1.5px solid var(--color-accent-primary)' : '1px solid var(--color-border)', background: selectedCategory === cat ? 'var(--color-accent-light)' : 'transparent', color: selectedCategory === cat ? 'var(--color-accent-primary)' : 'var(--color-text-muted)', fontWeight: selectedCategory === cat ? 600 : 400 }}>
-            {cat}
-          </button>
-        ))}
+        {categories.map((cat) => {
+          const on = selectedCategory === cat
+          return (
+            <button key={cat} onClick={() => setSelectedCategory(on ? null : cat)}
+              style={{ padding: '6px 14px', borderRadius: '20px', fontSize: '12px', fontWeight: on ? 700 : 500, cursor: 'pointer', border: 'none', background: on ? 'var(--color-accent-primary)' : 'var(--color-accent-light)', color: on ? '#fff' : 'var(--color-accent-primary)', transition: 'all 0.15s' }}>
+              {cat}
+            </button>
+          )
+        })}
       </div>
 
       {selectedCategory && catAffs.length > 0 && (
@@ -392,47 +437,55 @@ function AlarmPanel() {
       )}
 
       {/* 반복 설정 */}
-      <p style={{ fontSize: '13px', color: 'var(--color-text-muted)', marginBottom: '8px' }}>반복 요일 <span style={{ fontSize: '11px' }}>(선택 없음 = 매일)</span></p>
-      <div style={{ display: 'flex', gap: '6px', marginBottom: '16px' }}>
-        {DAY_LABELS.map((label, day) => (
-          <button key={day} onClick={() => toggleDay(day)}
-            style={{ flex: 1, padding: '8px 0', borderRadius: '8px', fontSize: '12px', fontWeight: 600, cursor: 'pointer', border: repeatDays.includes(day) ? '1.5px solid var(--color-accent-primary)' : '1px solid var(--color-border)', background: repeatDays.includes(day) ? 'var(--color-accent-light)' : 'transparent', color: repeatDays.includes(day) ? 'var(--color-accent-primary)' : 'var(--color-text-muted)' }}>
-            {label}
-          </button>
-        ))}
+      <p style={{ fontSize: '13px', fontWeight: 500, color: 'var(--color-text-muted)', marginBottom: '8px' }}>반복 요일 <span style={{ fontSize: '11px' }}>(선택 없음 = 매일)</span></p>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '5px', marginBottom: '16px' }}>
+        {DAY_LABELS.map((label, day) => {
+          const on = repeatDays.includes(day)
+          return (
+            <button key={day} onClick={() => toggleDay(day)}
+              style={{ aspectRatio: '1', borderRadius: '10px', fontSize: '12px', fontWeight: 700, cursor: 'pointer', border: on ? 'none' : '1.5px solid var(--color-accent-primary)', background: on ? 'var(--color-accent-primary)' : 'transparent', color: on ? '#fff' : 'var(--color-accent-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              {label}
+            </button>
+          )
+        })}
       </div>
 
-      <p style={{ fontSize: '13px', color: 'var(--color-text-muted)', marginBottom: '8px' }}>종료 설정</p>
+      <p style={{ fontSize: '13px', fontWeight: 500, color: 'var(--color-text-muted)', marginBottom: '8px' }}>종료 설정</p>
       <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '20px' }}>
-        {(['none', 'date', 'count'] as const).map((type) => (
-          <label key={type} style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}>
-            <input type="radio" checked={endType === type} onChange={() => setEndType(type)} style={{ accentColor: 'var(--color-accent-primary)', width: '16px', height: '16px' }} />
-            {type === 'none' && <span style={{ fontSize: '13px', color: 'var(--color-text-primary)' }}>무제한 반복</span>}
-            {type === 'date' && (
-              <span style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1 }}>
-                <span style={{ fontSize: '13px', color: 'var(--color-text-primary)', flexShrink: 0 }}>종료 날짜</span>
-                <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} onClick={() => setEndType('date')}
-                  style={{ flex: 1, padding: '6px 10px', border: '1px solid var(--color-border)', borderRadius: '8px', fontSize: '13px', background: 'var(--color-bg-primary)', color: 'var(--color-text-primary)', outline: 'none' }} />
-              </span>
-            )}
-            {type === 'count' && (
-              <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <input type="number" min={1} value={endCount} onChange={(e) => setEndCount(Number(e.target.value))} onClick={() => setEndType('count')}
-                  style={{ width: '64px', padding: '6px 10px', border: '1px solid var(--color-border)', borderRadius: '8px', fontSize: '13px', background: 'var(--color-bg-primary)', color: 'var(--color-text-primary)', outline: 'none', textAlign: 'center' }} />
-                <span style={{ fontSize: '13px', color: 'var(--color-text-primary)' }}>회 반복 후 종료</span>
-              </span>
-            )}
-          </label>
-        ))}
+        {(['none', 'date', 'count'] as const).map((type) => {
+          const on = endType === type
+          return (
+            <div key={type} onClick={() => setEndType(type)} style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}>
+              <div style={{ width: '20px', height: '20px', borderRadius: '50%', border: `2px solid ${on ? 'var(--color-accent-primary)' : 'var(--color-border)'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'border-color 0.15s' }}>
+                {on && <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: 'var(--color-accent-primary)' }} />}
+              </div>
+              {type === 'none' && <span style={{ fontSize: '13px', color: on ? 'var(--color-accent-primary)' : 'var(--color-text-primary)', fontWeight: on ? 600 : 400 }}>무제한 반복</span>}
+              {type === 'date' && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1 }}>
+                  <span style={{ fontSize: '13px', color: on ? 'var(--color-accent-primary)' : 'var(--color-text-primary)', fontWeight: on ? 600 : 400, flexShrink: 0 }}>종료 날짜</span>
+                  <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} onClick={() => setEndType('date')}
+                    style={{ flex: 1, padding: '7px 10px', border: `1.5px solid ${on ? 'var(--color-accent-primary)' : 'var(--color-border)'}`, borderRadius: '10px', fontSize: '13px', background: 'var(--color-bg-primary)', color: 'var(--color-text-primary)', outline: 'none' }} />
+                </div>
+              )}
+              {type === 'count' && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <input type="number" min={1} value={endCount} onChange={(e) => setEndCount(Number(e.target.value))} onClick={() => setEndType('count')}
+                    style={{ width: '64px', padding: '7px 10px', border: `1.5px solid ${on ? 'var(--color-accent-primary)' : 'var(--color-border)'}`, borderRadius: '10px', fontSize: '13px', background: 'var(--color-bg-primary)', color: 'var(--color-text-primary)', outline: 'none', textAlign: 'center' }} />
+                  <span style={{ fontSize: '13px', color: on ? 'var(--color-accent-primary)' : 'var(--color-text-primary)', fontWeight: on ? 600 : 400 }}>회 반복 후 종료</span>
+                </div>
+              )}
+            </div>
+          )
+        })}
       </div>
 
       <div style={{ display: 'flex', gap: '8px' }}>
         <button onClick={handleSave} disabled={!selectedAffId || saving}
-          style={{ flex: 1, padding: '12px', background: selectedAffId ? 'var(--color-accent-primary)' : 'var(--color-border)', color: 'white', border: 'none', borderRadius: '12px', fontSize: '14px', fontWeight: 600, cursor: selectedAffId ? 'pointer' : 'not-allowed' }}>
+          style={{ flex: 1, padding: '14px', background: selectedAffId ? 'var(--color-accent-primary)' : 'var(--color-border)', color: 'white', border: 'none', borderRadius: '14px', fontSize: '15px', fontWeight: 700, cursor: selectedAffId ? 'pointer' : 'not-allowed', transition: 'background 0.15s' }}>
           {saving ? '저장 중...' : '알림 설정 저장'}
         </button>
         {alarm && (
-          <button onClick={handleClear} style={{ padding: '12px 16px', background: 'transparent', border: '1px solid #E53935', borderRadius: '12px', color: '#E53935', fontSize: '14px', cursor: 'pointer' }}>
+          <button onClick={handleClear} style={{ padding: '14px 18px', background: 'transparent', border: '1.5px solid #E53935', borderRadius: '14px', color: '#E53935', fontSize: '14px', fontWeight: 600, cursor: 'pointer' }}>
             해제
           </button>
         )}
@@ -1247,17 +1300,18 @@ function ManualPanel() {
 }
 
 // ─── Main Settings Page ────────────────────────────────────────────────────────
-const BUTTONS = [
-  { id: 'theme', emoji: '🎨', label: '테마' },
-  { id: 'toggle', emoji: '⚙️', label: 'On / Off' },
-  { id: 'alarm', emoji: '🔔', label: '알림' },
-  { id: 'stats', emoji: '📊', label: '통계' },
-  { id: 'search', emoji: '🔍', label: '찾기' },
-  { id: 'backup', emoji: '💾', label: '백업' },
-  { id: 'delete', emoji: '🗑️', label: '지우기' },
-  { id: 'trash', emoji: '♻️', label: '휴지통' },
-  { id: 'category', emoji: '📁', label: '카테고리' },
-  { id: 'manual', emoji: '📖', label: '설명서' },
+type LucideIcon = React.ComponentType<{ size?: number; strokeWidth?: number; color?: string }>
+const BUTTONS: { id: string; icon: LucideIcon; label: string; danger?: boolean }[] = [
+  { id: 'theme',    icon: Palette,    label: '테마' },
+  { id: 'toggle',   icon: Power,      label: 'On / Off' },
+  { id: 'alarm',    icon: Bell,       label: '알림' },
+  { id: 'stats',    icon: BarChart3,  label: '통계' },
+  { id: 'search',   icon: Search,     label: '찾기' },
+  { id: 'backup',   icon: HardDrive,  label: '백업' },
+  { id: 'delete',   icon: Trash2,     label: '지우기', danger: true },
+  { id: 'trash',    icon: RotateCcw,  label: '휴지통' },
+  { id: 'category', icon: Folder,     label: '카테고리' },
+  { id: 'manual',   icon: BookOpen,   label: '설명서' },
 ]
 
 export default function SettingsPage() {
@@ -1271,29 +1325,40 @@ export default function SettingsPage() {
 
         {/* Button grid */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px', marginBottom: '24px' }}>
-          {BUTTONS.map((btn) => (
-            <button
-              key={btn.id}
-              onClick={() => toggle(btn.id)}
-              style={{
-                padding: '18px 12px',
-                background: active === btn.id ? 'var(--color-accent-light)' : 'var(--color-bg-card)',
-                border: active === btn.id ? '2px solid var(--color-accent-primary)' : '2px solid transparent',
-                borderRadius: '18px',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '12px',
-                textAlign: 'left',
-                transition: 'all 0.15s',
-              }}
-            >
-              <span style={{ fontSize: '26px', lineHeight: 1 }}>{btn.emoji}</span>
-              <span style={{ fontSize: '14px', fontWeight: 600, color: active === btn.id ? 'var(--color-accent-primary)' : 'var(--color-text-primary)' }}>
-                {btn.label}
-              </span>
-            </button>
-          ))}
+          {BUTTONS.map((btn) => {
+            const isActive = active === btn.id
+            const chipBg = btn.danger
+              ? (isActive ? '#FFDDD9' : '#FFF0EE')
+              : (isActive ? 'var(--color-accent-primary)' : 'var(--color-accent-light)')
+            const iconColor = btn.danger ? '#E53935' : (isActive ? '#fff' : 'var(--color-accent-primary)')
+            return (
+              <button
+                key={btn.id}
+                onClick={() => toggle(btn.id)}
+                style={{
+                  padding: '16px 14px',
+                  background: isActive ? 'var(--color-accent-light)' : 'var(--color-bg-card)',
+                  border: isActive
+                    ? (btn.danger ? '2px solid #E53935' : '2px solid var(--color-accent-primary)')
+                    : '2px solid transparent',
+                  borderRadius: '18px',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '12px',
+                  textAlign: 'left',
+                  transition: 'all 0.15s',
+                }}
+              >
+                <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: chipBg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'background 0.15s' }}>
+                  <btn.icon size={20} strokeWidth={2} color={iconColor} />
+                </div>
+                <span style={{ fontSize: '14px', fontWeight: 600, color: btn.danger ? (isActive ? '#E53935' : 'var(--color-text-primary)') : (isActive ? 'var(--color-accent-primary)' : 'var(--color-text-primary)') }}>
+                  {btn.label}
+                </span>
+              </button>
+            )
+          })}
         </div>
 
         {/* Active panel */}
