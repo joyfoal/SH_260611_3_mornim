@@ -23,7 +23,7 @@ import {
 import { getAudioRecords, setAudioKeepForever, clearAllAudioRecords, getTrashAudioRecords, restoreAudioFromTrash, emptyAudioTrash, type AudioRecord } from '@/lib/audioStorage'
 import { clearFaceStorage, getFaceProfileFromTrash, restoreFaceProfileFromTrash, type FaceProfile } from '@/lib/faceStorage'
 import { clearSuccessImages, getSuccessImageFromTrash, restoreSuccessImageFromTrash, type SuccessImageRecord } from '@/lib/successImageStorage'
-import { Pencil, Trash2, Check, X, Plus, Bell, Download } from 'lucide-react'
+import { Pencil, Trash2, Check, X, Plus, Bell, Download, ChevronUp, ChevronDown } from 'lucide-react'
 import { WeeklyReportModal } from '@/components/ui/WeeklyReportModal'
 
 // ─── Category Delete Modal ────────────────────────────────────────
@@ -116,6 +116,15 @@ function CategoryManager() {
   }, [])
 
   const reload = () => setCategories(getCategories())
+
+  const moveCategory = (idx: number, dir: -1 | 1) => {
+    const next = idx + dir
+    if (next < 0 || next >= categories.length) return
+    const updated = [...categories]
+    ;[updated[idx], updated[next]] = [updated[next], updated[idx]]
+    saveCategories(updated)
+    setCategories(updated)
+  }
 
   const startEdit = (idx: number) => {
     setEditingIdx(idx)
@@ -217,6 +226,22 @@ function CategoryManager() {
                 </>
               ) : (
                 <>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '1px', flexShrink: 0 }}>
+                    <button
+                      onClick={() => moveCategory(idx, -1)}
+                      disabled={idx === 0}
+                      style={{ background: 'none', border: 'none', cursor: idx === 0 ? 'default' : 'pointer', color: idx === 0 ? `${colors.dark}33` : colors.dark, padding: '1px', lineHeight: 1 }}
+                    >
+                      <ChevronUp size={14} />
+                    </button>
+                    <button
+                      onClick={() => moveCategory(idx, 1)}
+                      disabled={idx === categories.length - 1}
+                      style={{ background: 'none', border: 'none', cursor: idx === categories.length - 1 ? 'default' : 'pointer', color: idx === categories.length - 1 ? `${colors.dark}33` : colors.dark, padding: '1px', lineHeight: 1 }}
+                    >
+                      <ChevronDown size={14} />
+                    </button>
+                  </div>
                   <span style={{ flex: 1, fontSize: '13px', fontWeight: 500, color: colors.dark }}>{cat}</span>
                   <span style={{ fontSize: '11px', color: `${colors.dark}88` }}>{affCountFor(cat)}개</span>
                   <button onClick={() => startEdit(idx)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: colors.dark, padding: '2px' }}>

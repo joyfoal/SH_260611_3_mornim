@@ -3,8 +3,8 @@
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { AppLayout } from '@/components/ui/AppLayout'
-import { Plus, Trash2, Play, Pause, Download } from 'lucide-react'
-import { getAffirmations, moveToTrash, getCategories, type Affirmation } from '@/lib/storage'
+import { Plus, Trash2, Play, Pause, Download, FolderOpen } from 'lucide-react'
+import { getAffirmations, moveToTrash, updateAffirmation, getCategories, type Affirmation } from '@/lib/storage'
 import { getCategoryColor } from '@/lib/categories'
 import { getAudioRecords, moveAudioToTrash, type AudioRecord } from '@/lib/audioStorage'
 
@@ -14,6 +14,7 @@ export default function AffirmationsPage() {
   const [filterCategory, setFilterCategory] = useState<string | null>(null)
   const [categories, setCategories] = useState<string[]>([])
   const [audioMap, setAudioMap] = useState<Record<string, AudioRecord>>({})
+  const [movingId, setMovingId] = useState<string | null>(null)
   const [playingId, setPlayingId] = useState<string | null>(null)
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const audioBlobUrlRef = useRef<string | null>(null)
@@ -115,6 +116,12 @@ export default function AffirmationsPage() {
       moveToTrash(id)
       load()
     }
+  }
+
+  const handleMoveCategory = (affirmation: Affirmation, newCategory: string) => {
+    updateAffirmation({ ...affirmation, category: newCategory })
+    setMovingId(null)
+    load()
   }
 
   const filtered = filterCategory
@@ -243,13 +250,51 @@ export default function AffirmationsPage() {
                             {affirmation.completedDates.length}일 완료
                           </span>
                         </div>
-                        <button
-                          onClick={() => handleDelete(affirmation.id)}
-                          style={{ padding: '6px', background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--color-text-muted)', flexShrink: 0 }}
-                        >
-                          <Trash2 size={16} />
-                        </button>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
+                          <button
+                            onClick={() => setMovingId(movingId === affirmation.id ? null : affirmation.id)}
+                            style={{
+                              padding: '6px', background: movingId === affirmation.id ? 'var(--color-accent-light)' : 'transparent',
+                              border: 'none', cursor: 'pointer',
+                              color: movingId === affirmation.id ? 'var(--color-accent-primary)' : 'var(--color-text-muted)',
+                              borderRadius: '8px', transition: 'all 0.15s',
+                            }}
+                            title="카테고리 이동"
+                          >
+                            <FolderOpen size={16} />
+                          </button>
+                          <button
+                            onClick={() => handleDelete(affirmation.id)}
+                            style={{ padding: '6px', background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--color-text-muted)', borderRadius: '8px' }}
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
                       </div>
+
+                      {/* 카테고리 이동 선택기 */}
+                      {movingId === affirmation.id && (
+                        <div style={{ marginTop: '10px', paddingTop: '10px', borderTop: '1px solid var(--color-border)' }}>
+                          <p style={{ fontSize: '11px', color: 'var(--color-text-muted)', marginBottom: '8px' }}>카테고리 선택</p>
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                            {categories.filter((c) => c !== affirmation.category).map((cat) => {
+                              const c = getCategoryColor(cat, categories)
+                              return (
+                                <button
+                                  key={cat}
+                                  onClick={() => handleMoveCategory(affirmation, cat)}
+                                  style={{
+                                    padding: '5px 12px', borderRadius: '16px', fontSize: '12px', cursor: 'pointer',
+                                    border: `1px solid ${c.dark}`, background: c.light, color: c.dark, fontWeight: 500,
+                                  }}
+                                >
+                                  {cat}
+                                </button>
+                              )
+                            })}
+                          </div>
+                        </div>
+                      )}
 
                       {/* 녹음 영역 */}
                       {record && (
