@@ -65,12 +65,13 @@ NO TEXT OR LETTERS of any kind in the image.`
 
 export async function POST(req: NextRequest) {
   try {
-    const { affirmations, faceData, faceImageBase64, faceMaskBase64, profileImageBase64 } = await req.json() as {
+    const { affirmations, faceData, faceImageBase64, faceMaskBase64, profileImageBase64, profileDescription } = await req.json() as {
       affirmations: string[]
       faceData?: FaceData
-      faceImageBase64?: string   // "data:image/png;base64,..."
-      faceMaskBase64?: string    // 얼굴 타원 = 불투명(보존), 나머지 = 투명(편집)
-      profileImageBase64?: string // AI 생성 프로필 이미지 (마스크 없이 전체 편집)
+      faceImageBase64?: string
+      faceMaskBase64?: string
+      profileImageBase64?: string
+      profileDescription?: string
     }
 
     if (!process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY === 'your_key_here') {
@@ -81,6 +82,8 @@ export async function POST(req: NextRequest) {
     const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
 
     const affText = affirmations.join(', ')
+    // 프로필 글 + 성공의 말을 함께 씬 컨텍스트로 결합
+    const sceneContext = [affText, profileDescription].filter(Boolean).join('. Personal vision: ')
     let b64: string | null | undefined
 
     if (profileImageBase64) {
@@ -90,7 +93,7 @@ export async function POST(req: NextRequest) {
       const imageFile = await toFile(imageBuffer, 'profile.png', { type: 'image/png' })
 
       const prompt = `Keep this character's appearance, face, style, and identity EXACTLY as shown.
-Place them in a beautiful, inspiring success scene that visually embodies: ${affText}
+Place them in a beautiful, inspiring success scene that visually embodies: ${sceneContext}
 The character is radiating genuine joy, deep fulfillment, confidence, and inner peace.
 Maintain the exact same art style and visual aesthetic. Warm golden light, uplifting and heartwarming atmosphere.
 The image must be deeply positive, encouraging, and filled with hope and warmth.
@@ -120,9 +123,9 @@ NO TEXT OR LETTERS in the image.`
       }
 
       const prompt = faceData
-        ? buildIdentityMatrix(faceData, affText)
+        ? buildIdentityMatrix(faceData, sceneContext)
         : `Reproduce this person's appearance with absolute fidelity. Keep their current young appearance — do NOT age the face.
-Place them in a beautiful, uplifting scene that visually embodies: ${affText}
+Place them in a beautiful, uplifting scene that visually embodies: ${sceneContext}
 The person radiates genuine joy, confidence, and deep fulfillment.
 The image must be deeply positive, hopeful, and inspiring.
 NO TEXT OR LETTERS. Style: warm golden light, photorealistic.`
@@ -141,7 +144,7 @@ NO TEXT OR LETTERS. Style: warm golden light, photorealistic.`
       b64 = response.data?.[0]?.b64_json
     } else if (faceData) {
       // 얼굴 데이터만 있음: Identity Matrix 텍스트 기반 생성
-      const prompt = buildIdentityMatrix(faceData, affText)
+      const prompt = buildIdentityMatrix(faceData, sceneContext)
 
       const response = await openai.images.generate({
         model: 'gpt-image-1',
@@ -154,7 +157,7 @@ NO TEXT OR LETTERS. Style: warm golden light, photorealistic.`
     } else {
       // 얼굴 정보 없음: 일반 생성
       const prompt = `A beautiful, heartwarming scene of a radiant, confident person whose face glows with genuine joy, fulfillment, and inner peace.
-The scene visually embodies these positive themes: ${affText}
+The scene visually embodies these positive themes: ${sceneContext}
 Surround them with symbolic elements and an environment that represents hope, growth, and success.
 The person's warm, joyful expression radiates positivity and is the emotional heart of the image.
 The atmosphere is deeply uplifting, encouraging, and filled with warmth and hope.

@@ -261,6 +261,7 @@ export default function SuccessImagePage() {
         body: JSON.stringify({
           affirmations: affirmationTexts,
           profileImageBase64: profileBase64,
+          profileDescription: latest?.profileDescription ?? undefined,
         }),
       })
       const data = await res.json() as { url?: string; error?: string }
