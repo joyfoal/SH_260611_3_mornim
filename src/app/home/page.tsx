@@ -23,12 +23,16 @@ import {
   getTodayRepeatDone,
   getNaegeSeenDate,
   getHomeDisplaySettings,
+  getAlarmSettings,
+  saveAlarmSettings,
+  getAlarmLastShown,
+  setAlarmLastShown,
   type Affirmation,
   type DayRecord,
   type StreakData,
 } from '@/lib/storage'
 import { useTheme } from '@/lib/themeContext'
-import { getRecentAudioRecord, deleteExpiredAudioRecords, type AudioRecord } from '@/lib/audioStorage'
+import { getRecentAudioRecord, deleteExpiredAudioRecords, getAudioRecordsByAffirmationId, type AudioRecord } from '@/lib/audioStorage'
 import { getSuccessImage } from '@/lib/successImageStorage'
 import { WeeklyReportModal } from '@/components/ui/WeeklyReportModal'
 
@@ -454,10 +458,36 @@ export default function HomePage() {
     }
   }, [])
 
-  // Schedule alarm via Service Worker on app open
+  // Schedule alarm via Service Worker on app open + play audio if alarm just fired
   useEffect(() => {
     if (typeof window === 'undefined') return
     import('@/lib/alarmScheduler').then(({ scheduleAlarm }) => scheduleAlarm())
+    ;(async () => {
+      const alarm = getAlarmSettings()
+      if (!alarm?.affirmationId) return
+      const now = new Date()
+      const alarmMin = alarm.hour * 60 + alarm.minute
+      const nowMin = now.getHours() * 60 + now.getMinutes()
+      if (Math.abs(nowMin - alarmMin) > 5) return
+      const days = alarm.repeatDays?.length > 0 ? alarm.repeatDays : [0,1,2,3,4,5,6]
+      if (!days.includes(now.getDay())) return
+      if (alarm.endType === 'count' && alarm.endCount && (alarm.firedCount ?? 0) >= alarm.endCount) return
+      if (alarm.endType === 'date' && alarm.endDate && todayStr() > alarm.endDate) return
+      if (getAlarmLastShown() === todayStr()) return
+      setAlarmLastShown(todayStr())
+      saveAlarmSettings({ ...alarm, firedCount: (alarm.firedCount ?? 0) + 1 })
+      try {
+        const records = await getAudioRecordsByAffirmationId(alarm.affirmationId)
+        if (records.length > 0) {
+          const latest = records.reduce((a, b) => a.createdAt > b.createdAt ? a : b)
+          const url = URL.createObjectURL(latest.blob)
+          const audio = new Audio(url)
+          audio.onended = () => URL.revokeObjectURL(url)
+          audio.onerror = () => URL.revokeObjectURL(url)
+          audio.play().catch(() => {})
+        }
+      } catch { /* ignore */ }
+    })()
   }, [])
 
   const loadData = useCallback(() => {

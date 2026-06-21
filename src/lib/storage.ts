@@ -29,9 +29,15 @@ export interface TomorrowNote {
 }
 
 export interface AlarmSettings {
-  audioId: string
+  affirmationId: string
   hour: number
   minute: number
+  repeatDays: number[]        // 0=일,1=월,...,6=토; empty=매일
+  endType: 'none' | 'date' | 'count'
+  endDate: string             // endType='date' 때 사용
+  endCount: number            // endType='count' 때 사용
+  firedCount: number
+  audioId?: string            // legacy
 }
 
 const KEYS = {
