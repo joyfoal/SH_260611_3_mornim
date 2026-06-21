@@ -435,7 +435,6 @@ export default function HomePage() {
   const [hasAffirmations, setHasAffirmations] = useState(true)
   const [streakData, setStreakData] = useState<StreakData>({ currentStreak: 0, lastCompletedDate: null, shields: 0 })
   const [todayCount, setTodayCount] = useState(0)
-  const [totalCount, setTotalCount] = useState(0)
   const [tomorrowNote, setTomorrowNote] = useState<string | null>(null)
   const [tomorrowEnabled, setTomorrowEnabled] = useState(false)
   const [naegeSavedToday, setNaegeSavedToday] = useState(false)
@@ -508,7 +507,6 @@ export default function HomePage() {
     setRepeatDone(getTodayRepeatDone())
     setStreakData(getStreakData())
     setTodayCount(getDayRecord(todayStr())?.completedCount ?? 0)
-    setTotalCount(affirmations.reduce((s, a) => s + a.completedDates.length, 0))
     const dayNote = getDayNote(today)
     if (dayNote) setTomorrowNote(dayNote)
     setTomorrowEnabled(isTomorrowEnabled())
@@ -710,16 +708,11 @@ export default function HomePage() {
               </div>
             )}
           </div>
-          <div style={{ display: 'flex', gap: '16px' }}>
-            <div style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: '16px', fontWeight: 700, color: 'var(--color-accent-primary)' }}>{todayCount}</div>
-              <div style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>오늘 완료</div>
+          <div style={{ textAlign: 'right' }}>
+            <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--color-accent-primary)' }}>
+              성공의 말 {todayCount}개
             </div>
-            <div style={{ width: '1px', background: 'var(--color-border)' }} />
-            <div style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: '16px', fontWeight: 700, color: 'var(--color-text-primary)' }}>{totalCount}</div>
-              <div style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>누적</div>
-            </div>
+            <div style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>오늘 완료</div>
           </div>
         </div>
 
