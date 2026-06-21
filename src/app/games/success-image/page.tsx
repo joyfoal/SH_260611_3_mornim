@@ -658,6 +658,29 @@ export default function SuccessImagePage() {
                     >
                       🌟 프로필로 저장
                     </button>
+                    <button
+                      onClick={() => {
+                        if (!profileUrl) return
+                        const a = document.createElement('a')
+                        a.href = profileUrl
+                        a.download = 'mornim-profile.png'
+                        document.body.appendChild(a)
+                        a.click()
+                        document.body.removeChild(a)
+                      }}
+                      style={{
+                        padding: '12px 14px',
+                        background: 'transparent',
+                        border: '1.5px solid var(--color-border)',
+                        borderRadius: '12px',
+                        fontSize: '16px',
+                        cursor: 'pointer',
+                        lineHeight: 1,
+                      }}
+                      title="프로필 이미지 다운로드"
+                    >
+                      📥
+                    </button>
                     {isRegenerating ? (
                       /* 기존 프로필이 있었을 때 → 취소 */
                       <button
