@@ -444,36 +444,42 @@ function AlarmPanel() {
           {/* 알림 시간 */}
           <p style={{ fontSize: '12px', fontWeight: 500, color: 'var(--color-text-muted)', marginBottom: '7px' }}>알림 시간</p>
           <div style={{ display: 'flex', gap: '8px', marginBottom: '18px' }}>
-            <CustomSelect value={hour} onChange={setHour} options={Array.from({ length: 24 }, (_, i) => ({ value: i, label: fmtHour(i) }))} />
-            <CustomSelect value={minute} onChange={setMinute} options={[0, 10, 20, 30, 40, 50].map((m) => ({ value: m, label: `${String(m).padStart(2, '0')}분` }))} width="110px" />
+            <div style={{ flex: '0 0 52%' }}>
+              <CustomSelect value={hour} onChange={setHour} options={Array.from({ length: 24 }, (_, i) => ({ value: i, label: fmtHour(i) }))} width="100%" />
+            </div>
+            <div style={{ flex: 1 }}>
+              <CustomSelect value={minute} onChange={setMinute} options={[0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55].map((m) => ({ value: m, label: `${String(m).padStart(2, '0')}분` }))} width="100%" />
+            </div>
           </div>
 
           {/* 성공의 말 선택 */}
           <p style={{ fontSize: '12px', fontWeight: 500, color: 'var(--color-text-muted)', marginBottom: '7px' }}>성공의 말 선택</p>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '10px' }}>
+          {/* 카테고리 가로 스크롤 */}
+          <div style={{ display: 'flex', gap: '6px', overflowX: 'auto', paddingBottom: '4px', marginBottom: '10px', scrollbarWidth: 'none' }}>
             {categories.map((cat) => {
               const on = selectedCategory === cat
               return (
                 <button key={cat} onClick={() => setSelectedCategory(on ? null : cat)}
-                  style={{ padding: '6px 12px', borderRadius: '20px', fontSize: '12px', fontWeight: on ? 700 : 400, cursor: 'pointer', border: on ? '1.5px solid var(--color-accent-primary)' : '1px solid var(--color-border)', background: on ? 'var(--color-accent-primary)' : 'var(--color-bg-card)', color: on ? '#fff' : 'var(--color-text-secondary)', transition: 'all 0.15s' }}>
+                  style={{ padding: '6px 13px', borderRadius: '20px', fontSize: '12px', fontWeight: on ? 700 : 400, cursor: 'pointer', border: on ? '1.5px solid var(--color-accent-primary)' : '1px solid var(--color-border)', background: on ? 'var(--color-accent-primary)' : 'var(--color-bg-card)', color: on ? '#fff' : 'var(--color-text-secondary)', transition: 'all 0.15s', whiteSpace: 'nowrap', flexShrink: 0 }}>
                   {cat}
                 </button>
               )
             })}
           </div>
+          {/* 성공의 말 가로 스크롤 카드 */}
           {selectedCategory && catAffs.length > 0 && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', maxHeight: '180px', overflowY: 'auto', marginBottom: '10px' }}>
+            <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '6px', marginBottom: '10px', scrollbarWidth: 'none' }}>
               {catAffs.map((aff) => {
                 const hasRec = !!audioMap[aff.id]
                 const isSel = selectedAffId === aff.id
                 return (
                   <div key={aff.id} onClick={() => setSelectedAffId(aff.id)}
-                    style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '9px 11px', background: isSel ? chipBg : 'var(--color-bg-card)', border: isSel ? '1.5px solid var(--color-accent-primary)' : '1px solid var(--color-border)', borderRadius: '10px', cursor: 'pointer' }}>
-                    <span style={{ flex: 1, fontSize: '12px', color: 'var(--color-text-primary)', lineHeight: 1.4 }}>{aff.text}</span>
+                    style={{ minWidth: '180px', maxWidth: '200px', padding: '12px 13px', background: isSel ? chipBg : 'var(--color-bg-card)', border: isSel ? '1.5px solid var(--color-accent-primary)' : '1px solid var(--color-border)', borderRadius: '12px', cursor: 'pointer', flexShrink: 0, position: 'relative' }}>
+                    <p style={{ fontSize: '12px', color: 'var(--color-text-primary)', lineHeight: 1.5, marginBottom: hasRec ? '28px' : '0' }}>{aff.text}</p>
                     {hasRec && (
                       <button onClick={(e) => { e.stopPropagation(); playPreview(aff.id) }}
-                        style={{ width: '26px', height: '26px', borderRadius: '50%', background: 'var(--color-accent-primary)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                        <span style={{ color: 'white', fontSize: '9px' }}>▶</span>
+                        style={{ position: 'absolute', bottom: '10px', right: '10px', width: '24px', height: '24px', borderRadius: '50%', background: 'var(--color-accent-primary)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <span style={{ color: 'white', fontSize: '8px' }}>▶</span>
                       </button>
                     )}
                   </div>
