@@ -3,8 +3,7 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { AppLayout } from '@/components/ui/AppLayout'
-import { DynamicText } from '@/components/ui/DynamicText'
-import { Play, Pause } from 'lucide-react'
+import { Play, Pause, Flame, Shield, Mic, ChevronLeft, ChevronRight, ChevronDown, ChevronUp } from 'lucide-react'
 import {
   getAffirmations,
   getTodayAffirmationIds,
@@ -41,6 +40,20 @@ function getGreeting(): string {
   if (h < 12) return '좋은 아침이에요 ☀'
   if (h < 18) return '좋은 오후예요 🌤'
   return '좋은 저녁이에요 🌙'
+}
+
+// ── 문장 끝 1/3 어절을 골드로 강조 ───────────────────────────────────────────
+function HighlightedSentence({ text }: { text: string }) {
+  const words = text.split(' ')
+  const highlightCount = Math.max(1, Math.ceil(words.length / 3))
+  const normalWords = words.slice(0, words.length - highlightCount)
+  const goldWords = words.slice(words.length - highlightCount)
+  return (
+    <p style={{ fontSize: '26px', fontWeight: 800, lineHeight: 1.4, color: 'var(--color-text-primary)', margin: 0, wordBreak: 'keep-all' }}>
+      {normalWords.length > 0 && <span>{normalWords.join(' ')} </span>}
+      <span style={{ color: 'var(--color-accent-primary)' }}>{goldWords.join(' ')}</span>
+    </p>
+  )
 }
 
 // ─── Recent Recording Player ──────────────────────────────────────
@@ -110,7 +123,7 @@ function RecentRecordingPlayer() {
         {isPlaying ? <Pause size={16} color="white" fill="white" /> : <Play size={16} color="white" fill="white" />}
       </button>
       <div style={{ minWidth: 0 }}>
-        <div style={{ fontSize: '10px', color: 'var(--color-text-muted)', marginBottom: '2px' }}>최근 녹음</div>
+        <div style={{ fontSize: '10px', color: 'var(--color-text-muted)', marginBottom: '2px', fontWeight: 500 }}>최근 녹음</div>
         <div
           style={{
             fontSize: '13px',
@@ -210,10 +223,10 @@ function CalendarView() {
       : c <= 6 ? theme.accent.secondary + 'CC'
       : theme.accent.primary
     const textColor =
-      isSelected ? '#FFFFFF'
-      : c === 0 ? 'var(--color-text-muted)'
+      c === 0 ? 'var(--color-text-muted)'
       : c <= 3 ? theme.accent.highlight
       : '#FFFFFF'
+    const isGoldFill = isToday || isSelected
     return (
       <button
         key={rec.date}
@@ -221,17 +234,18 @@ function CalendarView() {
         style={{
           width: size,
           height: size,
-          borderRadius: '8px',
-          background: isSelected ? 'var(--color-accent-primary)' : bgColor,
-          border: isToday && !isSelected ? '1.5px solid var(--color-accent-primary)' : '1px solid transparent',
+          borderRadius: isGoldFill ? '50%' : '8px',
+          background: isGoldFill ? 'var(--color-accent-primary)' : bgColor,
+          border: '1px solid transparent',
           fontSize: '11px',
-          color: textColor,
+          color: isGoldFill ? '#FFFFFF' : textColor,
           cursor: 'pointer',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           margin: '0 auto',
           flexShrink: 0,
+          fontWeight: isToday ? 700 : 400,
         }}
       >
         {day}
@@ -243,30 +257,34 @@ function CalendarView() {
     <div style={{ padding: '0 16px 16px' }}>
       {/* 헤더 */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
           <button
             onClick={handlePrevMonth}
-            style={{ fontSize: '14px', color: 'var(--color-accent-primary)', background: 'none', border: 'none', cursor: 'pointer', padding: '2px 4px', lineHeight: 1 }}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px', color: 'var(--color-accent-primary)', display: 'flex', alignItems: 'center' }}
           >
-            ‹
+            <ChevronLeft size={18} strokeWidth={1.75} />
           </button>
-          <span style={{ fontSize: '14px', color: 'var(--color-text-secondary)', fontWeight: 500, minWidth: '80px', textAlign: 'center' }}>
+          <span style={{ fontSize: '14px', color: 'var(--color-text-secondary)', fontWeight: 600, minWidth: '80px', textAlign: 'center' }}>
             {viewYear}년 {viewMonth + 1}월
           </span>
           <button
             onClick={handleNextMonth}
             disabled={isCurrentMonth}
-            style={{ fontSize: '14px', color: isCurrentMonth ? 'var(--color-border)' : 'var(--color-accent-primary)', background: 'none', border: 'none', cursor: isCurrentMonth ? 'default' : 'pointer', padding: '2px 4px', lineHeight: 1 }}
+            style={{ background: 'none', border: 'none', cursor: isCurrentMonth ? 'default' : 'pointer', padding: '4px', color: isCurrentMonth ? 'var(--color-border)' : 'var(--color-accent-primary)', display: 'flex', alignItems: 'center' }}
           >
-            ›
+            <ChevronRight size={18} strokeWidth={1.75} />
           </button>
         </div>
         {isCurrentMonth && (
           <button
             onClick={() => { setExpanded((v) => !v); setSelectedDay(null) }}
-            style={{ fontSize: '12px', color: 'var(--color-accent-primary)', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 500 }}
+            style={{ fontSize: '12px', color: 'var(--color-accent-primary)', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '2px' }}
           >
-            {expanded ? '접기 ↑' : '전체 보기 ↓'}
+            {expanded ? '접기' : '전체 보기'}
+            {expanded
+              ? <ChevronUp size={14} strokeWidth={1.75} />
+              : <ChevronDown size={14} strokeWidth={1.75} />
+            }
           </button>
         )}
       </div>
@@ -559,11 +577,11 @@ export default function HomePage() {
     <AppLayout activeTab="홈">
       <div style={{ paddingBottom: '16px' }}>
         {/* Greeting + Motto */}
-        <div style={{ padding: '20px 16px 8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div style={{ fontSize: '14px', color: 'var(--color-text-muted)' }}>
+        <div style={{ padding: '20px 16px 12px', display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: '8px' }}>
+          <div style={{ fontSize: '22px', fontWeight: 700, color: 'var(--color-text-primary)', whiteSpace: 'nowrap' }}>
             {getGreeting()}
           </div>
-          <div style={{ fontSize: '14px', color: 'var(--color-accent-primary)', fontWeight: 500, textAlign: 'right' }}>
+          <div style={{ fontSize: '13px', color: 'var(--color-accent-primary)', fontWeight: 500, textAlign: 'right', flexShrink: 1, minWidth: 0 }}>
             {motto}
           </div>
         </div>
@@ -578,25 +596,33 @@ export default function HomePage() {
               margin: '0 16px 16px',
             }}
           >
-            <DynamicText text={todayAffirmation.text} compact />
-            <div className="flex justify-end mt-4">
-              <button
-                onClick={handlePlay}
-                style={{
-                  borderRadius: '999px',
-                  background: 'var(--color-accent-primary)',
-                  border: 'none',
-                  cursor: 'pointer',
-                  padding: '10px 20px',
-                  fontSize: '14px',
-                  fontWeight: 700,
-                  color: 'white',
-                  fontFamily: 'inherit',
-                }}
-              >
-                성공의 말하기
-              </button>
+            <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--color-accent-primary)', marginBottom: '12px', letterSpacing: '0.2px' }}>
+              오늘의 성공의 말
             </div>
+            <HighlightedSentence text={todayAffirmation.text} />
+            <button
+              onClick={handlePlay}
+              style={{
+                width: '100%',
+                marginTop: '18px',
+                padding: '14px',
+                background: 'var(--color-accent-primary)',
+                border: 'none',
+                borderRadius: '14px',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px',
+                fontSize: '15px',
+                fontWeight: 700,
+                color: 'white',
+                fontFamily: 'inherit',
+              }}
+            >
+              <Mic size={18} strokeWidth={1.75} />
+              성공의 말하기
+            </button>
           </div>
         ) : allDone ? (
           <div
@@ -695,24 +721,36 @@ export default function HomePage() {
           </div>
         ) : null}
 
-        {/* Stats */}
-        <div style={{ margin: '0 16px 16px', padding: '12px 16px', background: 'var(--color-bg-card)', borderRadius: '16px', display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <span style={{ fontSize: '24px' }}>🔥</span>
-          <div style={{ flex: 1 }}>
-            <div style={{ fontSize: '16px', fontWeight: 600, color: 'var(--color-text-primary)' }}>
+        {/* Stats / Streak */}
+        <div style={{ margin: '0 16px 16px', padding: '14px 16px', background: 'var(--color-bg-card)', borderRadius: '16px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div style={{
+            width: '42px',
+            height: '42px',
+            borderRadius: '12px',
+            background: 'var(--color-accent-light)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            flexShrink: 0,
+          }}>
+            <Flame size={20} color="var(--color-accent-primary)" strokeWidth={1.75} />
+          </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: '15px', fontWeight: 700, color: 'var(--color-text-primary)' }}>
               {streakData.currentStreak}일 연속
             </div>
             {streakData.shields > 0 && (
-              <div style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>
-                🛡 연속 기록 보호막 {streakData.shields}개
+              <div style={{ fontSize: '12px', color: 'var(--color-text-muted)', display: 'flex', alignItems: 'center', gap: '3px', marginTop: '1px' }}>
+                <Shield size={12} strokeWidth={1.75} />
+                연속 기록 보호막 {streakData.shields}개
               </div>
             )}
           </div>
-          <div style={{ textAlign: 'right' }}>
+          <div style={{ textAlign: 'right', flexShrink: 0 }}>
             <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--color-accent-primary)' }}>
               성공의 말 {todayCount}개
             </div>
-            <div style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>오늘 완료</div>
+            <div style={{ fontSize: '11px', color: 'var(--color-text-muted)', marginTop: '1px' }}>오늘 완료</div>
           </div>
         </div>
 
@@ -720,19 +758,26 @@ export default function HomePage() {
         {displaySettings.showCalendar && <CalendarView />}
 
         {/* Shortcuts */}
-        <div style={{ display: 'flex', gap: '8px', padding: '0 16px 16px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px', padding: '0 16px 16px' }}>
           <button
             onClick={() => router.push('/create')}
             style={{
-              flex: 1,
-              padding: '12px 4px',
+              padding: '12px 6px',
               background: 'var(--color-bg-card)',
-              border: '1px solid var(--color-border)',
+              border: '1.5px solid var(--color-accent-primary)',
               borderRadius: '12px',
-              color: 'var(--color-text-secondary)',
+              color: 'var(--color-accent-primary)',
               fontSize: '12px',
-              fontWeight: 500,
+              fontWeight: 600,
               cursor: 'pointer',
+              wordBreak: 'keep-all',
+              lineHeight: 1.4,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              textAlign: 'center',
+              minHeight: '56px',
+              fontFamily: 'inherit',
             }}
           >
             성공의 말 만들기
@@ -740,15 +785,22 @@ export default function HomePage() {
           <button
             onClick={() => router.push('/games/success-image')}
             style={{
-              flex: 1,
-              padding: '12px 4px',
-              background: 'var(--color-accent-light)',
-              border: '1px solid var(--color-accent-primary)',
+              padding: '12px 6px',
+              background: 'var(--color-accent-primary)',
+              border: '1.5px solid var(--color-accent-primary)',
               borderRadius: '12px',
-              color: 'var(--color-accent-primary)',
+              color: 'white',
               fontSize: '12px',
-              fontWeight: 600,
+              fontWeight: 700,
               cursor: 'pointer',
+              wordBreak: 'keep-all',
+              lineHeight: 1.4,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              textAlign: 'center',
+              minHeight: '56px',
+              fontFamily: 'inherit',
             }}
           >
             성공 이미지 만들기
@@ -756,15 +808,22 @@ export default function HomePage() {
           <button
             onClick={() => router.push('/games')}
             style={{
-              flex: 1,
-              padding: '12px 4px',
+              padding: '12px 6px',
               background: 'var(--color-bg-card)',
-              border: '1px solid var(--color-border)',
+              border: '1.5px solid var(--color-accent-primary)',
               borderRadius: '12px',
-              color: 'var(--color-text-secondary)',
+              color: 'var(--color-accent-primary)',
               fontSize: '12px',
-              fontWeight: 500,
+              fontWeight: 600,
               cursor: 'pointer',
+              wordBreak: 'keep-all',
+              lineHeight: 1.4,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              textAlign: 'center',
+              minHeight: '56px',
+              fontFamily: 'inherit',
             }}
           >
             게임하기
