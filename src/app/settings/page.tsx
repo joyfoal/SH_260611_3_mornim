@@ -1453,7 +1453,7 @@ export default function SettingsPage() {
                         }}
                       >
                         <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: chipBg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                          <btn.icon size={19} strokeWidth={1.9} color="var(--color-accent-primary)" />
+                          <btn.icon size={19} strokeWidth={1.9} color="var(--color-text-secondary)" />
                         </div>
                         <span style={{ fontSize: '15px', fontWeight: 600, color: 'var(--color-text-primary)' }}>
                           {btn.label}
