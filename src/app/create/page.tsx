@@ -35,16 +35,17 @@ export default function CreatePage() {
   const [addCatMode, setAddCatMode] = useState(false)
   const [newCatName, setNewCatName] = useState('')
 
-  // Voice input state
-  const [isListening, setIsListening] = useState(false)
+  // Voice input state (per tab)
+  const [isListeningDirect, setIsListeningDirect] = useState(false)
+  const [isListeningAI, setIsListeningAI] = useState(false)
+  const [isListeningChat, setIsListeningChat] = useState(false)
   const recognitionRef = useRef<{ stop: () => void } | null>(null)
 
-  const toggleVoiceInput = () => {
-    if (isListening) {
-      recognitionRef.current?.stop()
-      setIsListening(false)
-      return
-    }
+  const startVoiceInput = (
+    onResult: (text: string) => void,
+    setListening: (v: boolean) => void
+  ) => {
+    recognitionRef.current?.stop()
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const w = window as any
     const SpeechRec = w.SpeechRecognition ?? w.webkitSpeechRecognition
@@ -55,15 +56,25 @@ export default function CreatePage() {
     rec.continuous = false
     rec.interimResults = false
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    rec.onresult = (e: any) => {
-      const text: string = e.results[0][0].transcript
-      setDirectText((prev) => prev ? prev + ' ' + text : text)
-    }
-    rec.onend = () => setIsListening(false)
-    rec.onerror = () => setIsListening(false)
+    rec.onresult = (e: any) => { onResult(e.results[0][0].transcript) }
+    rec.onend = () => setListening(false)
+    rec.onerror = () => setListening(false)
     rec.start()
     recognitionRef.current = rec
-    setIsListening(true)
+    setListening(true)
+  }
+
+  const toggleVoiceInput = (
+    isListening: boolean,
+    setListening: (v: boolean) => void,
+    onResult: (text: string) => void
+  ) => {
+    if (isListening) {
+      recognitionRef.current?.stop()
+      setListening(false)
+    } else {
+      startVoiceInput(onResult, setListening)
+    }
   }
 
   // AI recommend state
@@ -304,12 +315,16 @@ export default function CreatePage() {
                 }}
               />
               <button
-                onClick={toggleVoiceInput}
+                onClick={() => toggleVoiceInput(
+                  isListeningDirect,
+                  setIsListeningDirect,
+                  (text) => setDirectText((prev) => prev ? prev + ' ' + text : text)
+                )}
                 style={{
                   position: 'absolute',
                   top: '10px',
                   right: '10px',
-                  background: isListening ? '#E53935' : 'var(--color-bg-surface)',
+                  background: isListeningDirect ? '#E53935' : 'var(--color-bg-surface)',
                   border: '1px solid var(--color-border)',
                   borderRadius: '8px',
                   padding: '6px',
@@ -319,9 +334,9 @@ export default function CreatePage() {
                   justifyContent: 'center',
                   transition: 'background 0.2s',
                 }}
-                title={isListening ? '듣는 중 — 탭하여 중지' : '음성으로 입력'}
+                title={isListeningDirect ? '듣는 중 — 탭하여 중지' : '음성으로 입력'}
               >
-                <Mic size={16} color={isListening ? 'white' : 'var(--color-text-muted)'} />
+                <Mic size={16} color={isListeningDirect ? 'white' : 'var(--color-text-muted)'} />
               </button>
             </div>
 
@@ -492,24 +507,49 @@ export default function CreatePage() {
         {/* AI recommend tab */}
         {activeTab === 'AI 추천' && (
           <div>
-            <textarea
-              value={aiPrompt}
-              onChange={(e) => setAiPrompt(e.target.value)}
-              placeholder="어떤 고민이나 감정을 담고 싶으신가요?"
-              rows={3}
-              style={{
-                width: '100%',
-                padding: '14px',
-                background: 'var(--color-bg-card)',
-                border: '1px solid var(--color-border)',
-                borderRadius: '12px',
-                fontSize: '15px',
-                color: 'var(--color-text-primary)',
-                resize: 'none',
-                outline: 'none',
-                marginBottom: '16px',
-              }}
-            />
+            <div style={{ position: 'relative', marginBottom: '16px' }}>
+              <textarea
+                value={aiPrompt}
+                onChange={(e) => setAiPrompt(e.target.value)}
+                placeholder="어떤 고민이나 감정을 담고 싶으신가요?"
+                rows={3}
+                style={{
+                  width: '100%',
+                  padding: '14px 44px 14px 14px',
+                  background: 'var(--color-bg-card)',
+                  border: '1px solid var(--color-border)',
+                  borderRadius: '12px',
+                  fontSize: '15px',
+                  color: 'var(--color-text-primary)',
+                  resize: 'none',
+                  outline: 'none',
+                }}
+              />
+              <button
+                onClick={() => toggleVoiceInput(
+                  isListeningAI,
+                  setIsListeningAI,
+                  (text) => setAiPrompt((prev) => prev ? prev + ' ' + text : text)
+                )}
+                style={{
+                  position: 'absolute',
+                  top: '10px',
+                  right: '10px',
+                  background: isListeningAI ? '#E53935' : 'var(--color-bg-surface)',
+                  border: '1px solid var(--color-border)',
+                  borderRadius: '8px',
+                  padding: '6px',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  transition: 'background 0.2s',
+                }}
+                title={isListeningAI ? '듣는 중 — 탭하여 중지' : '음성으로 입력'}
+              >
+                <Mic size={16} color={isListeningAI ? 'white' : 'var(--color-text-muted)'} />
+              </button>
+            </div>
 
             <div className="flex flex-wrap gap-2 mb-3">
               {categories.map((cat) => (
@@ -766,6 +806,26 @@ export default function CreatePage() {
                   outline: 'none',
                 }}
               />
+              <button
+                onClick={() => toggleVoiceInput(
+                  isListeningChat,
+                  setIsListeningChat,
+                  (text) => setChatInput((prev) => prev ? prev + ' ' + text : text)
+                )}
+                style={{
+                  padding: '12px',
+                  background: isListeningChat ? '#E53935' : 'var(--color-bg-card)',
+                  border: '1px solid var(--color-border)',
+                  borderRadius: '12px',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  transition: 'background 0.2s',
+                }}
+                title={isListeningChat ? '듣는 중 — 탭하여 중지' : '음성으로 입력'}
+              >
+                <Mic size={16} color={isListeningChat ? 'white' : 'var(--color-text-muted)'} />
+              </button>
               <button
                 onClick={handleChatSend}
                 disabled={!chatInput.trim() || chatLoading}

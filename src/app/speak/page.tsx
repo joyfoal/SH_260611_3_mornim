@@ -457,9 +457,13 @@ function SpeakPageInner() {
 
   // ── 반복하기 ──────────────────────────────────────────────────────
   const handleRepeat = useCallback(() => {
+    const today = todayStr()
     const all = getAffirmations()
     if (all.length === 0) return
-    const shuffled = [...all].sort(() => Math.random() - 0.5)
+    // 오늘 아직 말하지 않은 것만 반복 대상; 모두 완료됐으면 전체 사용
+    const notDoneToday = all.filter((a) => !a.completedDates.includes(today))
+    const pool = notDoneToday.length > 0 ? notDoneToday : all
+    const shuffled = [...pool].sort(() => Math.random() - 0.5)
     const first3 = shuffled.slice(0, 3)
     const rest = shuffled.slice(3)
     sessionStorage.setItem('mornim-repeat-remaining', JSON.stringify(rest.map((a) => a.id)))

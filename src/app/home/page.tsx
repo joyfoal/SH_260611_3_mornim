@@ -684,8 +684,8 @@ export default function HomePage() {
               )}
             </div>
             <div style={{ textAlign: 'right' }}>
-              <div style={{ fontSize: '20px', fontWeight: 700, color: 'var(--color-accent-primary)' }}>
-                {todayCount}회
+              <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--color-accent-primary)' }}>
+                성공의 말 {todayCount}개
               </div>
               <div style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>오늘 완료</div>
             </div>
