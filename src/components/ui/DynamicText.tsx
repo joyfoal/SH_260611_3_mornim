@@ -59,10 +59,10 @@ function DarkReadingText({ text }: { text: string }) {
           <span
             key={i}
             style={{
-              fontSize: '39px',
+              fontSize: '52px',
               fontWeight: 800,
-              letterSpacing: '-0.8px',
-              lineHeight: 1.1,
+              letterSpacing: '1px',
+              lineHeight: 1.15,
               color: isCurrent ? 'var(--color-text-onDark)' : 'var(--color-accent-light)',
               opacity: isRead ? 0.55 : isCurrent ? 1 : 0.85,
               textShadow: isCurrent ? '0 0 24px rgba(232,200,120,.35)' : 'none',
