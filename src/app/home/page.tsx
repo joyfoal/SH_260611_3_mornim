@@ -704,7 +704,7 @@ export default function HomePage() {
             </div>
             {streakData.shields > 0 && (
               <div style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>
-                🛡 스트릭 보호막 {streakData.shields}개
+                🛡 연속 기록 보호막 {streakData.shields}개
               </div>
             )}
           </div>
