@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { CATEGORIES } from '@/lib/categories'
-import { saveAffirmation, setOnboarded, saveTodayAffirmationIds, saveAlarmSettings, saveDayRecord, todayStr, saveStreakData } from '@/lib/storage'
+import { saveAffirmation, setOnboarded, saveTodayAffirmationIds, saveAlarmSettings, saveDayRecord, todayStr, saveStreakData, saveCategories } from '@/lib/storage'
 import { saveAudioRecord } from '@/lib/audioStorage'
 import { useTheme } from '@/lib/themeContext'
 
@@ -495,6 +495,7 @@ export default function OnboardingPage() {
     })
 
     saveTodayAffirmationIds(ids.slice(0, 3))
+    saveCategories(cats)
     saveStreakData({ currentStreak: 0, lastCompletedDate: null, shields: 1 })
     setTheme('warm')
     setOnboarded()
