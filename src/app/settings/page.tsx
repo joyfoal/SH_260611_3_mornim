@@ -1393,8 +1393,8 @@ const BUTTONS: { id: string; icon: LucideIcon; label: string; danger?: boolean }
   { id: 'backup',   icon: UploadCloud, label: '백업' },
   { id: 'category', icon: Folder,     label: '카테고리' },
   { id: 'trash',    icon: RotateCcw,  label: '휴지통' },
-  { id: 'delete',   icon: Trash2,     label: '지우기', danger: true },
   { id: 'manual',   icon: BookOpen,   label: '설명서' },
+  { id: 'delete',   icon: Trash2,     label: '지우기', danger: true },
 ]
 
 function renderPanel(id: string) {
