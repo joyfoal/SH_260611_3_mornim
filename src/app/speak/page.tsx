@@ -263,6 +263,12 @@ function SpeakPageInner() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [screen, startCamera, startSTT])
 
+  const stopReRecord = useCallback(() => {
+    if (reRecordRecorderRef.current && reRecordRecorderRef.current.state !== 'inactive') {
+      reRecordRecorderRef.current.stop()
+    }
+  }, [])
+
   const handleComplete = useCallback(() => {
     if (!affirmation) return
     if (reRecordState === 'recording') {
@@ -351,12 +357,6 @@ function SpeakPageInner() {
       reRecordRecorderRef.current = recorder
       setReRecordState('recording')
     } catch { /* mic denied */ }
-  }, [])
-
-  const stopReRecord = useCallback(() => {
-    if (reRecordRecorderRef.current && reRecordRecorderRef.current.state !== 'inactive') {
-      reRecordRecorderRef.current.stop()
-    }
   }, [])
 
   const saveReRecord = useCallback(async () => {
