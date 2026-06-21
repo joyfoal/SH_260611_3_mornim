@@ -699,23 +699,17 @@ export default function HomePage() {
 
         {/* Stats */}
         <div style={{ margin: '0 16px 16px', padding: '12px 16px', background: 'var(--color-bg-card)', borderRadius: '16px', display: 'flex', alignItems: 'center', gap: '12px' }}>
-          {streakData.currentStreak > 0 ? (
-            <>
-              <span style={{ fontSize: '24px' }}>🔥</span>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: '16px', fontWeight: 600, color: 'var(--color-text-primary)' }}>
-                  {streakData.currentStreak}일 연속
-                </div>
-                {streakData.shields > 0 && (
-                  <div style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>
-                    🛡 스트릭 보호막 {streakData.shields}개
-                  </div>
-                )}
+          <span style={{ fontSize: '24px' }}>🔥</span>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: '16px', fontWeight: 600, color: 'var(--color-text-primary)' }}>
+              {streakData.currentStreak}일 연속
+            </div>
+            {streakData.shields > 0 && (
+              <div style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>
+                🛡 스트릭 보호막 {streakData.shields}개
               </div>
-            </>
-          ) : (
-            <div style={{ flex: 1 }} />
-          )}
+            )}
+          </div>
           <div style={{ display: 'flex', gap: '16px' }}>
             <div style={{ textAlign: 'center' }}>
               <div style={{ fontSize: '16px', fontWeight: 700, color: 'var(--color-accent-primary)' }}>{todayCount}</div>
