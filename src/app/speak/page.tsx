@@ -177,7 +177,7 @@ function SpeakPageInner() {
                 affirmationText: aff.text,
                 blob,
                 createdAt: Date.now(),
-                keepForever: false,
+                keepForever: true,
               })
             } catch { /* ignore */ }
           }
