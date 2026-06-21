@@ -381,41 +381,39 @@ function AlarmPanel() {
       <p style={{ fontSize: '15px', fontWeight: 600, color: 'var(--color-text-primary)', marginBottom: '16px' }}>알림 설정</p>
 
       {/* 알림 권한 */}
-      {!notifSupported ? (
-        <div style={{ padding: '12px 14px', background: 'color-mix(in srgb, var(--color-accent-light) 20%, var(--color-bg-primary))', borderRadius: '12px', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: chipBg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-            <Bell size={16} color="var(--color-accent-primary)" />
+      {notifPerm !== 'granted' && (
+        !notifSupported ? (
+          <div style={{ padding: '12px 14px', background: 'color-mix(in srgb, var(--color-accent-light) 20%, var(--color-bg-primary))', borderRadius: '12px', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: chipBg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <Bell size={16} color="var(--color-accent-primary)" />
+            </div>
+            <p style={{ fontSize: '12px', color: 'var(--color-text-muted)', lineHeight: 1.4 }}>이 브라우저는 알림을 지원하지 않아요.<br />홈 화면에 추가 후 사용해보세요.</p>
           </div>
-          <p style={{ fontSize: '12px', color: 'var(--color-text-muted)', lineHeight: 1.4 }}>이 브라우저는 알림을 지원하지 않아요.<br />홈 화면에 추가 후 사용해보세요.</p>
-        </div>
-      ) : (
-        <div style={{ padding: '12px 14px', background: notifPerm === 'denied' ? '#FFF0EE' : notifPerm === 'granted' ? '#F0FBF0' : 'color-mix(in srgb, var(--color-accent-light) 35%, var(--color-bg-primary))', borderRadius: '12px', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: notifPerm === 'denied' ? '#FFDDD9' : notifPerm === 'granted' ? '#C8F0C8' : chipBg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-            {notifPerm === 'denied' ? <Ban size={16} color="#E53935" /> : notifPerm === 'granted' ? <Check size={16} color="#2E7D32" /> : <Bell size={16} color="var(--color-accent-primary)" />}
+        ) : (
+          <div style={{ padding: '12px 14px', background: notifPerm === 'denied' ? '#FFF0EE' : 'color-mix(in srgb, var(--color-accent-light) 35%, var(--color-bg-primary))', borderRadius: '12px', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: notifPerm === 'denied' ? '#FFDDD9' : chipBg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              {notifPerm === 'denied' ? <Ban size={16} color="#E53935" /> : <Bell size={16} color="var(--color-accent-primary)" />}
+            </div>
+            <div style={{ flex: 1 }}>
+              <p style={{ fontSize: '13px', fontWeight: 600, color: notifPerm === 'denied' ? '#E53935' : 'var(--color-accent-primary)' }}>
+                {notifPerm === 'denied' ? '알림 차단됨' : '알림 권한 필요'}
+              </p>
+              <p style={{ fontSize: '11px', color: 'var(--color-text-muted)', marginTop: '1px' }}>
+                {notifPerm === 'denied' ? '기기 설정 → 브라우저 → 알림에서 허용해주세요' : '알림을 받으려면 권한을 허용해주세요'}
+              </p>
+            </div>
+            {notifPerm === 'default' && (
+              <button onClick={requestPermission} style={{ padding: '7px 14px', background: 'var(--color-accent-primary)', color: 'white', border: 'none', borderRadius: '10px', fontSize: '12px', fontWeight: 600, cursor: 'pointer', flexShrink: 0 }}>
+                허용
+              </button>
+            )}
+            {notifPerm === 'denied' && (
+              <button onClick={() => { if ('Notification' in window) setNotifPerm(Notification.permission) }} style={{ padding: '7px 12px', background: 'transparent', border: '1px solid #E53935', borderRadius: '10px', fontSize: '11px', fontWeight: 600, color: '#E53935', cursor: 'pointer', flexShrink: 0 }}>
+                다시 확인
+              </button>
+            )}
           </div>
-          <div style={{ flex: 1 }}>
-            <p style={{ fontSize: '13px', fontWeight: 600, color: notifPerm === 'denied' ? '#E53935' : notifPerm === 'granted' ? '#2E7D32' : 'var(--color-accent-primary)' }}>
-              {notifPerm === 'granted' ? '알림 허용됨' : notifPerm === 'denied' ? '알림 차단됨' : '알림 권한 필요'}
-            </p>
-            <p style={{ fontSize: '11px', color: 'var(--color-text-muted)', marginTop: '1px' }}>
-              {notifPerm === 'denied'
-                ? '기기 설정 → 브라우저 → 알림에서 허용해주세요'
-                : notifPerm === 'granted'
-                ? '백그라운드에서도 알림을 받을 수 있어요'
-                : '알림을 받으려면 권한을 허용해주세요'}
-            </p>
-          </div>
-          {notifPerm === 'default' && (
-            <button onClick={requestPermission} style={{ padding: '7px 14px', background: 'var(--color-accent-primary)', color: 'white', border: 'none', borderRadius: '10px', fontSize: '12px', fontWeight: 600, cursor: 'pointer', flexShrink: 0 }}>
-              허용
-            </button>
-          )}
-          {notifPerm === 'denied' && (
-            <button onClick={() => { if ('Notification' in window) setNotifPerm(Notification.permission) }} style={{ padding: '7px 12px', background: 'transparent', border: '1px solid #E53935', borderRadius: '10px', fontSize: '11px', fontWeight: 600, color: '#E53935', cursor: 'pointer', flexShrink: 0 }}>
-              다시 확인
-            </button>
-          )}
-        </div>
+        )
       )}
 
       {/* 설정된 알림 카드 목록 */}
