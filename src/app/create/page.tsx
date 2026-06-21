@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { AppLayout } from '@/components/ui/AppLayout'
 import type { CategoryName } from '@/lib/categories'
-import { saveAffirmation, getCategories, saveCategories, getTodayAffirmationIds, saveTodayAffirmationIds, type AffirmationCategory } from '@/lib/storage'
+import { saveAffirmation, getAffirmations, getCategories, saveCategories, getTodayAffirmationIds, saveTodayAffirmationIds, type AffirmationCategory } from '@/lib/storage'
 import { Mic } from 'lucide-react'
 
 type Tab = '직접 입력' | 'AI 추천' | 'Talk Mode'
@@ -30,6 +30,7 @@ export default function CreatePage() {
   const [directSaving, setDirectSaving] = useState(false)
   const [negativeBanner, setNegativeBanner] = useState<{ alternative: string } | null>(null)
   const [savedMsg, setSavedMsg] = useState('')
+  const [msgType, setMsgType] = useState<'success' | 'duplicate'>('success')
 
   // Category add state
   const [addCatMode, setAddCatMode] = useState(false)
@@ -123,7 +124,18 @@ export default function CreatePage() {
     setAddCatMode(false)
   }
 
+  const showToast = (msg: string, type: 'success' | 'duplicate') => {
+    setMsgType(type)
+    setSavedMsg(msg)
+    setTimeout(() => setSavedMsg(''), 2500)
+  }
+
   const doSave = (text: string, category: CategoryName) => {
+    const existing = getAffirmations()
+    if (existing.some((a) => a.text.trim() === text.trim())) {
+      showToast('이미 같은 성공의 말이 있어요', 'duplicate')
+      return
+    }
     const newId = `aff-${Date.now()}-${Math.random().toString(36).slice(2)}`
     saveAffirmation({
       id: newId,
@@ -132,15 +144,13 @@ export default function CreatePage() {
       createdAt: new Date().toISOString(),
       completedDates: [],
     })
-    // Add to today's queue so home page shows it immediately
     const currentIds = getTodayAffirmationIds()
     if (!currentIds.includes(newId)) {
       saveTodayAffirmationIds([...currentIds, newId])
     }
     setDirectText('')
     setNegativeBanner(null)
-    setSavedMsg('저장되었어요!')
-    setTimeout(() => setSavedMsg(''), 2000)
+    showToast('저장되었어요!', 'success')
   }
 
   const handleAIRecommend = async () => {
@@ -161,26 +171,24 @@ export default function CreatePage() {
   }
 
   const handleAISave = (text: string) => {
-    if (!aiCategory && !directCategory) {
-      const cat = '나 자신' as CategoryName
-      saveAffirmation({
-        id: `aff-${Date.now()}-${Math.random().toString(36).slice(2)}`,
-        text,
-        category: cat as AffirmationCategory,
-        createdAt: new Date().toISOString(),
-        completedDates: [],
-      })
-    } else {
-      saveAffirmation({
-        id: `aff-${Date.now()}-${Math.random().toString(36).slice(2)}`,
-        text,
-        category: (aiCategory ?? '나 자신') as AffirmationCategory,
-        createdAt: new Date().toISOString(),
-        completedDates: [],
-      })
+    const existing = getAffirmations()
+    if (existing.some((a) => a.text.trim() === text.trim())) {
+      showToast('이미 같은 성공의 말이 있어요', 'duplicate')
+      return
     }
-    setSavedMsg('저장되었어요!')
-    setTimeout(() => setSavedMsg(''), 2000)
+    const newId = `aff-${Date.now()}-${Math.random().toString(36).slice(2)}`
+    saveAffirmation({
+      id: newId,
+      text,
+      category: (aiCategory ?? '나 자신') as AffirmationCategory,
+      createdAt: new Date().toISOString(),
+      completedDates: [],
+    })
+    const currentIds = getTodayAffirmationIds()
+    if (!currentIds.includes(newId)) {
+      saveTodayAffirmationIds([...currentIds, newId])
+    }
+    showToast('저장되었어요!', 'success')
   }
 
   const handleChatSend = async () => {
@@ -279,13 +287,19 @@ export default function CreatePage() {
         {savedMsg && (
           <div
             style={{
-              padding: '12px',
-              background: '#E8F5E9',
-              borderRadius: '10px',
-              color: '#2E7D32',
+              position: 'fixed',
+              bottom: '80px',
+              left: '50%',
+              transform: 'translateX(-50%)',
+              padding: '12px 24px',
+              background: msgType === 'success' ? '#2E7D32' : '#E65100',
+              borderRadius: '24px',
+              color: 'white',
               fontSize: '14px',
-              marginBottom: '12px',
-              textAlign: 'center',
+              fontWeight: 600,
+              zIndex: 9999,
+              boxShadow: '0 4px 16px rgba(0,0,0,0.25)',
+              whiteSpace: 'nowrap',
             }}
           >
             {savedMsg}

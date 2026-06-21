@@ -59,6 +59,7 @@ function SpeakPageInner() {
   const reRecordRecorderRef = useRef<MediaRecorder | null>(null)
   const reRecordChunksRef = useRef<Blob[]>([])
   const reRecordStreamRef = useRef<MediaStream | null>(null)
+  const prewarmStreamRef = useRef<MediaStream | null>(null)
 
   const [isRecording, setIsRecording] = useState(false)
 
@@ -124,6 +125,17 @@ function SpeakPageInner() {
     return () => clearTimeout(timer)
   }, [dataLoaded, affirmation, router])
 
+  // 오디오 스트림 사전 확보 — 화면 전환 전에 미리 권한 획득
+  useEffect(() => {
+    navigator.mediaDevices.getUserMedia({ audio: true })
+      .then((stream) => { prewarmStreamRef.current = stream })
+      .catch(() => {})
+    return () => {
+      prewarmStreamRef.current?.getTracks().forEach((t) => t.stop())
+      prewarmStreamRef.current = null
+    }
+  }, [])
+
   const stopMediaRecorder = useCallback(() => {
     if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
       mediaRecorderRef.current.stop()
@@ -142,7 +154,9 @@ function SpeakPageInner() {
 
     if (!hasExistingRecordingRef.current) {
       try {
-        const audioStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false })
+        const audioStream = prewarmStreamRef.current
+          ?? await navigator.mediaDevices.getUserMedia({ audio: true, video: false })
+        prewarmStreamRef.current = null
         audioStreamRef.current = audioStream
         const mimeType = getSupportedMimeType()
         const recorder = new MediaRecorder(audioStream, mimeType ? { mimeType } : undefined)
@@ -341,7 +355,9 @@ function SpeakPageInner() {
   // ── 다시 녹음 ──────────────────────────────────────────────────────
   const startReRecord = useCallback(async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      const stream = prewarmStreamRef.current
+        ?? await navigator.mediaDevices.getUserMedia({ audio: true })
+      prewarmStreamRef.current = null
       reRecordStreamRef.current = stream
       const mimeType = getSupportedMimeType()
       const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined)
