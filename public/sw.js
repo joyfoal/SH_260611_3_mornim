@@ -4,31 +4,37 @@ const CACHE_NAME = 'mornim-v1'
 self.addEventListener('install', () => self.skipWaiting())
 self.addEventListener('activate', (e) => e.waitUntil(self.clients.claim()))
 
-// Alarm timer handle
-let alarmTimer = null
+// Multiple alarm timers keyed by alarm id
+const alarmTimers = {}
 
 self.addEventListener('message', (event) => {
   const { type } = event.data ?? {}
 
   if (type === 'SCHEDULE_ALARM') {
-    const { delayMs, title, body } = event.data
-    if (alarmTimer) clearTimeout(alarmTimer)
+    const { id = 'default', delayMs, title, body } = event.data
+    if (alarmTimers[id]) clearTimeout(alarmTimers[id])
     if (delayMs <= 0) return
-    alarmTimer = setTimeout(() => {
+    alarmTimers[id] = setTimeout(() => {
       self.registration.showNotification(title, {
         body,
         icon: '/mornim.png',
         badge: '/mornim.png',
-        tag: 'mornim-alarm',
+        tag: `mornim-alarm-${id}`,
         renotify: true,
         requireInteraction: true,
       })
-      alarmTimer = null
+      delete alarmTimers[id]
     }, delayMs)
   }
 
   if (type === 'CANCEL_ALARM') {
-    if (alarmTimer) { clearTimeout(alarmTimer); alarmTimer = null }
+    Object.values(alarmTimers).forEach((t) => clearTimeout(t))
+    Object.keys(alarmTimers).forEach((k) => delete alarmTimers[k])
+  }
+
+  if (type === 'CANCEL_ALARM_BY_ID') {
+    const { id } = event.data
+    if (alarmTimers[id]) { clearTimeout(alarmTimers[id]); delete alarmTimers[id] }
   }
 })
 

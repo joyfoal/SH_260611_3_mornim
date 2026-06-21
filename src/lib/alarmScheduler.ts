@@ -1,4 +1,4 @@
-import { getAlarmSettings, getAffirmations, type AlarmSettings } from './storage'
+import { getAlarmList, getAffirmations, type AlarmSettings } from './storage'
 
 export async function registerSW(): Promise<ServiceWorkerRegistration | null> {
   if (typeof window === 'undefined' || !('serviceWorker' in navigator)) return null
@@ -30,37 +30,41 @@ function getNextAlarmDate(alarm: AlarmSettings): Date | null {
   return null
 }
 
-export async function scheduleAlarm(): Promise<void> {
-  if (typeof window === 'undefined' || !('serviceWorker' in navigator)) return
-  const alarm = getAlarmSettings()
-  if (!alarm?.affirmationId) return
-
+async function getSW(): Promise<ServiceWorker | null> {
+  if (typeof window === 'undefined' || !('serviceWorker' in navigator)) return null
   let reg = await navigator.serviceWorker.getRegistration('/')
   if (!reg) reg = (await registerSW()) ?? undefined
-  if (!reg) return
+  if (!reg) return null
+  return reg.active ?? reg.installing ?? reg.waiting ?? null
+}
 
-  const sw = reg.active ?? reg.installing ?? reg.waiting
+export async function scheduleAlarm(): Promise<void> {
+  const sw = await getSW()
   if (!sw) return
 
-  const nextTime = getNextAlarmDate(alarm)
-  if (!nextTime) return
+  const list = getAlarmList()
+  const affirmations = getAffirmations()
 
-  const delayMs = nextTime.getTime() - Date.now()
-  const affirmation = getAffirmations().find((a) => a.id === alarm.affirmationId)
-  const body = affirmation?.text ?? '성공의 말을 확인해보세요'
+  // Cancel all existing, then reschedule from list
+  sw.postMessage({ type: 'CANCEL_ALARM' })
 
-  sw.postMessage({
-    type: 'SCHEDULE_ALARM',
-    delayMs,
-    title: '모님 ✨',
-    body,
-  })
+  for (const alarm of list) {
+    if (!alarm.affirmationId) continue
+    const nextTime = getNextAlarmDate(alarm)
+    if (!nextTime) continue
+    const delayMs = nextTime.getTime() - Date.now()
+    const affirmation = affirmations.find((a) => a.id === alarm.affirmationId)
+    const body = affirmation?.text ?? '성공의 말을 확인해보세요'
+    sw.postMessage({ type: 'SCHEDULE_ALARM', id: alarm.id, delayMs, title: '모님 ✨', body })
+  }
 }
 
 export async function cancelAlarm(): Promise<void> {
-  if (typeof window === 'undefined' || !('serviceWorker' in navigator)) return
-  const reg = await navigator.serviceWorker.getRegistration('/')
-  if (!reg) return
-  const sw = reg.active ?? reg.installing ?? reg.waiting
+  const sw = await getSW()
   sw?.postMessage({ type: 'CANCEL_ALARM' })
+}
+
+export async function cancelAlarmById(id: string): Promise<void> {
+  const sw = await getSW()
+  sw?.postMessage({ type: 'CANCEL_ALARM_BY_ID', id })
 }

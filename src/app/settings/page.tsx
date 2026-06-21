@@ -9,11 +9,12 @@ import {
   getAffirmations, updateAffirmation, clearAllData,
   getCategories, saveCategories,
   getAlarmSettings, saveAlarmSettings, clearAlarmSettings,
+  getAlarmList, saveAlarmList, deleteAlarmById,
   getTrash, restoreFromTrash, emptyTrash,
   getCalendar, getStreakData, saveStreakData,
   getHomeDisplaySettings, setHomeDisplaySetting, deleteDayRecord,
   todayStr,
-  type AlarmSettings, type Affirmation,
+  type AlarmSettings, type AlarmEntry, type Affirmation,
 } from '@/lib/storage'
 import {
   getAudioRecords, setAudioKeepForever, clearAllAudioRecords,
@@ -259,7 +260,8 @@ function CustomSelect({ value, onChange, options, width }: {
 }
 
 function AlarmPanel() {
-  const [alarm, setAlarm] = useState<AlarmSettings | null>(null)
+  const [alarmList, setAlarmList] = useState<AlarmEntry[]>([])
+  const [editingId, setEditingId] = useState<string | null>(null) // null=닫힘, 'new'=새 알람, id=편집
   const [affirmations, setAffirmations] = useState<Affirmation[]>([])
   const [categories, setCategories] = useState<string[]>([])
   const [audioMap, setAudioMap] = useState<Record<string, AudioRecord>>({})
@@ -276,19 +278,8 @@ function AlarmPanel() {
   const audioRef = useRef<HTMLAudioElement | null>(null)
 
   useEffect(() => {
-    const current = getAlarmSettings()
-    setAlarm(current)
-    if (current) {
-      setSelectedAffId(current.affirmationId ?? '')
-      setHour(current.hour)
-      setMinute(current.minute)
-      setRepeatDays(current.repeatDays ?? [])
-      setEndType(current.endType ?? 'none')
-      setEndDate(current.endDate ?? '')
-      setEndCount(current.endCount ?? 30)
-    }
-    const affs = getAffirmations()
-    setAffirmations(affs)
+    setAlarmList(getAlarmList())
+    setAffirmations(getAffirmations())
     setCategories(getCategories())
     getAudioRecords().then((recs) => {
       const map: Record<string, AudioRecord> = {}
@@ -319,44 +310,72 @@ function AlarmPanel() {
     audio.play().catch(() => URL.revokeObjectURL(url))
   }
 
+  const openNew = () => {
+    setEditingId('new')
+    setSelectedAffId(''); setSelectedCategory(null)
+    setHour(7); setMinute(0); setRepeatDays([])
+    setEndType('none'); setEndDate(''); setEndCount(30)
+  }
+
+  const openEdit = (entry: AlarmEntry) => {
+    setEditingId(entry.id)
+    setSelectedAffId(entry.affirmationId ?? '')
+    setHour(entry.hour); setMinute(entry.minute)
+    setRepeatDays(entry.repeatDays ?? [])
+    setEndType(entry.endType ?? 'none')
+    setEndDate(entry.endDate ?? ''); setEndCount(entry.endCount ?? 30)
+    const aff = affirmations.find((a) => a.id === entry.affirmationId)
+    if (aff) setSelectedCategory(aff.category)
+  }
+
   const handleSave = async () => {
     if (!selectedAffId) return
     setSaving(true)
     if ('Notification' in window && Notification.permission !== 'granted') {
       setNotifPerm(await Notification.requestPermission())
     }
-    const settings: AlarmSettings = {
-      affirmationId: selectedAffId,
-      hour, minute, repeatDays, endType,
+    const id = editingId === 'new' ? `alarm-${Date.now()}` : editingId!
+    const entry: AlarmEntry = {
+      id, affirmationId: selectedAffId, hour, minute, repeatDays, endType,
       endDate: endType === 'date' ? endDate : '',
       endCount: endType === 'count' ? endCount : 0,
-      firedCount: alarm?.firedCount ?? 0,
+      firedCount: alarmList.find((a) => a.id === id)?.firedCount ?? 0,
     }
-    saveAlarmSettings(settings)
-    setAlarm(settings)
+    const updated = editingId === 'new'
+      ? [...alarmList, entry]
+      : alarmList.map((a) => a.id === id ? entry : a)
+    saveAlarmList(updated)
+    setAlarmList(updated)
+    setEditingId(null)
     import('@/lib/alarmScheduler').then(({ scheduleAlarm }) => scheduleAlarm())
     setSaving(false)
   }
 
-  const handleClear = () => {
-    clearAlarmSettings(); setAlarm(null)
-    import('@/lib/alarmScheduler').then(({ cancelAlarm }) => cancelAlarm())
+  const handleDelete = (id: string) => {
+    deleteAlarmById(id)
+    setAlarmList((prev) => prev.filter((a) => a.id !== id))
+    if (editingId === id) setEditingId(null)
+    import('@/lib/alarmScheduler').then(({ cancelAlarmById }) => cancelAlarmById(id))
   }
 
   const fmtHour = (h: number) => `${h < 12 ? '오전' : '오후'} ${((h + 11) % 12) + 1}시`
+  const fmtTime = (entry: AlarmEntry) => `${fmtHour(entry.hour)} ${String(entry.minute).padStart(2, '0')}분`
+  const fmtDays = (days: number[]) => {
+    if (!days || days.length === 0) return '매일'
+    const sorted = [...days].sort()
+    return sorted.map((d) => DAY_LABELS[d]).join('')
+  }
   const catAffs = selectedCategory ? affirmations.filter((a) => a.category === selectedCategory) : []
   const selectedAff = affirmations.find((a) => a.id === selectedAffId)
+  const chipBg = 'color-mix(in srgb, var(--color-accent-light) 28%, var(--color-bg-card))'
 
   return (
     <Panel>
-      <p style={{ fontSize: '15px', fontWeight: 600, color: 'var(--color-text-primary)', marginBottom: '4px' }}>알림 설정</p>
-      <p style={{ fontSize: '12px', color: 'var(--color-text-muted)', marginBottom: '16px' }}>
-        {alarm ? `${fmtHour(alarm.hour)} ${String(alarm.minute).padStart(2, '0')}분 알림 설정됨` : '설정된 알림 없음'}
-      </p>
+      <p style={{ fontSize: '15px', fontWeight: 600, color: 'var(--color-text-primary)', marginBottom: '16px' }}>알림 설정</p>
 
       {/* 알림 권한 */}
-      <div style={{ padding: '12px 14px', background: notifPerm === 'denied' ? '#FFF0EE' : notifPerm === 'granted' ? '#F0FBF0' : 'var(--color-accent-light)', borderRadius: '12px', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-        <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: notifPerm === 'denied' ? '#FFDDD9' : notifPerm === 'granted' ? '#C8F0C8' : 'var(--color-accent-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+      <div style={{ padding: '12px 14px', background: notifPerm === 'denied' ? '#FFF0EE' : notifPerm === 'granted' ? '#F0FBF0' : 'color-mix(in srgb, var(--color-accent-light) 35%, var(--color-bg-primary))', borderRadius: '12px', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+        <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: notifPerm === 'denied' ? '#FFDDD9' : notifPerm === 'granted' ? '#C8F0C8' : chipBg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
           {notifPerm === 'denied' ? <Ban size={16} color="#E53935" /> : notifPerm === 'granted' ? <Check size={16} color="#2E7D32" /> : <Bell size={16} color="var(--color-accent-primary)" />}
         </div>
         <div style={{ flex: 1 }}>
@@ -374,122 +393,157 @@ function AlarmPanel() {
         )}
       </div>
 
-      {/* 알림 시간 */}
-      <p style={{ fontSize: '13px', fontWeight: 500, color: 'var(--color-text-muted)', marginBottom: '8px' }}>알림 시간</p>
-      <div style={{ display: 'flex', gap: '8px', marginBottom: '20px' }}>
-        <CustomSelect
-          value={hour}
-          onChange={setHour}
-          options={Array.from({ length: 24 }, (_, i) => ({ value: i, label: fmtHour(i) }))}
-        />
-        <CustomSelect
-          value={minute}
-          onChange={setMinute}
-          options={[0, 10, 20, 30, 40, 50].map((m) => ({ value: m, label: `${String(m).padStart(2, '0')}분` }))}
-          width="110px"
-        />
-      </div>
-
-      {/* 성공의 말 선택 */}
-      <p style={{ fontSize: '13px', fontWeight: 500, color: 'var(--color-text-muted)', marginBottom: '8px' }}>성공의 말 선택</p>
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '10px' }}>
-        {categories.map((cat) => {
-          const on = selectedCategory === cat
-          return (
-            <button key={cat} onClick={() => setSelectedCategory(on ? null : cat)}
-              style={{ padding: '7px 14px', borderRadius: '20px', fontSize: '13px', fontWeight: on ? 700 : 400, cursor: 'pointer', border: on ? '1.5px solid var(--color-accent-primary)' : '1px solid var(--color-border)', background: on ? 'var(--color-accent-primary)' : 'var(--color-bg-primary)', color: on ? '#fff' : 'var(--color-text-secondary)', transition: 'all 0.15s' }}>
-              {cat}
-            </button>
-          )
-        })}
-      </div>
-
-      {selectedCategory && catAffs.length > 0 && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '220px', overflowY: 'auto', marginBottom: '12px' }}>
-          {catAffs.map((aff) => {
-            const hasRec = !!audioMap[aff.id]
-            const isSel = selectedAffId === aff.id
+      {/* 설정된 알람 카드 목록 */}
+      {alarmList.length === 0 && editingId === null && (
+        <div style={{ padding: '20px', textAlign: 'center', color: 'var(--color-text-muted)', fontSize: '13px', background: 'var(--color-bg-primary)', borderRadius: '14px', marginBottom: '12px' }}>
+          설정된 알람이 없어요
+        </div>
+      )}
+      {alarmList.length > 0 && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '12px' }}>
+          {alarmList.map((entry) => {
+            const aff = affirmations.find((a) => a.id === entry.affirmationId)
+            const isEditing = editingId === entry.id
             return (
-              <div key={aff.id} onClick={() => setSelectedAffId(aff.id)}
-                style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px', background: isSel ? 'var(--color-accent-light)' : 'var(--color-bg-primary)', border: isSel ? '1.5px solid var(--color-accent-primary)' : '1px solid var(--color-border)', borderRadius: '10px', cursor: 'pointer' }}>
-                <span style={{ flex: 1, fontSize: '13px', color: 'var(--color-text-primary)', lineHeight: 1.4 }}>{aff.text}</span>
-                {hasRec && (
-                  <button onClick={(e) => { e.stopPropagation(); playPreview(aff.id) }}
-                    style={{ width: '28px', height: '28px', borderRadius: '50%', background: 'var(--color-accent-primary)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                    <span style={{ color: 'white', fontSize: '10px' }}>▶</span>
-                  </button>
-                )}
+              <div key={entry.id} style={{ background: isEditing ? 'color-mix(in srgb, var(--color-accent-light) 18%, var(--color-bg-card))' : 'var(--color-bg-card)', border: isEditing ? '1.5px solid var(--color-accent-primary)' : '1.5px solid transparent', borderRadius: '16px', padding: '14px 16px', display: 'flex', alignItems: 'center', gap: '12px', transition: 'all 0.15s' }}>
+                <div style={{ width: '42px', height: '42px', borderRadius: '12px', background: chipBg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <Bell size={19} strokeWidth={1.8} color="var(--color-accent-primary)" />
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <p style={{ fontSize: '18px', fontWeight: 700, color: 'var(--color-text-primary)', lineHeight: 1.2 }}>{fmtTime(entry)}</p>
+                  <p style={{ fontSize: '12px', color: 'var(--color-text-muted)', marginTop: '3px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {fmtDays(entry.repeatDays)}{aff ? ` · ${aff.category}` : ''}
+                  </p>
+                </div>
+                <button onClick={() => openEdit(entry)} style={{ width: '32px', height: '32px', borderRadius: '8px', background: chipBg, border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <Pencil size={14} color="var(--color-accent-primary)" />
+                </button>
+                <button onClick={() => handleDelete(entry.id)} style={{ width: '32px', height: '32px', borderRadius: '8px', background: '#FFF0EE', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <Trash2 size={14} color="#E53935" />
+                </button>
               </div>
             )
           })}
         </div>
       )}
 
-      {/* 선택된 성공의 말 표시 */}
-      {selectedAff && (
-        <div style={{ padding: '10px 14px', background: 'var(--color-bg-primary)', borderRadius: '10px', border: '1px solid var(--color-accent-primary)', marginBottom: '20px' }}>
-          <p style={{ fontSize: '11px', color: 'var(--color-accent-primary)', marginBottom: '4px', fontWeight: 600 }}>선택된 성공의 말</p>
-          <p style={{ fontSize: '13px', color: 'var(--color-text-primary)', lineHeight: 1.4 }}>{selectedAff.text}</p>
-          <p style={{ fontSize: '11px', color: 'var(--color-text-muted)', marginTop: '4px' }}>
-            {audioMap[selectedAffId] ? '🎙 녹음 있음 — 알림 시 재생됩니다' : '알림 시 성공의 말 텍스트만 표시됩니다'}
-          </p>
-        </div>
+      {/* 알람 추가 버튼 */}
+      {editingId === null && (
+        <button onClick={openNew} style={{ width: '100%', padding: '13px', border: '1.5px dashed var(--color-border)', borderRadius: '14px', background: 'transparent', color: 'var(--color-text-muted)', fontSize: '14px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', marginBottom: '4px' }}>
+          <Plus size={16} /> 알람 추가
+        </button>
       )}
 
-      {/* 반복 설정 */}
-      <p style={{ fontSize: '13px', fontWeight: 500, color: 'var(--color-text-muted)', marginBottom: '8px' }}>반복 요일 <span style={{ fontSize: '11px' }}>(선택 없음 = 매일)</span></p>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '5px', marginBottom: '16px' }}>
-        {DAY_LABELS.map((label, day) => {
-          const on = repeatDays.includes(day)
-          return (
-            <button key={day} onClick={() => toggleDay(day)}
-              style={{ aspectRatio: '1', borderRadius: '10px', fontSize: '13px', fontWeight: 700, cursor: 'pointer', border: on ? 'none' : '1px solid var(--color-border)', background: on ? 'var(--color-accent-primary)' : 'var(--color-bg-primary)', color: on ? '#fff' : 'var(--color-text-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.15s' }}>
-              {label}
-            </button>
-          )
-        })}
-      </div>
+      {/* 알람 설정 폼 */}
+      {editingId !== null && (
+        <div style={{ background: 'var(--color-bg-primary)', borderRadius: '16px', padding: '16px', border: '1px solid var(--color-border)', marginTop: '4px' }}>
+          <p style={{ fontSize: '13px', fontWeight: 600, color: 'var(--color-accent-primary)', marginBottom: '16px' }}>
+            {editingId === 'new' ? '새 알람 추가' : '알람 편집'}
+          </p>
 
-      <p style={{ fontSize: '13px', fontWeight: 500, color: 'var(--color-text-muted)', marginBottom: '8px' }}>종료 설정</p>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '20px' }}>
-        {(['none', 'date', 'count'] as const).map((type) => {
-          const on = endType === type
-          return (
-            <div key={type} onClick={() => setEndType(type)} style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}>
-              <div style={{ width: '20px', height: '20px', borderRadius: '50%', border: `2px solid ${on ? 'var(--color-accent-primary)' : 'var(--color-border)'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'border-color 0.15s' }}>
-                {on && <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: 'var(--color-accent-primary)' }} />}
-              </div>
-              {type === 'none' && <span style={{ fontSize: '13px', color: on ? 'var(--color-accent-primary)' : 'var(--color-text-primary)', fontWeight: on ? 600 : 400 }}>무제한 반복</span>}
-              {type === 'date' && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1 }}>
-                  <span style={{ fontSize: '13px', color: on ? 'var(--color-accent-primary)' : 'var(--color-text-primary)', fontWeight: on ? 600 : 400, flexShrink: 0 }}>종료 날짜</span>
-                  <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} onClick={() => setEndType('date')}
-                    style={{ flex: 1, padding: '8px 12px', border: '1px solid var(--color-border)', borderRadius: '10px', fontSize: '13px', background: 'var(--color-bg-primary)', color: 'var(--color-text-primary)', outline: 'none' }} />
-                </div>
-              )}
-              {type === 'count' && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <input type="number" min={1} value={endCount} onChange={(e) => setEndCount(Number(e.target.value))} onClick={() => setEndType('count')}
-                    style={{ width: '64px', padding: '8px 10px', border: '1px solid var(--color-border)', borderRadius: '10px', fontSize: '13px', background: 'var(--color-bg-primary)', color: 'var(--color-text-primary)', outline: 'none', textAlign: 'center' }} />
-                  <span style={{ fontSize: '13px', color: on ? 'var(--color-accent-primary)' : 'var(--color-text-primary)', fontWeight: on ? 600 : 400 }}>회 반복 후 종료</span>
-                </div>
-              )}
+          {/* 알림 시간 */}
+          <p style={{ fontSize: '12px', fontWeight: 500, color: 'var(--color-text-muted)', marginBottom: '7px' }}>알림 시간</p>
+          <div style={{ display: 'flex', gap: '8px', marginBottom: '18px' }}>
+            <CustomSelect value={hour} onChange={setHour} options={Array.from({ length: 24 }, (_, i) => ({ value: i, label: fmtHour(i) }))} />
+            <CustomSelect value={minute} onChange={setMinute} options={[0, 10, 20, 30, 40, 50].map((m) => ({ value: m, label: `${String(m).padStart(2, '0')}분` }))} width="110px" />
+          </div>
+
+          {/* 성공의 말 선택 */}
+          <p style={{ fontSize: '12px', fontWeight: 500, color: 'var(--color-text-muted)', marginBottom: '7px' }}>성공의 말 선택</p>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '10px' }}>
+            {categories.map((cat) => {
+              const on = selectedCategory === cat
+              return (
+                <button key={cat} onClick={() => setSelectedCategory(on ? null : cat)}
+                  style={{ padding: '6px 12px', borderRadius: '20px', fontSize: '12px', fontWeight: on ? 700 : 400, cursor: 'pointer', border: on ? '1.5px solid var(--color-accent-primary)' : '1px solid var(--color-border)', background: on ? 'var(--color-accent-primary)' : 'var(--color-bg-card)', color: on ? '#fff' : 'var(--color-text-secondary)', transition: 'all 0.15s' }}>
+                  {cat}
+                </button>
+              )
+            })}
+          </div>
+          {selectedCategory && catAffs.length > 0 && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', maxHeight: '180px', overflowY: 'auto', marginBottom: '10px' }}>
+              {catAffs.map((aff) => {
+                const hasRec = !!audioMap[aff.id]
+                const isSel = selectedAffId === aff.id
+                return (
+                  <div key={aff.id} onClick={() => setSelectedAffId(aff.id)}
+                    style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '9px 11px', background: isSel ? chipBg : 'var(--color-bg-card)', border: isSel ? '1.5px solid var(--color-accent-primary)' : '1px solid var(--color-border)', borderRadius: '10px', cursor: 'pointer' }}>
+                    <span style={{ flex: 1, fontSize: '12px', color: 'var(--color-text-primary)', lineHeight: 1.4 }}>{aff.text}</span>
+                    {hasRec && (
+                      <button onClick={(e) => { e.stopPropagation(); playPreview(aff.id) }}
+                        style={{ width: '26px', height: '26px', borderRadius: '50%', background: 'var(--color-accent-primary)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        <span style={{ color: 'white', fontSize: '9px' }}>▶</span>
+                      </button>
+                    )}
+                  </div>
+                )
+              })}
             </div>
-          )
-        })}
-      </div>
+          )}
+          {selectedAff && (
+            <div style={{ padding: '9px 12px', background: chipBg, borderRadius: '10px', border: '1px solid var(--color-accent-primary)', marginBottom: '18px' }}>
+              <p style={{ fontSize: '11px', color: 'var(--color-accent-primary)', marginBottom: '3px', fontWeight: 600 }}>선택된 성공의 말</p>
+              <p style={{ fontSize: '12px', color: 'var(--color-text-primary)', lineHeight: 1.4 }}>{selectedAff.text}</p>
+            </div>
+          )}
 
-      <div style={{ display: 'flex', gap: '8px' }}>
-        <button onClick={handleSave} disabled={!selectedAffId || saving}
-          style={{ flex: 1, padding: '14px', background: selectedAffId ? 'var(--color-accent-primary)' : 'var(--color-border)', color: 'white', border: 'none', borderRadius: '14px', fontSize: '15px', fontWeight: 700, cursor: selectedAffId ? 'pointer' : 'not-allowed', transition: 'background 0.15s' }}>
-          {saving ? '저장 중...' : '알림 설정 저장'}
-        </button>
-        {alarm && (
-          <button onClick={handleClear} style={{ padding: '14px 18px', background: 'transparent', border: '1.5px solid #E53935', borderRadius: '14px', color: '#E53935', fontSize: '14px', fontWeight: 600, cursor: 'pointer' }}>
-            해제
-          </button>
-        )}
-      </div>
+          {/* 반복 요일 */}
+          <p style={{ fontSize: '12px', fontWeight: 500, color: 'var(--color-text-muted)', marginBottom: '7px' }}>반복 요일 <span style={{ fontSize: '11px' }}>(선택 없음 = 매일)</span></p>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '5px', marginBottom: '16px' }}>
+            {DAY_LABELS.map((label, day) => {
+              const on = repeatDays.includes(day)
+              return (
+                <button key={day} onClick={() => toggleDay(day)}
+                  style={{ aspectRatio: '1', borderRadius: '10px', fontSize: '12px', fontWeight: 700, cursor: 'pointer', border: on ? 'none' : '1px solid var(--color-border)', background: on ? 'var(--color-accent-primary)' : 'var(--color-bg-card)', color: on ? '#fff' : 'var(--color-text-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.15s' }}>
+                  {label}
+                </button>
+              )
+            })}
+          </div>
+
+          {/* 종료 설정 */}
+          <p style={{ fontSize: '12px', fontWeight: 500, color: 'var(--color-text-muted)', marginBottom: '7px' }}>종료 설정</p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '18px' }}>
+            {(['none', 'date', 'count'] as const).map((type) => {
+              const on = endType === type
+              return (
+                <div key={type} onClick={() => setEndType(type)} style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}>
+                  <div style={{ width: '20px', height: '20px', borderRadius: '50%', border: `2px solid ${on ? 'var(--color-accent-primary)' : 'var(--color-border)'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'border-color 0.15s' }}>
+                    {on && <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: 'var(--color-accent-primary)' }} />}
+                  </div>
+                  {type === 'none' && <span style={{ fontSize: '13px', color: on ? 'var(--color-accent-primary)' : 'var(--color-text-primary)', fontWeight: on ? 600 : 400 }}>무제한 반복</span>}
+                  {type === 'date' && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1 }}>
+                      <span style={{ fontSize: '13px', color: on ? 'var(--color-accent-primary)' : 'var(--color-text-primary)', fontWeight: on ? 600 : 400, flexShrink: 0 }}>종료 날짜</span>
+                      <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} onClick={() => setEndType('date')}
+                        style={{ flex: 1, padding: '7px 11px', border: '1px solid var(--color-border)', borderRadius: '10px', fontSize: '12px', background: 'var(--color-bg-card)', color: 'var(--color-text-primary)', outline: 'none' }} />
+                    </div>
+                  )}
+                  {type === 'count' && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <input type="number" min={1} value={endCount} onChange={(e) => setEndCount(Number(e.target.value))} onClick={() => setEndType('count')}
+                        style={{ width: '60px', padding: '7px 8px', border: '1px solid var(--color-border)', borderRadius: '10px', fontSize: '12px', background: 'var(--color-bg-card)', color: 'var(--color-text-primary)', outline: 'none', textAlign: 'center' }} />
+                      <span style={{ fontSize: '13px', color: on ? 'var(--color-accent-primary)' : 'var(--color-text-primary)', fontWeight: on ? 600 : 400 }}>회 반복 후 종료</span>
+                    </div>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <button onClick={handleSave} disabled={!selectedAffId || saving}
+              style={{ flex: 1, padding: '13px', background: selectedAffId ? 'var(--color-accent-primary)' : 'var(--color-border)', color: 'white', border: 'none', borderRadius: '12px', fontSize: '14px', fontWeight: 700, cursor: selectedAffId ? 'pointer' : 'not-allowed', transition: 'background 0.15s' }}>
+              {saving ? '저장 중...' : '저장'}
+            </button>
+            <button onClick={() => setEditingId(null)}
+              style={{ padding: '13px 18px', background: 'transparent', border: '1px solid var(--color-border)', borderRadius: '12px', color: 'var(--color-text-muted)', fontSize: '14px', fontWeight: 600, cursor: 'pointer' }}>
+              취소
+            </button>
+          </div>
+        </div>
+      )}
     </Panel>
   )
 }

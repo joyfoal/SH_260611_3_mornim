@@ -40,6 +40,10 @@ export interface AlarmSettings {
   audioId?: string            // legacy
 }
 
+export interface AlarmEntry extends AlarmSettings {
+  id: string
+}
+
 const KEYS = {
   AFFIRMATIONS: 'mornim-affirmations',
   TRASH: 'mornim-trash',
@@ -54,6 +58,7 @@ const KEYS = {
   CATEGORIES: 'mornim-categories',
   TODAY_EXTRA: 'mornim-today-extra',
   ALARM: 'mornim-alarm',
+  ALARM_LIST: 'mornim-alarm-list',
   ALARM_LAST_SHOWN: 'mornim-alarm-last-shown',
   DAY_NOTES: 'mornim-day-notes',
   WEEKLY_SHIELDS: 'mornim-weekly-shields',
@@ -271,7 +276,7 @@ export function incrementTodayExtraCount(): void {
   safeSet(KEYS.TODAY_EXTRA, { date: today, count: current + 1 })
 }
 
-// Alarm settings
+// Alarm settings (legacy single alarm — kept for backward compat)
 export function getAlarmSettings(): AlarmSettings | null {
   return safeGet<AlarmSettings | null>(KEYS.ALARM, null)
 }
@@ -283,6 +288,29 @@ export function saveAlarmSettings(s: AlarmSettings): void {
 export function clearAlarmSettings(): void {
   if (typeof window === 'undefined') return
   localStorage.removeItem(KEYS.ALARM)
+}
+
+// Alarm list (multiple alarms)
+export function getAlarmList(): AlarmEntry[] {
+  const list = safeGet<AlarmEntry[]>(KEYS.ALARM_LIST, [])
+  if (list.length === 0) {
+    // Migrate legacy single alarm
+    const old = getAlarmSettings()
+    if (old?.affirmationId) {
+      const entry: AlarmEntry = { ...old, id: 'alarm-legacy' }
+      safeSet(KEYS.ALARM_LIST, [entry])
+      return [entry]
+    }
+  }
+  return list
+}
+
+export function saveAlarmList(list: AlarmEntry[]): void {
+  safeSet(KEYS.ALARM_LIST, list)
+}
+
+export function deleteAlarmById(id: string): void {
+  saveAlarmList(getAlarmList().filter((a) => a.id !== id))
 }
 
 export function getAlarmLastShown(): string {
