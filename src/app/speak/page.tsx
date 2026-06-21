@@ -315,13 +315,14 @@ function SpeakPageInner() {
 
   useEffect(() => {
     if (screen !== 'speak' || !affirmation || autoCompleteTriggeredRef.current) return
+    if (reRecordState !== 'idle') return
     const words = affirmation.text.split(' ').filter(Boolean)
     const allRecognized = words.every((w) => recognizedWords.has(w))
     if (words.length > 0 && allRecognized) {
       autoCompleteTriggeredRef.current = true
       autoCompleteTimerRef.current = setTimeout(() => handleComplete(), 600)
     }
-  }, [recognizedWords, screen, affirmation, handleComplete])
+  }, [recognizedWords, screen, affirmation, handleComplete, reRecordState])
 
   // ── 다시 녹음 ──────────────────────────────────────────────────────
   const startReRecord = useCallback(async () => {
