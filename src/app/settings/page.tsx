@@ -1308,9 +1308,9 @@ const BUTTONS: { id: string; icon: LucideIcon; label: string; danger?: boolean }
   { id: 'stats',    icon: BarChart3,  label: '통계' },
   { id: 'search',   icon: Search,     label: '찾기' },
   { id: 'backup',   icon: UploadCloud, label: '백업' },
-  { id: 'delete',   icon: Trash2,     label: '지우기', danger: true },
-  { id: 'trash',    icon: RotateCcw,  label: '휴지통' },
   { id: 'category', icon: Folder,     label: '카테고리' },
+  { id: 'trash',    icon: RotateCcw,  label: '휴지통' },
+  { id: 'delete',   icon: Trash2,     label: '지우기', danger: true },
   { id: 'manual',   icon: BookOpen,   label: '설명서' },
 ]
 
@@ -1327,8 +1327,8 @@ export default function SettingsPage() {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px', marginBottom: '24px' }}>
           {BUTTONS.map((btn) => {
             const isActive = active === btn.id
-            const chipBg = btn.danger ? '#FFF0EE' : 'var(--color-accent-light)'
-            const iconColor = btn.danger ? '#E53935' : 'var(--color-accent-primary)'
+            const chipBg = 'color-mix(in srgb, var(--color-accent-light) 28%, var(--color-bg-card))'
+            const iconColor = 'var(--color-accent-primary)'
             return (
               <button
                 key={btn.id}
@@ -1336,9 +1336,7 @@ export default function SettingsPage() {
                 style={{
                   padding: '18px 16px',
                   background: 'var(--color-bg-card)',
-                  border: isActive
-                    ? (btn.danger ? '1.5px solid #E5393555' : '1.5px solid var(--color-accent-primary)')
-                    : '1.5px solid transparent',
+                  border: isActive ? '1.5px solid var(--color-accent-primary)' : '1.5px solid transparent',
                   borderRadius: '20px',
                   cursor: 'pointer',
                   display: 'flex',
@@ -1351,7 +1349,7 @@ export default function SettingsPage() {
                 <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: chipBg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                   <btn.icon size={19} strokeWidth={1.9} color={iconColor} />
                 </div>
-                <span style={{ fontSize: '15px', fontWeight: 600, color: btn.danger ? '#E53935' : 'var(--color-text-primary)' }}>
+                <span style={{ fontSize: '15px', fontWeight: 600, color: 'var(--color-text-primary)' }}>
                   {btn.label}
                 </span>
               </button>
