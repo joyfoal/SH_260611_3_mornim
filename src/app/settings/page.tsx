@@ -110,6 +110,7 @@ function CategoryManager() {
   const [addMode, setAddMode] = useState(false)
   const [newCatName, setNewCatName] = useState('')
   const [deleteTarget, setDeleteTarget] = useState<{ name: string; idx: number } | null>(null)
+  const [selectedIdx, setSelectedIdx] = useState<number | null>(null)
 
   useEffect(() => {
     setCategories(getCategories())
@@ -124,6 +125,7 @@ function CategoryManager() {
     ;[updated[idx], updated[next]] = [updated[next], updated[idx]]
     saveCategories(updated)
     setCategories(updated)
+    setSelectedIdx(next)
   }
 
   const startEdit = (idx: number) => {
@@ -200,61 +202,90 @@ function CategoryManager() {
         {categories.map((cat, idx) => {
           const colors = getCategoryColor(cat, categories)
           const isEditing = editingIdx === idx
+          const isSelected = selectedIdx === idx
           return (
-            <div
-              key={cat}
-              style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 12px', background: colors.light, borderRadius: '10px' }}
-            >
-              {isEditing ? (
-                <>
-                  <input
-                    autoFocus
-                    value={editValue}
-                    onChange={(e) => setEditValue(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' && !e.nativeEvent.isComposing) commitEdit()
-                      if (e.key === 'Escape') setEditingIdx(null)
+            <div key={cat}>
+              <div
+                onClick={() => {
+                  if (!isEditing) setSelectedIdx(isSelected ? null : idx)
+                }}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: '8px',
+                  padding: '10px 12px', borderRadius: '10px',
+                  background: isSelected ? colors.dark : colors.light,
+                  cursor: isEditing ? 'default' : 'pointer',
+                  border: isSelected ? `2px solid ${colors.dark}` : '2px solid transparent',
+                  transition: 'all 0.15s',
+                }}
+              >
+                {isEditing ? (
+                  <>
+                    <input
+                      autoFocus
+                      value={editValue}
+                      onChange={(e) => setEditValue(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && !e.nativeEvent.isComposing) commitEdit()
+                        if (e.key === 'Escape') setEditingIdx(null)
+                      }}
+                      onClick={(e) => e.stopPropagation()}
+                      style={{ flex: 1, background: 'white', border: `1px solid ${colors.dark}`, borderRadius: '6px', padding: '6px 10px', fontSize: '13px', color: colors.dark, outline: 'none' }}
+                    />
+                    <button onClick={(e) => { e.stopPropagation(); commitEdit() }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: colors.dark, padding: '2px' }}>
+                      <Check size={16} />
+                    </button>
+                    <button onClick={(e) => { e.stopPropagation(); setEditingIdx(null) }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text-muted)', padding: '2px' }}>
+                      <X size={16} />
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <span style={{ flex: 1, fontSize: '13px', fontWeight: 500, color: isSelected ? 'white' : colors.dark }}>{cat}</span>
+                    <span style={{ fontSize: '11px', color: isSelected ? 'rgba(255,255,255,0.7)' : `${colors.dark}88` }}>{affCountFor(cat)}개</span>
+                    <button onClick={(e) => { e.stopPropagation(); startEdit(idx) }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: isSelected ? 'white' : colors.dark, padding: '2px' }}>
+                      <Pencil size={14} />
+                    </button>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setDeleteTarget({ name: cat, idx }) }}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: isSelected ? '#FFCDD2' : '#E53935', padding: '2px' }}
+                      disabled={categories.length <= 1}
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </>
+                )}
+              </div>
+
+              {/* 선택된 항목 아래에 ▲/▼ 버튼 */}
+              {isSelected && !isEditing && (
+                <div style={{ display: 'flex', gap: '8px', marginTop: '4px', paddingLeft: '4px' }}>
+                  <button
+                    onClick={() => moveCategory(idx, -1)}
+                    disabled={idx === 0}
+                    style={{
+                      flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px',
+                      padding: '8px', border: `1px solid ${colors.dark}`, borderRadius: '8px',
+                      background: idx === 0 ? 'transparent' : colors.light,
+                      color: idx === 0 ? `${colors.dark}44` : colors.dark,
+                      fontSize: '12px', fontWeight: 600, cursor: idx === 0 ? 'default' : 'pointer',
                     }}
-                    style={{ flex: 1, background: 'white', border: `1px solid ${colors.dark}`, borderRadius: '6px', padding: '6px 10px', fontSize: '13px', color: colors.dark, outline: 'none' }}
-                  />
-                  <button onClick={commitEdit} style={{ background: 'none', border: 'none', cursor: 'pointer', color: colors.dark, padding: '2px' }}>
-                    <Check size={16} />
-                  </button>
-                  <button onClick={() => setEditingIdx(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text-muted)', padding: '2px' }}>
-                    <X size={16} />
-                  </button>
-                </>
-              ) : (
-                <>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '1px', flexShrink: 0 }}>
-                    <button
-                      onClick={() => moveCategory(idx, -1)}
-                      disabled={idx === 0}
-                      style={{ background: 'none', border: 'none', cursor: idx === 0 ? 'default' : 'pointer', color: idx === 0 ? `${colors.dark}33` : colors.dark, padding: '1px', lineHeight: 1 }}
-                    >
-                      <ChevronUp size={14} />
-                    </button>
-                    <button
-                      onClick={() => moveCategory(idx, 1)}
-                      disabled={idx === categories.length - 1}
-                      style={{ background: 'none', border: 'none', cursor: idx === categories.length - 1 ? 'default' : 'pointer', color: idx === categories.length - 1 ? `${colors.dark}33` : colors.dark, padding: '1px', lineHeight: 1 }}
-                    >
-                      <ChevronDown size={14} />
-                    </button>
-                  </div>
-                  <span style={{ flex: 1, fontSize: '13px', fontWeight: 500, color: colors.dark }}>{cat}</span>
-                  <span style={{ fontSize: '11px', color: `${colors.dark}88` }}>{affCountFor(cat)}개</span>
-                  <button onClick={() => startEdit(idx)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: colors.dark, padding: '2px' }}>
-                    <Pencil size={14} />
+                  >
+                    <ChevronUp size={14} /> 위로
                   </button>
                   <button
-                    onClick={() => setDeleteTarget({ name: cat, idx })}
-                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#E53935', padding: '2px' }}
-                    disabled={categories.length <= 1}
+                    onClick={() => moveCategory(idx, 1)}
+                    disabled={idx === categories.length - 1}
+                    style={{
+                      flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px',
+                      padding: '8px', border: `1px solid ${colors.dark}`, borderRadius: '8px',
+                      background: idx === categories.length - 1 ? 'transparent' : colors.light,
+                      color: idx === categories.length - 1 ? `${colors.dark}44` : colors.dark,
+                      fontSize: '12px', fontWeight: 600, cursor: idx === categories.length - 1 ? 'default' : 'pointer',
+                    }}
                   >
-                    <Trash2 size={14} />
+                    <ChevronDown size={14} /> 아래로
                   </button>
-                </>
+                </div>
               )}
             </div>
           )
