@@ -554,17 +554,25 @@ function SpeakPageInner() {
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
       >
-        <div className="px-8 w-full">
-          <div style={{
-            position: 'absolute', top: '20px', left: '50%', transform: 'translateX(-50%)',
-            background: 'rgba(255,255,255,0.1)', borderRadius: '20px', padding: '4px 16px',
-            fontSize: '13px', color: 'var(--color-text-muted)', whiteSpace: 'nowrap',
-          }}>
-            {progressLabel}
-          </div>
+        {/* 배경 골드 방사형 글로우 */}
+        <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse 80% 45% at 50% 0%, rgba(216,154,54,.16) 0%, transparent 70%)', pointerEvents: 'none' }} />
+
+        {/* 진행 표시 알약 */}
+        <div style={{
+          position: 'absolute', top: '20px', left: '50%', transform: 'translateX(-50%)',
+          background: 'rgba(255,255,255,0.1)', borderRadius: '20px', padding: '4px 16px',
+          fontSize: '13px', color: 'var(--color-text-muted)', whiteSpace: 'nowrap', zIndex: 1,
+        }}>
+          {progressLabel}
+        </div>
+
+        {/* 어절 컬럼 */}
+        <div style={{ width: '100%', padding: '0 40px', position: 'relative', zIndex: 1 }}>
           <DynamicText text={affirmation.text} darkBackground />
         </div>
-        <div className="absolute bottom-12" style={{ color: 'var(--color-text-muted)', fontSize: '14px', animation: 'bounce 1.5s ease-in-out infinite' }}>
+
+        {/* 스와이프 힌트 */}
+        <div style={{ position: 'absolute', bottom: '48px', color: 'var(--color-text-muted)', fontSize: '14px', animation: 'floatHint 2.2s ease-in-out infinite', zIndex: 1 }}>
           위로 스와이프 ↑
         </div>
       </div>
