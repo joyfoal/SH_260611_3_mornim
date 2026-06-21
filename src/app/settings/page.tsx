@@ -22,7 +22,7 @@ import {
 } from '@/lib/audioStorage'
 import { clearFaceStorage, getFaceProfileFromTrash, restoreFaceProfileFromTrash, type FaceProfile } from '@/lib/faceStorage'
 import { clearSuccessImages, getSuccessImageFromTrash, restoreSuccessImageFromTrash, type SuccessImageRecord } from '@/lib/successImageStorage'
-import { Pencil, Trash2, Check, X, Plus, Bell, Download, GripVertical, Palette, Power, BarChart3, Search, HardDrive, RotateCcw, Folder, BookOpen, ChevronDown, Ban } from 'lucide-react'
+import { Pencil, Trash2, Check, X, Plus, Bell, Download, GripVertical, Palette, Power, BarChart3, Search, UploadCloud, RotateCcw, Folder, BookOpen, ChevronDown, Ban } from 'lucide-react'
 import { WeeklyReportModal } from '@/components/ui/WeeklyReportModal'
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
@@ -236,13 +236,13 @@ function CustomSelect({ value, onChange, options, width }: {
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        style={{ width: '100%', padding: '11px 14px', border: '1.5px solid var(--color-accent-primary)', borderRadius: '12px', fontSize: '14px', background: 'var(--color-bg-primary)', color: 'var(--color-text-primary)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}
+        style={{ width: '100%', padding: '11px 14px', border: '1px solid var(--color-border)', borderRadius: '12px', fontSize: '14px', background: 'var(--color-bg-primary)', color: 'var(--color-text-primary)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}
       >
-        <span>{label}</span>
-        <ChevronDown size={16} color="var(--color-accent-primary)" style={{ transition: 'transform 0.2s', transform: open ? 'rotate(180deg)' : 'none', flexShrink: 0 }} />
+        <span style={{ fontWeight: 500 }}>{label}</span>
+        <ChevronDown size={16} color="var(--color-text-muted)" style={{ transition: 'transform 0.2s', transform: open ? 'rotate(180deg)' : 'none', flexShrink: 0 }} />
       </button>
       {open && (
-        <div style={{ position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0, zIndex: 50, background: 'var(--color-bg-card)', border: '1.5px solid var(--color-accent-primary)', borderRadius: '12px', maxHeight: '200px', overflowY: 'auto', boxShadow: '0 8px 24px rgba(0,0,0,0.12)' }}>
+        <div style={{ position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0, zIndex: 50, background: 'var(--color-bg-card)', border: '1px solid var(--color-border)', borderRadius: '12px', maxHeight: '200px', overflowY: 'auto', boxShadow: '0 8px 24px rgba(0,0,0,0.10)' }}>
           {options.map((opt) => (
             <div
               key={opt.value}
@@ -397,7 +397,7 @@ function AlarmPanel() {
           const on = selectedCategory === cat
           return (
             <button key={cat} onClick={() => setSelectedCategory(on ? null : cat)}
-              style={{ padding: '6px 14px', borderRadius: '20px', fontSize: '12px', fontWeight: on ? 700 : 500, cursor: 'pointer', border: 'none', background: on ? 'var(--color-accent-primary)' : 'var(--color-accent-light)', color: on ? '#fff' : 'var(--color-accent-primary)', transition: 'all 0.15s' }}>
+              style={{ padding: '7px 14px', borderRadius: '20px', fontSize: '13px', fontWeight: on ? 700 : 400, cursor: 'pointer', border: on ? '1.5px solid var(--color-accent-primary)' : '1px solid var(--color-border)', background: on ? 'var(--color-accent-primary)' : 'var(--color-bg-primary)', color: on ? '#fff' : 'var(--color-text-secondary)', transition: 'all 0.15s' }}>
               {cat}
             </button>
           )
@@ -443,7 +443,7 @@ function AlarmPanel() {
           const on = repeatDays.includes(day)
           return (
             <button key={day} onClick={() => toggleDay(day)}
-              style={{ aspectRatio: '1', borderRadius: '10px', fontSize: '12px', fontWeight: 700, cursor: 'pointer', border: on ? 'none' : '1.5px solid var(--color-accent-primary)', background: on ? 'var(--color-accent-primary)' : 'transparent', color: on ? '#fff' : 'var(--color-accent-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              style={{ aspectRatio: '1', borderRadius: '10px', fontSize: '13px', fontWeight: 700, cursor: 'pointer', border: on ? 'none' : '1px solid var(--color-border)', background: on ? 'var(--color-accent-primary)' : 'var(--color-bg-primary)', color: on ? '#fff' : 'var(--color-text-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.15s' }}>
               {label}
             </button>
           )
@@ -464,13 +464,13 @@ function AlarmPanel() {
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1 }}>
                   <span style={{ fontSize: '13px', color: on ? 'var(--color-accent-primary)' : 'var(--color-text-primary)', fontWeight: on ? 600 : 400, flexShrink: 0 }}>종료 날짜</span>
                   <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} onClick={() => setEndType('date')}
-                    style={{ flex: 1, padding: '7px 10px', border: `1.5px solid ${on ? 'var(--color-accent-primary)' : 'var(--color-border)'}`, borderRadius: '10px', fontSize: '13px', background: 'var(--color-bg-primary)', color: 'var(--color-text-primary)', outline: 'none' }} />
+                    style={{ flex: 1, padding: '8px 12px', border: '1px solid var(--color-border)', borderRadius: '10px', fontSize: '13px', background: 'var(--color-bg-primary)', color: 'var(--color-text-primary)', outline: 'none' }} />
                 </div>
               )}
               {type === 'count' && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <input type="number" min={1} value={endCount} onChange={(e) => setEndCount(Number(e.target.value))} onClick={() => setEndType('count')}
-                    style={{ width: '64px', padding: '7px 10px', border: `1.5px solid ${on ? 'var(--color-accent-primary)' : 'var(--color-border)'}`, borderRadius: '10px', fontSize: '13px', background: 'var(--color-bg-primary)', color: 'var(--color-text-primary)', outline: 'none', textAlign: 'center' }} />
+                    style={{ width: '64px', padding: '8px 10px', border: '1px solid var(--color-border)', borderRadius: '10px', fontSize: '13px', background: 'var(--color-bg-primary)', color: 'var(--color-text-primary)', outline: 'none', textAlign: 'center' }} />
                   <span style={{ fontSize: '13px', color: on ? 'var(--color-accent-primary)' : 'var(--color-text-primary)', fontWeight: on ? 600 : 400 }}>회 반복 후 종료</span>
                 </div>
               )}
@@ -1307,7 +1307,7 @@ const BUTTONS: { id: string; icon: LucideIcon; label: string; danger?: boolean }
   { id: 'alarm',    icon: Bell,       label: '알림' },
   { id: 'stats',    icon: BarChart3,  label: '통계' },
   { id: 'search',   icon: Search,     label: '찾기' },
-  { id: 'backup',   icon: HardDrive,  label: '백업' },
+  { id: 'backup',   icon: UploadCloud, label: '백업' },
   { id: 'delete',   icon: Trash2,     label: '지우기', danger: true },
   { id: 'trash',    icon: RotateCcw,  label: '휴지통' },
   { id: 'category', icon: Folder,     label: '카테고리' },
@@ -1327,33 +1327,31 @@ export default function SettingsPage() {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px', marginBottom: '24px' }}>
           {BUTTONS.map((btn) => {
             const isActive = active === btn.id
-            const chipBg = btn.danger
-              ? (isActive ? '#FFDDD9' : '#FFF0EE')
-              : (isActive ? 'var(--color-accent-primary)' : 'var(--color-accent-light)')
-            const iconColor = btn.danger ? '#E53935' : (isActive ? '#fff' : 'var(--color-accent-primary)')
+            const chipBg = btn.danger ? '#FFF0EE' : 'var(--color-accent-light)'
+            const iconColor = btn.danger ? '#E53935' : 'var(--color-accent-primary)'
             return (
               <button
                 key={btn.id}
                 onClick={() => toggle(btn.id)}
                 style={{
-                  padding: '16px 14px',
-                  background: isActive ? 'var(--color-accent-light)' : 'var(--color-bg-card)',
+                  padding: '18px 16px',
+                  background: 'var(--color-bg-card)',
                   border: isActive
-                    ? (btn.danger ? '2px solid #E53935' : '2px solid var(--color-accent-primary)')
-                    : '2px solid transparent',
-                  borderRadius: '18px',
+                    ? (btn.danger ? '1.5px solid #E5393555' : '1.5px solid var(--color-accent-primary)')
+                    : '1.5px solid transparent',
+                  borderRadius: '20px',
                   cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '12px',
+                  gap: '14px',
                   textAlign: 'left',
-                  transition: 'all 0.15s',
+                  transition: 'border-color 0.15s',
                 }}
               >
-                <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: chipBg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'background 0.15s' }}>
-                  <btn.icon size={20} strokeWidth={2} color={iconColor} />
+                <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: chipBg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <btn.icon size={19} strokeWidth={1.9} color={iconColor} />
                 </div>
-                <span style={{ fontSize: '14px', fontWeight: 600, color: btn.danger ? (isActive ? '#E53935' : 'var(--color-text-primary)') : (isActive ? 'var(--color-accent-primary)' : 'var(--color-text-primary)') }}>
+                <span style={{ fontSize: '15px', fontWeight: 600, color: btn.danger ? '#E53935' : 'var(--color-text-primary)' }}>
                   {btn.label}
                 </span>
               </button>
