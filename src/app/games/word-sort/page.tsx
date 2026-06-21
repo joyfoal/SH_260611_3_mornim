@@ -3,6 +3,34 @@
 import { useState, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { getAffirmations, updateAffirmation, getDayRecord, saveDayRecord, todayStr } from '@/lib/storage'
+import { getAudioRecordsByAffirmationId } from '@/lib/audioStorage'
+
+async function playAffirmationAudio(affirmationId: string, affirmationText: string) {
+  try {
+    const records = await getAudioRecordsByAffirmationId(affirmationId)
+    if (records.length > 0) {
+      const latest = records.reduce((a, b) => a.createdAt > b.createdAt ? a : b)
+      const url = URL.createObjectURL(latest.blob)
+      const audio = new Audio(url)
+      audio.onended = () => URL.revokeObjectURL(url)
+      audio.onerror = () => {
+        URL.revokeObjectURL(url)
+        speakTTS(affirmationText)
+      }
+      audio.play().catch(() => speakTTS(affirmationText))
+      return
+    }
+  } catch { /* ignore */ }
+  speakTTS(affirmationText)
+}
+
+function speakTTS(text: string) {
+  if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+    const utter = new SpeechSynthesisUtterance(text)
+    utter.lang = 'ko-KR'
+    window.speechSynthesis.speak(utter)
+  }
+}
 
 function shuffle<T>(arr: T[]): T[] {
   const a = [...arr]
@@ -72,11 +100,7 @@ export default function WordSortPage() {
         setIsCorrect(true)
         setTimeout(() => {
           setGameState('won')
-          if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-            const utter = new SpeechSynthesisUtterance(affirmationText)
-            utter.lang = 'ko-KR'
-            window.speechSynthesis.speak(utter)
-          }
+          playAffirmationAudio(affirmationId, affirmationText)
           const today = todayStr()
           const allAffirmations = getAffirmations()
           const aff = allAffirmations.find((a) => a.id === affirmationId)

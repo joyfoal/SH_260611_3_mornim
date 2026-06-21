@@ -3,6 +3,34 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { getAffirmations, updateAffirmation, getDayRecord, saveDayRecord, todayStr } from '@/lib/storage'
+import { getAudioRecordsByAffirmationId } from '@/lib/audioStorage'
+
+async function playAffirmationAudio(affirmationId: string, affirmationText: string) {
+  try {
+    const records = await getAudioRecordsByAffirmationId(affirmationId)
+    if (records.length > 0) {
+      const latest = records.reduce((a, b) => a.createdAt > b.createdAt ? a : b)
+      const url = URL.createObjectURL(latest.blob)
+      const audio = new Audio(url)
+      audio.onended = () => URL.revokeObjectURL(url)
+      audio.onerror = () => {
+        URL.revokeObjectURL(url)
+        speakTTS(affirmationText)
+      }
+      audio.play().catch(() => speakTTS(affirmationText))
+      return
+    }
+  } catch { /* ignore */ }
+  speakTTS(affirmationText)
+}
+
+function speakTTS(text: string) {
+  if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+    const utter = new SpeechSynthesisUtterance(text)
+    utter.lang = 'ko-KR'
+    window.speechSynthesis.speak(utter)
+  }
+}
 
 const CANVAS_WIDTH = 360
 const CANVAS_HEIGHT = 540
@@ -154,12 +182,7 @@ export default function BrickGamePage() {
       g.won = true
       setGameState('won')
       if (timerRef.current) clearInterval(timerRef.current)
-      // Speak the affirmation
-      if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-        const utter = new SpeechSynthesisUtterance(g.affirmationText)
-        utter.lang = 'ko-KR'
-        window.speechSynthesis.speak(utter)
-      }
+      playAffirmationAudio(g.affirmationId, g.affirmationText)
       // Mark completion
       const today = todayStr()
       const affirmations = getAffirmations()
