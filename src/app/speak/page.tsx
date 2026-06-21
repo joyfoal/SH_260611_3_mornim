@@ -265,6 +265,10 @@ function SpeakPageInner() {
 
   const handleComplete = useCallback(() => {
     if (!affirmation) return
+    if (reRecordState === 'recording') {
+      stopReRecord()
+      return
+    }
     pendingAffirmationRef.current = affirmation
     shouldListenRef.current = false
     if (recognitionRef.current) {
@@ -305,7 +309,7 @@ function SpeakPageInner() {
     }
 
     setScreen('celebration')
-  }, [affirmation, stopMediaRecorder])
+  }, [affirmation, stopMediaRecorder, reRecordState, stopReRecord])
 
   useEffect(() => {
     autoCompleteTriggeredRef.current = false
@@ -315,14 +319,17 @@ function SpeakPageInner() {
 
   useEffect(() => {
     if (screen !== 'speak' || !affirmation || autoCompleteTriggeredRef.current) return
-    if (reRecordState !== 'idle') return
     const words = affirmation.text.split(' ').filter(Boolean)
     const allRecognized = words.every((w) => recognizedWords.has(w))
     if (words.length > 0 && allRecognized) {
       autoCompleteTriggeredRef.current = true
-      autoCompleteTimerRef.current = setTimeout(() => handleComplete(), 600)
+      if (reRecordState === 'recording') {
+        autoCompleteTimerRef.current = setTimeout(() => stopReRecord(), 600)
+      } else if (reRecordState === 'idle') {
+        autoCompleteTimerRef.current = setTimeout(() => handleComplete(), 600)
+      }
     }
-  }, [recognizedWords, screen, affirmation, handleComplete, reRecordState])
+  }, [recognizedWords, screen, affirmation, handleComplete, reRecordState, stopReRecord])
 
   // ── 다시 녹음 ──────────────────────────────────────────────────────
   const startReRecord = useCallback(async () => {
@@ -628,17 +635,6 @@ function SpeakPageInner() {
           </button>
         )}
 
-        {reRecordState === 'recording' && (
-          <button
-            onClick={stopReRecord}
-            style={{
-              width: '100%', padding: '13px', background: 'rgba(194,60,40,0.85)',
-              border: 'none', borderRadius: '16px', color: 'white', fontSize: '14px', fontWeight: 600, cursor: 'pointer',
-            }}
-          >
-            ■ 녹음 중지
-          </button>
-        )}
 
         {reRecordState === 'confirm' && (
           <div style={{ display: 'flex', gap: 8 }}>
