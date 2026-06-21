@@ -538,7 +538,7 @@ export default function OnboardingPage() {
               <div style={{ fontSize: 30, fontWeight: 800, letterSpacing: '-0.6px', color: T.ink, lineHeight: 1.28, marginBottom: 10 }}>
                 어떤 성공을<br />이루고 싶으세요?
               </div>
-              <div style={{ fontSize: 16, fontWeight: 500, color: T.ink2, marginBottom: 20 }}>끌리는 걸 3개 이상 눌러주세요.</div>
+              <div style={{ fontSize: 16, fontWeight: 500, color: T.ink2, marginBottom: 20 }}>3개 이상 눌러주세요.</div>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                 {CATEGORIES.map((cat) => {
                   const on = cats.includes(cat)
