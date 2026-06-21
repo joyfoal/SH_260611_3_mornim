@@ -296,7 +296,7 @@ export function getAlarmList(): AlarmEntry[] {
   if (list.length === 0) {
     // Migrate legacy single alarm
     const old = getAlarmSettings()
-    if (old?.affirmationId) {
+    if (old && (old.affirmationId || old.audioId)) {
       const entry: AlarmEntry = { ...old, id: 'alarm-legacy' }
       safeSet(KEYS.ALARM_LIST, [entry])
       return [entry]

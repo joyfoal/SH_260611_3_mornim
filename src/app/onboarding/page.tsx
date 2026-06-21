@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { CATEGORIES } from '@/lib/categories'
-import { saveAffirmation, setOnboarded, saveTodayAffirmationIds, saveAlarmSettings, saveDayRecord, todayStr, saveStreakData, saveCategories } from '@/lib/storage'
+import { saveAffirmation, setOnboarded, saveTodayAffirmationIds, saveAlarmList, saveDayRecord, todayStr, saveStreakData, saveCategories } from '@/lib/storage'
 import { saveAudioRecord } from '@/lib/audioStorage'
 import { useTheme } from '@/lib/themeContext'
 
@@ -477,8 +477,7 @@ export default function OnboardingPage() {
     ids.push(voiceId)
 
     if (notifAllowed) {
-      // 알람 audioId를 온보딩 녹음 ID로 연결
-      saveAlarmSettings({ affirmationId: '', audioId: onbAudioRecordIdRef.current, hour: Math.floor(notifTime / 60), minute: notifTime % 60, repeatDays: [], endType: 'none', endDate: '', endCount: 0, firedCount: 0 })
+      saveAlarmList([{ id: 'alarm-onboarding', affirmationId: '', audioId: onbAudioRecordIdRef.current, hour: Math.floor(notifTime / 60), minute: notifTime % 60, repeatDays: [], endType: 'none', endDate: '', endCount: 0, firedCount: 0 }])
       import('@/lib/alarmScheduler').then(({ registerSW, scheduleAlarm }) =>
         registerSW().then(() => scheduleAlarm())
       )
