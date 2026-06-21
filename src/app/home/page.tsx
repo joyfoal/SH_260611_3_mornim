@@ -519,6 +519,9 @@ export default function HomePage() {
     loadData()
     deleteExpiredAudioRecords().catch(() => {})
     setDisplaySettings(getHomeDisplaySettings())
+    const onVisible = () => { if (document.visibilityState === 'visible') loadData() }
+    document.addEventListener('visibilitychange', onVisible)
+    return () => document.removeEventListener('visibilitychange', onVisible)
   }, [loadData])
 
   const handlePlay = () => {

@@ -306,7 +306,7 @@ function SpeakPageInner() {
       const newCount = (existing?.completedCount ?? 0) + 1
       saveDayRecord({ date: today, completedCount: newCount, dominantCategory: affirmation.category })
       completedCountRef.current = newCount
-      if (newCount >= 3) updateStreak(true)
+      updateStreak(true)
     }
 
     // 큐에 다음 항목이 있으면 progress, 없으면 phase에 따라 variant 결정
