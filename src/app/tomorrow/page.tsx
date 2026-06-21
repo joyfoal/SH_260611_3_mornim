@@ -101,8 +101,10 @@ export default function TomorrowPage() {
     // Mark naege as seen today (only on save, not skip)
     setNaegeSeenDate(todayStr())
 
-    // Save today's note — use placeholder if empty
-    saveDayNote(todayStr(), message.trim() || getTimePlaceholder())
+    // Save today's note only if user wrote something (placeholder is shown dynamically on home)
+    if (message.trim()) {
+      saveDayNote(todayStr(), message.trim())
+    }
 
     router.push('/home')
   }

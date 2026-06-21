@@ -21,6 +21,7 @@ import {
   setWeeklyReportShown,
   getWeekKey,
   getTodayRepeatDone,
+  getNaegeSeenDate,
   type Affirmation,
   type DayRecord,
   type StreakData,
@@ -431,6 +432,7 @@ export default function HomePage() {
   const [todayCount, setTodayCount] = useState(0)
   const [tomorrowNote, setTomorrowNote] = useState<string | null>(null)
   const [tomorrowEnabled, setTomorrowEnabled] = useState(false)
+  const [naegeSavedToday, setNaegeSavedToday] = useState(false)
   const [motto, setMotto] = useState('')
   const [showWeeklyReport, setShowWeeklyReport] = useState(false)
 
@@ -476,6 +478,7 @@ export default function HomePage() {
     const dayNote = getDayNote(today)
     if (dayNote) setTomorrowNote(dayNote)
     setTomorrowEnabled(isTomorrowEnabled())
+    setNaegeSavedToday(getNaegeSeenDate() === todayStr())
   }, [])
 
   useEffect(() => {
@@ -595,7 +598,7 @@ export default function HomePage() {
                 </button>
               </>
             )}
-            {tomorrowEnabled && (
+            {tomorrowEnabled && naegeSavedToday && (
               <div
                 style={{
                   marginTop: '16px',
@@ -615,10 +618,9 @@ export default function HomePage() {
                     수정
                   </button>
                 </div>
-                {tomorrowNote
-                  ? <div style={{ fontSize: '14px', color: '#4A3C00', lineHeight: 1.5 }}>{tomorrowNote}</div>
-                  : <div style={{ fontSize: '13px', color: '#B8A400', fontStyle: 'italic' }}>아직 남기지 않았어요</div>
-                }
+                <div style={{ fontSize: '14px', color: tomorrowNote ? '#4A3C00' : '#9B8A00', lineHeight: 1.5 }}>
+                  {tomorrowNote ?? (new Date().getHours() < 18 ? '오늘도 잘 할 수 있어!' : '오늘도 수고했어!')}
+                </div>
               </div>
             )}
           </div>
