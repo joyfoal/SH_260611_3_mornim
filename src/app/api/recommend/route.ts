@@ -76,7 +76,11 @@ export async function POST(req: NextRequest) {
     if (!match) {
       return NextResponse.json({ affirmations: fallback })
     }
-    const affirmations = JSON.parse(match[0]) as string[]
+    const parsed: unknown = JSON.parse(match[0])
+    const affirmations =
+      Array.isArray(parsed) && parsed.every((v) => typeof v === 'string')
+        ? (parsed as string[])
+        : fallback
     return NextResponse.json({ affirmations })
   } catch {
     const fallback = (category && CATEGORY_FALLBACKS[category]) ?? DEFAULT_FALLBACKS

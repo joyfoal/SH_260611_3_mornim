@@ -88,6 +88,7 @@ export default function CreatePage() {
   const [aiCategory, setAiCategory] = useState<CategoryName | null>(null)
   const [aiLoading, setAiLoading] = useState(false)
   const [aiResults, setAiResults] = useState<string[]>([])
+  const [aiError, setAiError] = useState('')
 
   // Talk mode state
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([])
@@ -181,6 +182,7 @@ export default function CreatePage() {
   const handleAIRecommend = async () => {
     if (!aiPrompt.trim()) return
     setAiLoading(true)
+    setAiError('')
     try {
       const res = await fetch('/api/recommend', {
         method: 'POST',
@@ -188,9 +190,13 @@ export default function CreatePage() {
         body: JSON.stringify({ prompt: aiPrompt, category: aiCategory }),
       })
       const data = await res.json() as { affirmations: string[] }
-      setAiResults(data.affirmations)
+      if (!data.affirmations?.length) {
+        setAiError('추천 결과를 가져오지 못했어요. 다시 시도해주세요.')
+      } else {
+        setAiResults(data.affirmations)
+      }
     } catch {
-      //
+      setAiError('네트워크 오류가 발생했어요. 다시 시도해주세요.')
     }
     setAiLoading(false)
   }
@@ -703,6 +709,12 @@ export default function CreatePage() {
             >
               {aiLoading ? '추천 중...' : '성공의 말 추천받기'}
             </button>
+
+            {aiError && (
+              <div style={{ padding: '12px 16px', background: 'var(--color-bg-card)', border: '1px solid var(--color-border)', borderRadius: '12px', marginBottom: '16px', fontSize: '13px', color: 'var(--color-text-muted)', textAlign: 'center' }}>
+                {aiError}
+              </div>
+            )}
 
             {aiResults.map((text, i) => (
               <div

@@ -885,10 +885,12 @@ export default function OnboardingPage() {
             <button
               style={btnPrimary}
               onClick={async () => {
-                if ('Notification' in window && Notification.permission !== 'granted') {
-                  await Notification.requestPermission()
+                let allowed = typeof Notification !== 'undefined' && Notification.permission === 'granted'
+                if (typeof Notification !== 'undefined' && Notification.permission !== 'granted') {
+                  const result = await Notification.requestPermission()
+                  allowed = result === 'granted'
                 }
-                setNotifAllowed(true)
+                setNotifAllowed(allowed)
                 goTo(4)
               }}
             >
