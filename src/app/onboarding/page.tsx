@@ -479,8 +479,8 @@ export default function OnboardingPage() {
     if (notifAllowed) {
       saveAlarmList([{ id: 'alarm-onboarding', affirmationId: '', audioId: onbAudioRecordIdRef.current, hour: Math.floor(notifTime / 60), minute: notifTime % 60, repeatDays: [], endType: 'none', endDate: '', endCount: 0, firedCount: 0 }])
       import('@/lib/alarmScheduler').then(({ registerSW, scheduleAlarm }) =>
-        registerSW().then(() => scheduleAlarm())
-      )
+        registerSW().then(() => scheduleAlarm()).catch(() => {})
+      ).catch(() => {})
     }
 
     // 2. 화면 1에서 추천된 성공의 말 — 선택한 카테고리당 1개씩만

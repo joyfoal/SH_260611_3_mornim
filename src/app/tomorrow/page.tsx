@@ -50,6 +50,7 @@ export default function TomorrowPage() {
     rec.interimResults = false
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     rec.onresult = (e: any) => {
+      if (!e.results?.[0]?.[0]) return
       const text: string = e.results[0][0].transcript
       setMessage((prev) => prev ? prev + ' ' + text : text)
     }

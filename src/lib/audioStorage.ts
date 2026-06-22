@@ -74,6 +74,7 @@ export async function setAudioKeepForever(id: string, keep: boolean): Promise<vo
       if (!existing) { resolve(); return }
       store.put({ ...existing, keepForever: keep })
     }
+    getReq.onerror = () => reject(getReq.error)
     tx.oncomplete = () => resolve()
     tx.onerror = () => reject(tx.error)
   })

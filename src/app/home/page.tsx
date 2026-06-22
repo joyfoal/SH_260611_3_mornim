@@ -393,12 +393,15 @@ function SavedSuccessImage({ onTap }: { onTap: () => void }) {
   const [imageUrl, setImageUrl] = useState<string | null>(null)
 
   useEffect(() => {
+    let objectUrl: string | null = null
     getSuccessImage().then((record) => {
       if (!record?.imageBlob) return
-      const url = URL.createObjectURL(record.imageBlob)
-      setImageUrl(url)
-      return () => URL.revokeObjectURL(url)
+      objectUrl = URL.createObjectURL(record.imageBlob)
+      setImageUrl(objectUrl)
     }).catch(() => {})
+    return () => {
+      if (objectUrl) URL.revokeObjectURL(objectUrl)
+    }
   }, [])
 
   if (!imageUrl) return null
@@ -545,10 +548,12 @@ export default function HomePage() {
     const ids = getTodayAffirmationIds()
     const startIndex = Math.max(0, ids.indexOf(todayAffirmation.id))
     if (typeof window !== 'undefined') {
-      sessionStorage.setItem('mornim-speak-queue', JSON.stringify(ids))
-      sessionStorage.setItem('mornim-speak-index', String(startIndex))
-      sessionStorage.setItem('mornim-speak-phase', 'initial')
-      sessionStorage.removeItem('mornim-repeat-remaining')
+      try {
+        sessionStorage.setItem('mornim-speak-queue', JSON.stringify(ids))
+        sessionStorage.setItem('mornim-speak-index', String(startIndex))
+        sessionStorage.setItem('mornim-speak-phase', 'initial')
+        sessionStorage.removeItem('mornim-repeat-remaining')
+      } catch { /* 프라이빗 브라우징 등 storage 비활성화 환경 */ }
     }
     router.push(`/speak?id=${todayAffirmation.id}`)
   }
@@ -561,8 +566,10 @@ export default function HomePage() {
     const pool = notDoneToday.length > 0 ? notDoneToday : affirmations
     const pick = pool[Math.floor(Math.random() * pool.length)]
     if (typeof window !== 'undefined') {
-      sessionStorage.setItem('mornim-speak-queue', JSON.stringify([pick.id]))
-      sessionStorage.setItem('mornim-speak-index', '0')
+      try {
+        sessionStorage.setItem('mornim-speak-queue', JSON.stringify([pick.id]))
+        sessionStorage.setItem('mornim-speak-index', '0')
+      } catch { /* 프라이빗 브라우징 등 storage 비활성화 환경 */ }
     }
     router.push(`/speak?id=${pick.id}`)
   }

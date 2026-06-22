@@ -59,7 +59,10 @@ export default function CreatePage() {
     rec.continuous = false
     rec.interimResults = false
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    rec.onresult = (e: any) => { onResult(e.results[0][0].transcript) }
+    rec.onresult = (e: any) => {
+      if (!e.results?.[0]?.[0]) return
+      onResult(e.results[0][0].transcript)
+    }
     rec.onend = () => setListening(false)
     rec.onerror = () => setListening(false)
     rec.start()
