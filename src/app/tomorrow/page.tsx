@@ -16,13 +16,14 @@ export default function TomorrowPage() {
   const [affirmations, setAffirmations] = useState<Affirmation[]>([])
   const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [saving, setSaving] = useState(false)
-  const [placeholder] = useState(getTimePlaceholder)
+  const [placeholder, setPlaceholder] = useState('오늘도 잘 할 수 있어!')
   const [negativeSuggestion, setNegativeSuggestion] = useState<string | null>(null)
   const [isListening, setIsListening] = useState(false)
   const recognitionRef = useRef<{ stop: () => void } | null>(null)
 
   useEffect(() => {
     setAffirmations(getAffirmations())
+    setPlaceholder(getTimePlaceholder())
   }, [])
 
   const toggleSelect = (id: string) => {

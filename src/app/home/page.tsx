@@ -460,11 +460,15 @@ export default function HomePage() {
   const [tomorrowEnabled, setTomorrowEnabled] = useState(false)
   const [naegeSavedToday, setNaegeSavedToday] = useState(false)
   const [motto, setMotto] = useState('')
+  const [greeting, setGreeting] = useState('')
+  const [tomorrowFallback, setTomorrowFallback] = useState('오늘도 잘 할 수 있어!')
   const [showWeeklyReport, setShowWeeklyReport] = useState(false)
   const [displaySettings, setDisplaySettings] = useState({ showRecentRec: true, showSuccessImg: true, showCalendar: true })
 
   useEffect(() => {
     setMotto(MOTTOS[Math.floor(Math.random() * MOTTOS.length)])
+    setGreeting(getGreeting())
+    setTomorrowFallback(new Date().getHours() < 18 ? '오늘도 잘 할 수 있어!' : '오늘도 수고했어!')
   }, [])
 
   // Auto-show weekly report on Saturday
@@ -586,7 +590,7 @@ export default function HomePage() {
         {/* Greeting + Motto */}
         <div style={{ padding: '20px 16px 12px', display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: '8px' }}>
           <div style={{ fontSize: '22px', fontWeight: 700, color: 'var(--color-text-primary)', whiteSpace: 'nowrap' }}>
-            {getGreeting()}
+            {greeting}
           </div>
           <div style={{ fontSize: '13px', color: 'var(--color-accent-primary)', fontWeight: 500, textAlign: 'right', flexShrink: 1, minWidth: 0 }}>
             {motto}
@@ -688,7 +692,7 @@ export default function HomePage() {
                   </button>
                 </div>
                 <div style={{ fontSize: '14px', color: tomorrowNote ? '#4A3C00' : '#9B8A00', lineHeight: 1.5 }}>
-                  {tomorrowNote ?? (new Date().getHours() < 18 ? '오늘도 잘 할 수 있어!' : '오늘도 수고했어!')}
+                  {tomorrowNote ?? tomorrowFallback}
                 </div>
               </div>
             )}

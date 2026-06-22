@@ -51,12 +51,13 @@ export function CelebrationScreen({
   onRepeat,
   onRepeatMore,
 }: CelebrationScreenProps) {
-  const [phrase] = useState(() => PHRASES[Math.floor(Math.random() * PHRASES.length)])
+  const [phrase, setPhrase] = useState(PHRASES[0])
   const [visible, setVisible] = useState(false)
 
   const isBig = variant !== 'progress'
 
   useEffect(() => {
+    setPhrase(PHRASES[Math.floor(Math.random() * PHRASES.length)])
     setVisible(true)
 
     if (typeof window !== 'undefined') {
