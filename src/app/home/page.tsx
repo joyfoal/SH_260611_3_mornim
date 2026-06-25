@@ -577,7 +577,7 @@ export default function HomePage() {
             {greeting}
           </div>
           <div style={{ fontSize: '22px', color: 'var(--color-accent-primary)', fontWeight: 700, letterSpacing: '-0.3px', whiteSpace: 'nowrap' }}>
-            이뤄 Ealo
+            이뤄 <span style={{ color: 'var(--color-accent-light)' }}>Ealo</span>
           </div>
         </div>
 
