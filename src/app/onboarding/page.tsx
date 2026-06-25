@@ -519,7 +519,7 @@ export default function OnboardingPage() {
               <SeedIcon size={30} />
             </div>
             <div style={{ fontSize: 32, fontWeight: 800, letterSpacing: '-0.6px', color: T.ink, lineHeight: 1.28 }}>안녕하세요 :)</div>
-            <div style={{ fontSize: 32, fontWeight: 800, letterSpacing: '-0.6px', color: T.gold, lineHeight: 1.28 }}>저는 모님이에요.</div>
+            <div style={{ fontSize: 32, fontWeight: 800, letterSpacing: '-0.6px', color: T.gold, lineHeight: 1.28 }}>저는 이뤄예요.</div>
             <div style={{ fontSize: 16, fontWeight: 500, color: T.ink2, lineHeight: 1.55, marginTop: 4 }}>
               성공의 말을 자주 하면 이루어진다.
             </div>
@@ -967,7 +967,7 @@ export default function OnboardingPage() {
               disabled={isFinishing}
               onClick={handleFinish}
             >
-              {isFinishing ? '준비하는 중…' : '모님 시작하기'}
+              {isFinishing ? '준비하는 중…' : '이뤄 시작하기'}
             </button>
           </div>
         </div>

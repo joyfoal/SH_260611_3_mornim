@@ -611,7 +611,7 @@ function StatsPanel() {
 
   const handleExport = () => {
     const lines: string[] = [
-      '=== 모님 통계 리포트 ===',
+      '=== 이뤄 통계 리포트 ===',
       `생성: ${new Date().toLocaleString('ko-KR')}`,
       '',
       '▸ 전체 요약',
@@ -877,7 +877,7 @@ function BackupPanel() {
   const handleBackup = () => {
     downloadJSON({
       version: '1.0',
-      app: '모님',
+      app: '이뤄',
       exportedAt: new Date().toISOString(),
       affirmations: getAffirmations(),
       categories: getCategories(),
@@ -1400,7 +1400,7 @@ function ManualPanel() {
         ))}
       </div>
       <div style={{ marginTop: '20px', textAlign: 'center', fontSize: '12px', color: 'var(--color-text-muted)' }}>
-        모님 v0.1.0 · 말하면, 이루어진다.
+        이뤄 v0.1.0 · 말하면, 이루어진다.
       </div>
     </Panel>
   )

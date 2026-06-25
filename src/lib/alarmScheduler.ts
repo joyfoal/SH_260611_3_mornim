@@ -55,7 +55,7 @@ export async function scheduleAlarm(): Promise<void> {
     const delayMs = nextTime.getTime() - Date.now()
     const affirmation = affirmations.find((a) => a.id === alarm.affirmationId)
     const body = affirmation?.text ?? '성공의 말을 확인해보세요'
-    sw.postMessage({ type: 'SCHEDULE_ALARM', id: alarm.id, delayMs, title: '모님 ✨', body })
+    sw.postMessage({ type: 'SCHEDULE_ALARM', id: alarm.id, delayMs, title: '이뤄 ✨', body })
   }
 }
 
