@@ -576,8 +576,8 @@ export default function HomePage() {
           <div style={{ fontSize: '22px', fontWeight: 700, color: 'var(--color-text-primary)', whiteSpace: 'nowrap' }}>
             {greeting}
           </div>
-          <div style={{ fontSize: '14px', color: 'var(--color-accent-primary)', fontWeight: 700, letterSpacing: '-0.3px', whiteSpace: 'nowrap' }}>
-            이뤄Ealo
+          <div style={{ fontSize: '22px', color: 'var(--color-accent-primary)', fontWeight: 700, letterSpacing: '-0.3px', whiteSpace: 'nowrap' }}>
+            이뤄 Ealo
           </div>
         </div>
 
