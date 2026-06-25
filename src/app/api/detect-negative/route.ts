@@ -22,6 +22,7 @@ export async function POST(req: NextRequest) {
         { role: 'user', content: `텍스트: "${text}"` },
       ],
       temperature: 0.3,
+      max_tokens: 80,
     })
 
     const content = completion.choices[0]?.message?.content ?? ''

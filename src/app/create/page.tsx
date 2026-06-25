@@ -95,6 +95,8 @@ export default function CreatePage() {
   const [chatInput, setChatInput] = useState('')
   const [chatLoading, setChatLoading] = useState(false)
   const [chatAffirmations, setChatAffirmations] = useState<string[]>([])
+  const chatUserCount = chatMessages.filter((m) => m.role === 'user').length
+  const chatLimitReached = chatUserCount >= 10
 
   const handleDirectSave = async (textToSave?: string) => {
     const text = textToSave ?? directText
@@ -854,65 +856,71 @@ export default function CreatePage() {
 
             <div ref={chatBottomRef} />
 
-            <div className="flex gap-2" style={{ marginTop: '8px' }}>
-              <input
-                value={chatInput}
-                onChange={(e) => setChatInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && !e.nativeEvent.isComposing) {
-                    handleChatSend()
-                  }
-                }}
-                placeholder="메시지 입력..."
-                style={{
-                  flex: 1,
-                  padding: '12px 14px',
-                  background: 'var(--color-bg-card)',
-                  border: '1px solid var(--color-border)',
-                  borderRadius: '12px',
-                  fontSize: '14px',
-                  color: 'var(--color-text-primary)',
-                  outline: 'none',
-                }}
-              />
-              <button
-                onClick={() => toggleVoiceInput(
-                  isListeningChat,
-                  setIsListeningChat,
-                  (text) => setChatInput((prev) => prev ? prev + ' ' + text : text)
-                )}
-                style={{
-                  padding: '12px',
-                  background: isListeningChat ? '#E53935' : 'var(--color-bg-card)',
-                  border: '1px solid var(--color-border)',
-                  borderRadius: '12px',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  transition: 'background 0.2s',
-                }}
-                title={isListeningChat ? '듣는 중 — 탭하여 중지' : '음성으로 입력'}
-              >
-                <Mic size={16} color={isListeningChat ? 'white' : 'var(--color-text-muted)'} />
-              </button>
-              <button
-                onClick={handleChatSend}
-                disabled={!chatInput.trim() || chatLoading}
-                style={{
-                  padding: '12px 20px',
-                  background: 'var(--color-accent-primary)',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '12px',
-                  fontSize: '14px',
-                  cursor: 'pointer',
-                }}
-              >
-                전송
-              </button>
-            </div>
+            {chatLimitReached ? (
+              <div style={{ marginTop: '8px', padding: '14px', background: 'var(--color-bg-card)', borderRadius: '12px', textAlign: 'center', fontSize: '14px', color: 'var(--color-text-secondary)' }}>
+                이제 성공의 말을 만들어볼까요? ✨
+              </div>
+            ) : (
+              <div className="flex gap-2" style={{ marginTop: '8px' }}>
+                <input
+                  value={chatInput}
+                  onChange={(e) => setChatInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !e.nativeEvent.isComposing) {
+                      handleChatSend()
+                    }
+                  }}
+                  placeholder="메시지 입력..."
+                  style={{
+                    flex: 1,
+                    padding: '12px 14px',
+                    background: 'var(--color-bg-card)',
+                    border: '1px solid var(--color-border)',
+                    borderRadius: '12px',
+                    fontSize: '14px',
+                    color: 'var(--color-text-primary)',
+                    outline: 'none',
+                  }}
+                />
+                <button
+                  onClick={() => toggleVoiceInput(
+                    isListeningChat,
+                    setIsListeningChat,
+                    (text) => setChatInput((prev) => prev ? prev + ' ' + text : text)
+                  )}
+                  style={{
+                    padding: '12px',
+                    background: isListeningChat ? '#E53935' : 'var(--color-bg-card)',
+                    border: '1px solid var(--color-border)',
+                    borderRadius: '12px',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    transition: 'background 0.2s',
+                  }}
+                  title={isListeningChat ? '듣는 중 — 탭하여 중지' : '음성으로 입력'}
+                >
+                  <Mic size={16} color={isListeningChat ? 'white' : 'var(--color-text-muted)'} />
+                </button>
+                <button
+                  onClick={handleChatSend}
+                  disabled={!chatInput.trim() || chatLoading}
+                  style={{
+                    padding: '12px 20px',
+                    background: 'var(--color-accent-primary)',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '12px',
+                    fontSize: '14px',
+                    cursor: 'pointer',
+                  }}
+                >
+                  전송
+                </button>
+              </div>
+            )}
 
-            {chatMessages.length >= 2 && chatAffirmations.length === 0 && (
+            {(chatMessages.length >= 2 || chatLimitReached) && chatAffirmations.length === 0 && (
               <button
                 onClick={handleGenerateAffirmations}
                 disabled={chatLoading}

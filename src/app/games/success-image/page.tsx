@@ -83,6 +83,29 @@ export default function SuccessImagePage() {
   const [successUrl, setSuccessUrl] = useState<string | null>(null)
   const [successError, setSuccessError] = useState<string | null>(null)
 
+  // 이미지 생성 횟수 제한 (하루 3회)
+  const IMAGE_GEN_KEY = 'ealo-image-gen-count'
+  const PROFILE_GEN_KEY = 'ealo-profile-gen-count'
+  const MAX_DAILY = 3
+
+  function getDailyCount(key: string): number {
+    try {
+      const raw = localStorage.getItem(key)
+      if (!raw) return 0
+      const data = JSON.parse(raw) as { date: string; count: number }
+      const today = new Date().toISOString().split('T')[0]
+      return data.date === today ? data.count : 0
+    } catch { return 0 }
+  }
+
+  function incrementDailyCount(key: string): void {
+    try {
+      const today = new Date().toISOString().split('T')[0]
+      const current = getDailyCount(key)
+      localStorage.setItem(key, JSON.stringify({ date: today, count: current + 1 }))
+    } catch {}
+  }
+
   useEffect(() => {
     setAffirmations(getAffirmations())
     getFaceProfile().then((p) => {
@@ -167,6 +190,10 @@ export default function SuccessImagePage() {
 
 
   const handleGenerateProfile = async () => {
+    if (getDailyCount(PROFILE_GEN_KEY) >= MAX_DAILY) {
+      setProfileError('오늘은 프로필 이미지 생성을 모두 사용했어요. 내일 다시 시도해보세요.')
+      return
+    }
     setProfileGenerating(true)
     setProfileError(null)
     setProfileUrl(null)
@@ -197,6 +224,7 @@ export default function SuccessImagePage() {
         setProfileError(data.error)
       } else if (data.url) {
         setProfileUrl(data.url)
+        incrementDailyCount(PROFILE_GEN_KEY)
       }
     } catch {
       setProfileError('프로필 이미지 생성 중 오류가 발생했어요.')
@@ -242,6 +270,10 @@ export default function SuccessImagePage() {
 
   const handleGenerateSuccess = async () => {
     if (!hasProfile || selectedIds.length === 0) return
+    if (getDailyCount(IMAGE_GEN_KEY) >= MAX_DAILY) {
+      setSuccessError('오늘은 성공 이미지 생성을 모두 사용했어요. 내일 다시 시도해보세요.')
+      return
+    }
     setSuccessGenerating(true)
     setSuccessError(null)
     setSuccessUrl(null)
@@ -269,6 +301,7 @@ export default function SuccessImagePage() {
         setSuccessError(data.error)
       } else if (data.url) {
         setSuccessUrl(data.url)
+        incrementDailyCount(IMAGE_GEN_KEY)
         saveSuccessImage(dataURLtoBlob(data.url)).catch(() => {})
       }
     } catch {

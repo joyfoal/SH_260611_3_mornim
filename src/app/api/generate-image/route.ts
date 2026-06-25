@@ -105,7 +105,7 @@ NO TEXT OR LETTERS in the image.`
         prompt,
         n: 1,
         size: '1024x1024',
-        quality: 'high',
+        quality: 'medium',
       })
       b64 = response.data?.[0]?.b64_json
     } else if (faceImageBase64) {
@@ -136,7 +136,7 @@ NO TEXT OR LETTERS. Style: warm golden light, photorealistic.`
         prompt,
         n: 1,
         size: '1024x1024',
-        quality: 'high',
+        quality: 'medium',
       }
       if (maskFile) editParams.mask = maskFile
 
@@ -151,7 +151,7 @@ NO TEXT OR LETTERS. Style: warm golden light, photorealistic.`
         prompt,
         n: 1,
         size: '1024x1024',
-        quality: 'high',
+        quality: 'medium',
       })
       b64 = response.data?.[0]?.b64_json
     } else {

@@ -77,6 +77,27 @@ export default function ProfileImagePage() {
   const [saved, setSaved] = useState(false)
   const [existingProfile, setExistingProfile] = useState<FaceProfile | null>(null)
 
+  const PROFILE_GEN_KEY = 'ealo-profile-gen-count'
+  const MAX_DAILY = 3
+
+  function getDailyCount(): number {
+    try {
+      const raw = localStorage.getItem(PROFILE_GEN_KEY)
+      if (!raw) return 0
+      const data = JSON.parse(raw) as { date: string; count: number }
+      const today = new Date().toISOString().split('T')[0]
+      return data.date === today ? data.count : 0
+    } catch { return 0 }
+  }
+
+  function incrementDailyCount(): void {
+    try {
+      const today = new Date().toISOString().split('T')[0]
+      const current = getDailyCount()
+      localStorage.setItem(PROFILE_GEN_KEY, JSON.stringify({ date: today, count: current + 1 }))
+    } catch {}
+  }
+
   useEffect(() => {
     getFaceProfile().then(setExistingProfile).catch(() => {})
   }, [])
@@ -137,6 +158,10 @@ export default function ProfileImagePage() {
 
   const handleGenerate = async () => {
     if (!canGenerate()) return
+    if (getDailyCount() >= MAX_DAILY) {
+      setError('오늘은 프로필 이미지 생성을 모두 사용했어요. 내일 다시 시도해보세요.')
+      return
+    }
     setGenerating(true)
     setError(null)
     setGeneratedUrl(null)
@@ -161,6 +186,7 @@ export default function ProfileImagePage() {
         setError(data.error)
       } else if (data.url) {
         setGeneratedUrl(data.url)
+        incrementDailyCount()
       }
     } catch {
       setError('이미지 생성 중 오류가 발생했어요.')

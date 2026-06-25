@@ -55,6 +55,7 @@ export async function POST(req: NextRequest) {
         ...(messages as Array<{ role: 'user' | 'assistant'; content: string }>),
       ],
       temperature: 0.8,
+      max_tokens: 250,
     })
 
     const content = completion.choices[0]?.message?.content ?? ''
