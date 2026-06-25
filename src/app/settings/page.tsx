@@ -49,6 +49,21 @@ function downloadJSON(obj: unknown, filename: string) {
 
 const DAY_KO = ['일', '월', '화', '수', '목', '금', '토']
 
+const MOTTOS = [
+  '말하면 이루어진다.',
+  '반드시 성공한다.',
+  '꿈은 현실이 된다.',
+  '성공은 시작되었다.',
+  '성공에 가까워지고 있다.',
+  '말이 나의 현실을 만든다.',
+  '성공은 나를 향해 오고 있다.',
+  '잘 사는 사람이 된다.',
+  '나의 시간은 성공으로 향하고 있다.',
+  '오늘도 성공에 가까워진다.',
+  '성공은 나의 것이다.',
+  '날마다 더 나아지고 있다.',
+]
+
 // ─── Category Delete Modal ─────────────────────────────────────────────────
 function CategoryDeleteModal({
   category,
@@ -1439,6 +1454,8 @@ function renderPanel(id: string) {
 
 export default function SettingsPage() {
   const [active, setActive] = useState<string | null>(null)
+  const [motto, setMotto] = useState('')
+  useEffect(() => { setMotto(MOTTOS[Math.floor(Math.random() * MOTTOS.length)]) }, [])
   const toggle = (id: string) => setActive((prev) => prev === id ? null : id)
 
   const chipBg = 'color-mix(in srgb, var(--color-accent-light) 28%, var(--color-bg-card))'
@@ -1448,7 +1465,10 @@ export default function SettingsPage() {
   return (
     <AppLayout activeTab="설정">
       <div style={{ padding: '20px 16px' }}>
-        <h1 style={{ fontSize: '20px', fontWeight: 700, color: 'var(--color-text-primary)', marginBottom: '20px' }}>설정</h1>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '20px' }}>
+          <h1 style={{ fontSize: '20px', fontWeight: 700, color: 'var(--color-text-primary)' }}>설정</h1>
+          <div style={{ fontSize: '13px', color: 'var(--color-accent-primary)', fontWeight: 500 }}>{motto}</div>
+        </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
           {rows.map((row, rowIdx) => {

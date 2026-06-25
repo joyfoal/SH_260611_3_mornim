@@ -433,20 +433,6 @@ function SavedSuccessImage({ onTap }: { onTap: () => void }) {
   )
 }
 
-const MOTTOS = [
-  '말하면 이루어진다.',
-  '반드시 성공한다.',
-  '꿈은 현실이 된다.',
-  '성공은 시작되었다.',
-  '성공에 가까워지고 있다.',
-  '말이 나의 현실을 만든다.',
-  '성공은 나를 향해 오고 있다.',
-  '잘 사는 사람이 된다.',
-  '나의 시간은 성공으로 향하고 있다.',
-  '오늘도 성공에 가까워진다.',
-  '성공은 나의 것이다.',
-  '날마다 더 나아지고 있다.',
-]
 
 export default function HomePage() {
   const router = useRouter()
@@ -459,14 +445,12 @@ export default function HomePage() {
   const [tomorrowNote, setTomorrowNote] = useState<string | null>(null)
   const [tomorrowEnabled, setTomorrowEnabled] = useState(false)
   const [naegeSavedToday, setNaegeSavedToday] = useState(false)
-  const [motto, setMotto] = useState('')
   const [greeting, setGreeting] = useState('')
   const [tomorrowFallback, setTomorrowFallback] = useState('오늘도 잘 할 수 있어!')
   const [showWeeklyReport, setShowWeeklyReport] = useState(false)
   const [displaySettings, setDisplaySettings] = useState({ showRecentRec: true, showSuccessImg: true, showCalendar: true })
 
   useEffect(() => {
-    setMotto(MOTTOS[Math.floor(Math.random() * MOTTOS.length)])
     setGreeting(getGreeting())
     setTomorrowFallback(new Date().getHours() < 18 ? '오늘도 잘 할 수 있어!' : '오늘도 수고했어!')
   }, [])
@@ -592,8 +576,8 @@ export default function HomePage() {
           <div style={{ fontSize: '22px', fontWeight: 700, color: 'var(--color-text-primary)', whiteSpace: 'nowrap' }}>
             {greeting}
           </div>
-          <div style={{ fontSize: '13px', color: 'var(--color-accent-primary)', fontWeight: 500, textAlign: 'right', flexShrink: 1, minWidth: 0 }}>
-            {motto}
+          <div style={{ fontSize: '14px', color: 'var(--color-accent-primary)', fontWeight: 700, letterSpacing: '-0.3px', whiteSpace: 'nowrap' }}>
+            이뤄Ealo
           </div>
         </div>
 
