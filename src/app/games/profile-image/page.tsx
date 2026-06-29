@@ -62,6 +62,7 @@ const MODES: { id: Mode; label: string; desc: string; btnLabel: string }[] = [
 export default function ProfileImagePage() {
   const router = useRouter()
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const directFileInputRef = useRef<HTMLInputElement>(null)
 
   const [mode, setMode] = useState<Mode>('face+text')
   const [faceFile, setFaceFile] = useState<File | null>(null)
@@ -76,6 +77,12 @@ export default function ProfileImagePage() {
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [existingProfile, setExistingProfile] = useState<FaceProfile | null>(null)
+
+  const [directFile, setDirectFile] = useState<File | null>(null)
+  const [directPreviewUrl, setDirectPreviewUrl] = useState<string | null>(null)
+  const [directSaving, setDirectSaving] = useState(false)
+  const [directSaved, setDirectSaved] = useState(false)
+  const [directError, setDirectError] = useState<string | null>(null)
 
   const PROFILE_GEN_KEY = 'ealo-profile-gen-count'
   const PROFILE_FIRST_COOKIE = 'ealo-profile-first'
@@ -126,6 +133,46 @@ export default function ProfileImagePage() {
       if (faceThumbnail) URL.revokeObjectURL(faceThumbnail)
     }
   }, [faceThumbnail])
+
+  useEffect(() => {
+    return () => {
+      if (directPreviewUrl) URL.revokeObjectURL(directPreviewUrl)
+    }
+  }, [directPreviewUrl])
+
+  const handleDirectFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    e.target.value = ''
+    if (directPreviewUrl) URL.revokeObjectURL(directPreviewUrl)
+    setDirectFile(file)
+    setDirectPreviewUrl(URL.createObjectURL(file))
+    setDirectSaved(false)
+    setDirectError(null)
+  }
+
+  const handleSaveDirectly = async () => {
+    if (!directFile) return
+    setDirectSaving(true)
+    setDirectError(null)
+    try {
+      const resizedDataUrl = await resizeImage(directFile, 800)
+      const profileBlob = dataURLtoBlob(resizedDataUrl)
+      const profileToSave: FaceProfile = {
+        id: 'default',
+        createdAt: Date.now(),
+        profileImageBlob: profileBlob,
+        imageBlob: directFile,
+      }
+      if (existingProfile?.faceData) profileToSave.faceData = existingProfile.faceData
+      await saveFaceProfile(profileToSave)
+      setExistingProfile(profileToSave)
+      setDirectSaved(true)
+    } catch {
+      setDirectError('저장 중 오류가 발생했어요.')
+    }
+    setDirectSaving(false)
+  }
 
   const handleModeChange = (newMode: Mode) => {
     setMode(newMode)
@@ -539,6 +586,73 @@ export default function ProfileImagePage() {
         </div>
       )}
 
+      {/* 구분선 */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', margin: '8px 0 20px' }}>
+        <div style={{ flex: 1, height: '1px', background: 'var(--color-border)' }} />
+        <span style={{ fontSize: '12px', color: 'var(--color-text-muted)', flexShrink: 0 }}>또는</span>
+        <div style={{ flex: 1, height: '1px', background: 'var(--color-border)' }} />
+      </div>
+
+      {/* 원본 사진 바로 사용 */}
+      <div style={{ padding: '16px', background: 'var(--color-bg-card)', borderRadius: '16px', marginBottom: '32px' }}>
+        <p style={{ fontSize: '14px', fontWeight: 600, color: 'var(--color-text-primary)', marginBottom: '4px' }}>
+          내 사진 그대로 프로필로 사용하기
+        </p>
+        <p style={{ fontSize: '12px', color: 'var(--color-text-muted)', marginBottom: '14px' }}>
+          AI 변환 없이 원본 사진을 바로 프로필로 저장해요
+        </p>
+
+        {directPreviewUrl ? (
+          <div>
+            <img
+              src={directPreviewUrl}
+              alt="원본 사진 미리보기"
+              style={{ width: '100%', borderRadius: '14px', marginBottom: '12px', display: 'block', maxHeight: '300px', objectFit: 'cover' }}
+            />
+            <button
+              onClick={() => directFileInputRef.current?.click()}
+              style={{ fontSize: '12px', color: 'var(--color-accent-primary)', background: 'none', border: 'none', cursor: 'pointer', padding: '0 0 12px', display: 'block' }}
+            >
+              사진 변경
+            </button>
+            {directSaved ? (
+              <div style={{ padding: '14px', background: 'var(--color-accent-light)', borderRadius: '12px', color: 'var(--color-accent-primary)', fontSize: '14px', fontWeight: 600, textAlign: 'center', marginBottom: '10px' }}>
+                ✓ 프로필로 저장됐어요!
+              </div>
+            ) : (
+              <button
+                onClick={handleSaveDirectly}
+                disabled={directSaving}
+                style={{ width: '100%', padding: '14px', background: 'var(--color-accent-primary)', color: 'white', border: 'none', borderRadius: '12px', fontSize: '15px', fontWeight: 600, cursor: directSaving ? 'not-allowed' : 'pointer', marginBottom: '8px' }}
+              >
+                {directSaving ? '저장 중...' : '📷 이 사진으로 프로필 저장하기'}
+              </button>
+            )}
+            {directSaved && (
+              <button
+                onClick={() => router.push('/games/success-image')}
+                style={{ width: '100%', padding: '13px', background: 'var(--color-accent-primary)', color: 'white', border: 'none', borderRadius: '12px', fontSize: '14px', fontWeight: 600, cursor: 'pointer' }}
+              >
+                🌟 성공 이미지 만들러 가기
+              </button>
+            )}
+            {directError && (
+              <div style={{ marginTop: '10px', padding: '10px 12px', background: '#FFF3CD', borderRadius: '10px', color: '#795548', fontSize: '13px' }}>
+                {directError}
+              </div>
+            )}
+          </div>
+        ) : (
+          <button
+            onClick={() => directFileInputRef.current?.click()}
+            style={{ width: '100%', padding: '16px', background: 'var(--color-bg-surface)', border: '1.5px dashed var(--color-border)', borderRadius: '12px', fontSize: '14px', color: 'var(--color-text-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+          >
+            <span style={{ fontSize: '22px' }}>📷</span>
+            사진 선택하기
+          </button>
+        )}
+      </div>
+
       <input
         type="file"
         accept="image/*"
@@ -546,6 +660,13 @@ export default function ProfileImagePage() {
         ref={fileInputRef}
         style={{ display: 'none' }}
         onChange={handleFileChange}
+      />
+      <input
+        type="file"
+        accept="image/*"
+        ref={directFileInputRef}
+        style={{ display: 'none' }}
+        onChange={handleDirectFileChange}
       />
 
       <style>{`
