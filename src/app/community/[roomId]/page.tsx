@@ -1,9 +1,10 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { AppLayout } from '@/components/ui/AppLayout'
-import { ChevronLeft, Trophy } from 'lucide-react'
+import { ChevronLeft, Trophy, BookmarkPlus, Share2, X, Check } from 'lucide-react'
+import { getAffirmations, saveAffirmation, type Affirmation } from '@/lib/storage'
 
 type RoomTab = '성공의 말 나누기' | '함께 도전'
 
@@ -24,6 +25,7 @@ interface FeedItem {
   daysCount: number
   reactions: Reactions
   createdAt: string
+  isMe?: boolean
 }
 
 interface Participant {
@@ -92,6 +94,59 @@ export default function RoomPage() {
   const [challenges, setChallenges] = useState<Challenge[]>(MOCK_CHALLENGE)
   const [expandedChallenge, setExpandedChallenge] = useState<string | null>(null)
 
+  // 공유하기
+  const [showShareSheet, setShowShareSheet] = useState(false)
+  const [myPhrases, setMyPhrases] = useState<Affirmation[]>([])
+  const [sharedIds, setSharedIds] = useState<string[]>([])
+
+  // 가져오기
+  const [importedContents, setImportedContents] = useState<Set<string>>(new Set())
+  const [toast, setToast] = useState('')
+
+  useEffect(() => {
+    if (toast) {
+      const t = setTimeout(() => setToast(''), 2000)
+      return () => clearTimeout(t)
+    }
+  }, [toast])
+
+  const showToast = (msg: string) => setToast(msg)
+
+  const handleOpenShare = () => {
+    setMyPhrases(getAffirmations())
+    setShowShareSheet(true)
+  }
+
+  const handleSharePhrase = (aff: Affirmation) => {
+    if (sharedIds.length >= 3 || sharedIds.includes(aff.id)) return
+    const newItem: FeedItem = {
+      id: `my-${aff.id}`,
+      nickname: '나',
+      initial: '나',
+      content: aff.text,
+      daysCount: aff.completedDates.length,
+      reactions: { '😍': 0, '👏': 0, '🔥': 0, '💪': 0 },
+      createdAt: '방금',
+      isMe: true,
+    }
+    setFeed(prev => [newItem, ...prev])
+    setSharedIds(prev => [...prev, aff.id])
+    setShowShareSheet(false)
+    showToast('성공의 말을 방에 공유했어요 ✨')
+  }
+
+  const handleImport = (content: string) => {
+    const existing = getAffirmations()
+    if (existing.some(a => a.text === content)) {
+      showToast('이미 내 성공의 말에 있어요')
+      return
+    }
+    const now = new Date().toISOString()
+    saveAffirmation({ id: `imported-${Date.now()}`, text: content, category: '나 자신', createdAt: now, completedDates: [] })
+    setImportedContents(prev => new Set(prev).add(content))
+    showToast('내 성공의 말에 추가됐어요 ✨')
+  }
+
   const handleFeedReaction = (feedId: string, emoji: keyof Reactions) => {
     setFeed(prev => prev.map(item =>
       item.id === feedId
@@ -158,6 +213,31 @@ export default function RoomPage() {
           {/* 성공의 말 나누기 피드 */}
           {activeTab === '성공의 말 나누기' && (
             <div>
+              {/* 공유하기 버튼 */}
+              <button
+                onClick={handleOpenShare}
+                disabled={sharedIds.length >= 3}
+                style={{
+                  width: '100%',
+                  padding: '12px',
+                  background: sharedIds.length >= 3 ? 'var(--color-border)' : '#F59E0B',
+                  color: sharedIds.length >= 3 ? 'var(--color-text-muted)' : 'white',
+                  border: 'none',
+                  borderRadius: '12px',
+                  fontSize: '14px',
+                  fontWeight: 600,
+                  cursor: sharedIds.length >= 3 ? 'not-allowed' : 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '7px',
+                  marginBottom: '14px',
+                }}
+              >
+                <Share2 size={15} />
+                {sharedIds.length >= 3 ? '최대 3개까지 공유할 수 있어요' : '성공의 말 공유하기'}
+              </button>
+
               <p style={{ fontSize: '12px', color: 'var(--color-text-muted)', textAlign: 'center', marginBottom: '16px' }}>
                 자유 댓글 없이 정해진 응원만 보낼 수 있어요
               </p>
@@ -170,20 +250,25 @@ export default function RoomPage() {
                       background: 'var(--color-bg-card)',
                       borderRadius: '16px',
                       padding: '16px',
-                      border: '1px solid var(--color-border)',
+                      border: item.isMe ? '1.5px solid #F59E0B' : '1px solid var(--color-border)',
                     }}
                   >
                     {/* 작성자 */}
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
                       <div style={{
                         width: '36px', height: '36px', borderRadius: '50%',
-                        background: '#FEF3C7', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        fontSize: '15px', fontWeight: 700, color: '#92400E', flexShrink: 0,
+                        background: item.isMe ? '#F59E0B' : '#FEF3C7',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        fontSize: '15px', fontWeight: 700,
+                        color: item.isMe ? 'white' : '#92400E',
+                        flexShrink: 0,
                       }}>
                         {item.initial}
                       </div>
                       <div>
-                        <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--color-text-primary)' }}>{item.nickname}</div>
+                        <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--color-text-primary)' }}>
+                          {item.nickname}{item.isMe && ' (나)'}
+                        </div>
                         <div style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>{item.createdAt}</div>
                       </div>
                       <span style={{
@@ -194,7 +279,7 @@ export default function RoomPage() {
                       </span>
                     </div>
 
-                    {/* 확언 문구 */}
+                    {/* 성공의 말 문구 */}
                     <p style={{
                       fontFamily: 'Georgia, serif',
                       fontSize: '16px',
@@ -217,26 +302,59 @@ export default function RoomPage() {
                       {totalReactions(item.reactions) === 0 && '아직 응원이 없어요'}
                     </div>
 
-                    {/* 칭찬 버튼 */}
-                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                      {EMOJIS.map(e => (
+                    {/* 칭찬 버튼 + 가져오기 */}
+                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
+                      <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', flex: 1 }}>
+                        {!item.isMe && EMOJIS.map(e => (
+                          <button
+                            key={e.emoji}
+                            onClick={() => handleFeedReaction(item.id, e.emoji)}
+                            style={{
+                              padding: '6px 10px',
+                              background: '#FEF3C7',
+                              border: '1px solid #FCD34D',
+                              borderRadius: '999px',
+                              fontSize: '12px',
+                              color: '#92400E',
+                              cursor: 'pointer',
+                              fontWeight: 500,
+                            }}
+                          >
+                            {e.emoji} {e.label}
+                          </button>
+                        ))}
+                        {item.isMe && (
+                          <span style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>내가 공유한 성공의 말</span>
+                        )}
+                      </div>
+
+                      {/* 가져오기 버튼 */}
+                      {!item.isMe && (
                         <button
-                          key={e.emoji}
-                          onClick={() => handleFeedReaction(item.id, e.emoji)}
+                          onClick={() => handleImport(item.content)}
+                          disabled={importedContents.has(item.content)}
+                          title="내 성공의 말로 가져오기"
                           style={{
-                            padding: '6px 12px',
-                            background: '#FEF3C7',
-                            border: '1px solid #FCD34D',
-                            borderRadius: '999px',
+                            flexShrink: 0,
+                            padding: '6px 10px',
+                            background: importedContents.has(item.content) ? '#D1FAE5' : 'var(--color-bg-card)',
+                            border: importedContents.has(item.content) ? '1px solid #6EE7B7' : '1px solid var(--color-border)',
+                            borderRadius: '10px',
+                            cursor: importedContents.has(item.content) ? 'default' : 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '4px',
                             fontSize: '12px',
-                            color: '#92400E',
-                            cursor: 'pointer',
+                            color: importedContents.has(item.content) ? '#059669' : 'var(--color-text-muted)',
                             fontWeight: 500,
                           }}
                         >
-                          {e.emoji} {e.label}
+                          {importedContents.has(item.content)
+                            ? <><Check size={13} /> 가져옴</>
+                            : <><BookmarkPlus size={13} /> 가져오기</>
+                          }
                         </button>
-                      ))}
+                      )}
                     </div>
                   </div>
                 ))}
@@ -264,22 +382,19 @@ export default function RoomPage() {
                         style={{
                           width: '100%',
                           background: 'var(--color-bg-card)',
-                          borderRadius: '16px',
+                          borderRadius: isExpanded ? '16px 16px 0 0' : '16px',
                           padding: '16px',
                           border: isFirst ? '2px solid #F59E0B' : '1px solid var(--color-border)',
                           cursor: 'pointer',
                           textAlign: 'left',
                         }}
                       >
-                        {/* 1위 뱃지 */}
                         {isFirst && (
                           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px' }}>
                             <Trophy size={14} color="#F59E0B" />
                             <span style={{ fontSize: '12px', fontWeight: 700, color: '#F59E0B' }}>1위</span>
                           </div>
                         )}
-
-                        {/* 문구 */}
                         <p style={{
                           fontFamily: 'Georgia, serif',
                           fontSize: '15px',
@@ -290,8 +405,6 @@ export default function RoomPage() {
                         }}>
                           {challenge.content}
                         </p>
-
-                        {/* 통계 */}
                         <div style={{ display: 'flex', gap: '16px' }}>
                           <span style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>
                             참여 {challenge.participants.length}명
@@ -302,7 +415,6 @@ export default function RoomPage() {
                         </div>
                       </button>
 
-                      {/* 참여자 상세 (펼침) */}
                       {isExpanded && (
                         <div style={{
                           background: 'var(--color-bg-card)',
@@ -310,7 +422,6 @@ export default function RoomPage() {
                           padding: '12px 16px 16px',
                           border: '1px solid var(--color-border)',
                           borderTop: 'none',
-                          marginTop: '-8px',
                         }}>
                           <p style={{ fontSize: '11px', color: 'var(--color-text-muted)', marginBottom: '12px', textAlign: 'center' }}>
                             칭찬이 적은 순서로 보여요
@@ -375,6 +486,113 @@ export default function RoomPage() {
           )}
         </div>
       </div>
+
+      {/* 공유하기 바텀시트 */}
+      {showShareSheet && (
+        <>
+          <div
+            onClick={() => setShowShareSheet(false)}
+            style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 40 }}
+          />
+          <div style={{
+            position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 50,
+            background: 'var(--color-bg-primary)',
+            borderRadius: '20px 20px 0 0',
+            padding: '20px 16px 40px',
+            maxHeight: '70vh',
+            overflowY: 'auto',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+              <h3 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--color-text-primary)' }}>
+                내 성공의 말 공유하기
+              </h3>
+              <button onClick={() => setShowShareSheet(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex' }}>
+                <X size={20} color="var(--color-text-muted)" />
+              </button>
+            </div>
+
+            {sharedIds.length >= 3 && (
+              <p style={{ fontSize: '13px', color: '#92400E', background: '#FEF3C7', padding: '10px 14px', borderRadius: '10px', marginBottom: '14px' }}>
+                방당 최대 3개까지 공유할 수 있어요
+              </p>
+            )}
+
+            {myPhrases.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '32px 0' }}>
+                <div style={{ fontSize: '32px', marginBottom: '10px' }}>💬</div>
+                <p style={{ fontSize: '14px', color: 'var(--color-text-muted)', marginBottom: '16px' }}>
+                  아직 저장한 성공의 말이 없어요
+                </p>
+                <button
+                  onClick={() => { setShowShareSheet(false); router.push('/create') }}
+                  style={{ padding: '10px 24px', background: '#F59E0B', color: 'white', border: 'none', borderRadius: '12px', fontSize: '14px', fontWeight: 600, cursor: 'pointer' }}
+                >
+                  성공의 말 만들러 가기
+                </button>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                {myPhrases.map(aff => {
+                  const alreadyShared = sharedIds.includes(aff.id)
+                  return (
+                    <button
+                      key={aff.id}
+                      onClick={() => handleSharePhrase(aff)}
+                      disabled={alreadyShared || sharedIds.length >= 3}
+                      style={{
+                        padding: '14px',
+                        background: alreadyShared ? '#F0FDF4' : 'var(--color-bg-card)',
+                        border: alreadyShared ? '1px solid #6EE7B7' : '1px solid var(--color-border)',
+                        borderRadius: '12px',
+                        textAlign: 'left',
+                        cursor: alreadyShared || sharedIds.length >= 3 ? 'default' : 'pointer',
+                        opacity: !alreadyShared && sharedIds.length >= 3 ? 0.5 : 1,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        gap: '12px',
+                      }}
+                    >
+                      <div style={{ minWidth: 0 }}>
+                        <p style={{
+                          fontFamily: 'Georgia, serif',
+                          fontSize: '14px',
+                          color: 'var(--color-text-primary)',
+                          marginBottom: '4px',
+                          lineHeight: 1.5,
+                        }}>
+                          {aff.text}
+                        </p>
+                        <span style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>
+                          {aff.category} · {aff.completedDates.length}일 외침
+                        </span>
+                      </div>
+                      {alreadyShared
+                        ? <Check size={16} color="#059669" style={{ flexShrink: 0 }} />
+                        : <span style={{ fontSize: '12px', color: '#F59E0B', fontWeight: 600, flexShrink: 0 }}>공유</span>
+                      }
+                    </button>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+        </>
+      )}
+
+      {/* Toast */}
+      {toast && (
+        <div style={{
+          position: 'fixed', bottom: '80px', left: '50%', transform: 'translateX(-50%)',
+          background: 'rgba(0,0,0,0.75)', color: 'white',
+          padding: '10px 20px', borderRadius: '999px',
+          fontSize: '13px', fontWeight: 500,
+          zIndex: 100, whiteSpace: 'nowrap',
+          pointerEvents: 'none',
+        }}>
+          {toast}
+        </div>
+      )}
     </AppLayout>
   )
 }
