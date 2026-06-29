@@ -141,7 +141,7 @@ export default function CommunityPage() {
   const [roomNameBanner, setRoomNameBanner] = useState<NegBanner>(null)
   const [roomDescBanner, setRoomDescBanner] = useState<NegBanner>(null)
   const [creating, setCreating] = useState(false)
-  const [rankingPeriod, setRankingPeriod] = useState<RankingPeriod>('전체')
+  const [rankingPeriod, setRankingPeriod] = useState<RankingPeriod>('일')
   const [rankingType, setRankingType] = useState<'방' | '성공의 말'>('방')
 
   // 프로필
