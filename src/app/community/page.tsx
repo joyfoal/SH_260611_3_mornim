@@ -29,7 +29,35 @@ function resizeImageToBase64(file: File, maxPx = 200): Promise<string> {
   })
 }
 
-type CommunityTab = '내 방' | '방 둘러보기' | '방 만들기'
+type CommunityTab = '내 방' | '방 둘러보기' | '방 만들기' | '랭킹'
+type RankingPeriod = '전체' | '연' | '월' | '일'
+
+const MOCK_RANKING: Record<RankingPeriod, Array<{ roomId: string; totalDays: number }>> = {
+  '전체': [
+    { roomId: 'r3', totalDays: 1240 },
+    { roomId: 'r1', totalDays: 876 },
+    { roomId: 'r2', totalDays: 532 },
+    { roomId: 'r4', totalDays: 245 },
+  ],
+  '연': [
+    { roomId: 'r1', totalDays: 312 },
+    { roomId: 'r3', totalDays: 289 },
+    { roomId: 'r4', totalDays: 178 },
+    { roomId: 'r2', totalDays: 134 },
+  ],
+  '월': [
+    { roomId: 'r3', totalDays: 94 },
+    { roomId: 'r2', totalDays: 67 },
+    { roomId: 'r1', totalDays: 58 },
+    { roomId: 'r4', totalDays: 41 },
+  ],
+  '일': [
+    { roomId: 'r1', totalDays: 18 },
+    { roomId: 'r3', totalDays: 15 },
+    { roomId: 'r2', totalDays: 12 },
+    { roomId: 'r4', totalDays: 9 },
+  ],
+}
 type NegResult = { isNegative: boolean; alternative: string | null; suggestedDesc?: string | null }
 type NegBanner = NegResult | null
 
@@ -82,6 +110,7 @@ export default function CommunityPage() {
   const [roomNameBanner, setRoomNameBanner] = useState<NegBanner>(null)
   const [roomDescBanner, setRoomDescBanner] = useState<NegBanner>(null)
   const [creating, setCreating] = useState(false)
+  const [rankingPeriod, setRankingPeriod] = useState<RankingPeriod>('전체')
 
   // 프로필
   const [userProfile, setUserProfile] = useState<UserProfile>({ nickname: '', profileImage: null })
@@ -141,7 +170,6 @@ export default function CommunityPage() {
   }
 
   const filteredRooms = MOCK_ROOMS
-    .filter(r => !myRooms.includes(r.id))
     .filter(r => selectedTag === '전체' || r.tags.includes(selectedTag))
     .filter(r => {
       const q = searchQuery.trim().toLowerCase()
@@ -155,7 +183,7 @@ export default function CommunityPage() {
     const room = MOCK_ROOMS.find(r => r.id === roomId)
     if (!room || room.members >= MAX_MEMBERS) return
     setMyRooms(prev => [...prev, roomId])
-    setActiveTab('내 방')
+    router.push(`/community/${roomId}`)
   }
 
   const handleCreateRoom = async () => {
@@ -259,7 +287,7 @@ export default function CommunityPage() {
 
         {/* 상단 탭: 내 방 → 방 둘러보기 → 방 만들기 */}
         <div style={{ display: 'flex', borderBottom: '1px solid var(--color-border)', marginBottom: '20px' }}>
-          {(['내 방', '방 둘러보기', '방 만들기'] as CommunityTab[]).map(tab => (
+          {(['내 방', '방 둘러보기', '방 만들기', '랭킹'] as CommunityTab[]).map(tab => (
             <button key={tab} onClick={() => setActiveTab(tab)} style={tabStyle(tab)}>
               {tab}
             </button>
@@ -395,12 +423,13 @@ export default function CommunityPage() {
 
               {filteredRooms.length === 0 ? (
                 <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--color-text-muted)', fontSize: '14px' }}>
-                  {searchQuery.trim() ? `"${searchQuery}" 검색 결과가 없어요` : '모든 방에 참여 중이에요 🎉'}
+                  {searchQuery.trim() ? `"${searchQuery}" 검색 결과가 없어요` : '방이 없어요'}
                 </div>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                   {filteredRooms.map(room => {
                     const isFull = room.members >= MAX_MEMBERS
+                    const isJoined = myRooms.includes(room.id)
                     return (
                       <div
                         key={room.id}
@@ -408,13 +437,20 @@ export default function CommunityPage() {
                           background: 'var(--color-bg-card)',
                           borderRadius: '16px',
                           padding: '16px',
-                          border: '1px solid var(--color-border)',
+                          border: isJoined ? '1.5px solid #F59E0B' : '1px solid var(--color-border)',
                         }}
                       >
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
-                          <div>
-                            <div style={{ fontSize: '15px', fontWeight: 700, color: 'var(--color-text-primary)', marginBottom: '4px' }}>
-                              {room.name}
+                          <div style={{ minWidth: 0, flex: 1 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
+                              <span style={{ fontSize: '15px', fontWeight: 700, color: 'var(--color-text-primary)' }}>
+                                {room.name}
+                              </span>
+                              {isJoined && (
+                                <span style={{ fontSize: '10px', color: '#F59E0B', background: '#FFFBEB', border: '1px solid #F59E0B', padding: '1px 6px', borderRadius: '999px', fontWeight: 600, flexShrink: 0 }}>
+                                  참여 중
+                                </span>
+                              )}
                             </div>
                             <div style={{ fontSize: '13px', color: 'var(--color-text-muted)', marginBottom: '8px' }}>
                               {room.desc}
@@ -429,28 +465,46 @@ export default function CommunityPage() {
                             <span style={{ fontSize: '12px', color: '#92400E', background: '#FEF3C7', padding: '2px 8px', borderRadius: '999px', fontWeight: 500 }}>
                               연속 {room.streakDays}일째 🔥
                             </span>
-                            {isFull && (
+                            {isFull && !isJoined && (
                               <span style={{ fontSize: '12px', color: '#EF5350', background: '#FFEBEE', padding: '2px 8px', borderRadius: '999px', fontWeight: 600 }}>
                                 마감
                               </span>
                             )}
                           </div>
-                          <button
-                            onClick={() => handleJoin(room.id)}
-                            disabled={isFull}
-                            style={{
-                              padding: '7px 16px',
-                              background: isFull ? 'var(--color-border)' : '#F59E0B',
-                              color: isFull ? 'var(--color-text-muted)' : 'white',
-                              border: 'none',
-                              borderRadius: '10px',
-                              fontSize: '13px',
-                              fontWeight: 600,
-                              cursor: isFull ? 'not-allowed' : 'pointer',
-                            }}
-                          >
-                            {isFull ? '마감' : '참여하기'}
-                          </button>
+                          {isJoined ? (
+                            <button
+                              onClick={() => router.push(`/community/${room.id}`)}
+                              style={{
+                                padding: '7px 16px',
+                                background: '#F59E0B',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: '10px',
+                                fontSize: '13px',
+                                fontWeight: 600,
+                                cursor: 'pointer',
+                              }}
+                            >
+                              입장하기
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => handleJoin(room.id)}
+                              disabled={isFull}
+                              style={{
+                                padding: '7px 16px',
+                                background: isFull ? 'var(--color-border)' : '#F59E0B',
+                                color: isFull ? 'var(--color-text-muted)' : 'white',
+                                border: 'none',
+                                borderRadius: '10px',
+                                fontSize: '13px',
+                                fontWeight: 600,
+                                cursor: isFull ? 'not-allowed' : 'pointer',
+                              }}
+                            >
+                              {isFull ? '마감' : '참여하기'}
+                            </button>
+                          )}
                         </div>
                       </div>
                     )
@@ -676,6 +730,100 @@ export default function CommunityPage() {
                   </>
                 )}
               </button>
+            </div>
+          )}
+
+          {/* 랭킹 */}
+          {activeTab === '랭킹' && (
+            <div>
+              {/* 기간 필터 */}
+              <div style={{ display: 'flex', gap: '8px', marginBottom: '20px' }}>
+                {(['전체', '연', '월', '일'] as RankingPeriod[]).map(p => (
+                  <button
+                    key={p}
+                    onClick={() => setRankingPeriod(p)}
+                    style={{
+                      flex: 1,
+                      padding: '8px 0',
+                      borderRadius: '10px',
+                      border: rankingPeriod === p ? '1.5px solid #F59E0B' : '1.5px solid var(--color-border)',
+                      background: rankingPeriod === p ? '#FEF3C7' : 'var(--color-bg-card)',
+                      color: rankingPeriod === p ? '#92400E' : 'var(--color-text-muted)',
+                      fontSize: '13px',
+                      fontWeight: rankingPeriod === p ? 700 : 400,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {p}
+                  </button>
+                ))}
+              </div>
+
+              <p style={{ fontSize: '11px', color: 'var(--color-text-muted)', marginBottom: '12px', textAlign: 'center' }}>
+                {rankingPeriod === '전체' ? '전체 기간' : rankingPeriod === '연' ? '올해' : rankingPeriod === '월' ? '이번 달' : '오늘'} 방별 성공 일수 합계
+              </p>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                {MOCK_RANKING[rankingPeriod].map((entry, idx) => {
+                  const room = MOCK_ROOMS.find(r => r.id === entry.roomId)
+                  if (!room) return null
+                  const isJoined = myRooms.includes(room.id)
+                  const medals = ['🥇', '🥈', '🥉']
+                  const medal = medals[idx] ?? `${idx + 1}`
+                  return (
+                    <div
+                      key={room.id}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '12px',
+                        padding: '14px 16px',
+                        background: idx === 0 ? '#FFFBEB' : 'var(--color-bg-card)',
+                        border: idx === 0 ? '1.5px solid #FCD34D' : '1px solid var(--color-border)',
+                        borderRadius: '14px',
+                      }}
+                    >
+                      <div style={{ fontSize: idx < 3 ? '24px' : '16px', fontWeight: 700, minWidth: '28px', textAlign: 'center', color: idx >= 3 ? 'var(--color-text-muted)' : undefined }}>
+                        {medal}
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
+                          <span style={{ fontSize: '14px', fontWeight: 700, color: 'var(--color-text-primary)' }}>{room.name}</span>
+                          {isJoined && (
+                            <span style={{ fontSize: '10px', color: '#F59E0B', background: '#FFFBEB', border: '1px solid #F59E0B', padding: '1px 6px', borderRadius: '999px', fontWeight: 600, flexShrink: 0 }}>
+                              참여 중
+                            </span>
+                          )}
+                        </div>
+                        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                          <span style={{ fontSize: '11px', color: 'var(--color-text-muted)', display: 'flex', alignItems: 'center', gap: '3px' }}>
+                            <Users size={10} /> {room.members}명
+                          </span>
+                          <span style={{ fontSize: '11px', color: '#92400E', background: '#FEF3C7', padding: '1px 7px', borderRadius: '999px', fontWeight: 600 }}>
+                            {entry.totalDays}일 외침
+                          </span>
+                        </div>
+                      </div>
+                      {isJoined ? (
+                        <button
+                          onClick={() => router.push(`/community/${room.id}`)}
+                          style={{ padding: '6px 13px', background: '#F59E0B', color: 'white', border: 'none', borderRadius: '9px', fontSize: '12px', fontWeight: 600, cursor: 'pointer', flexShrink: 0 }}
+                        >
+                          입장
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => handleJoin(room.id)}
+                          disabled={room.members >= MAX_MEMBERS}
+                          style={{ padding: '6px 13px', background: room.members >= MAX_MEMBERS ? 'var(--color-border)' : 'var(--color-bg-card)', color: room.members >= MAX_MEMBERS ? 'var(--color-text-muted)' : '#F59E0B', border: `1px solid ${room.members >= MAX_MEMBERS ? 'transparent' : '#F59E0B'}`, borderRadius: '9px', fontSize: '12px', fontWeight: 600, cursor: room.members >= MAX_MEMBERS ? 'not-allowed' : 'pointer', flexShrink: 0 }}
+                        >
+                          {room.members >= MAX_MEMBERS ? '마감' : '참여'}
+                        </button>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
             </div>
           )}
         </div>
