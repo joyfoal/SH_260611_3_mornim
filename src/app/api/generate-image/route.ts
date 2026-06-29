@@ -65,13 +65,14 @@ NO TEXT OR LETTERS of any kind in the image.`
 
 export async function POST(req: NextRequest) {
   try {
-    const { affirmations, faceData, faceImageBase64, faceMaskBase64, profileImageBase64, profileDescription } = await req.json() as {
+    const { affirmations, faceData, faceImageBase64, faceMaskBase64, profileImageBase64, profileDescription, imageStyle } = await req.json() as {
       affirmations: string[]
       faceData?: FaceData
       faceImageBase64?: string
       faceMaskBase64?: string
       profileImageBase64?: string
       profileDescription?: string
+      imageStyle?: 'cartoon' | 'realistic'
     }
 
     if (!process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY === 'your_key_here') {
@@ -87,16 +88,21 @@ export async function POST(req: NextRequest) {
     let b64: string | null | undefined
 
     if (profileImageBase64) {
-      // 프로필 이미지(지브리 캐릭터) 기반 성공 이미지 생성
+      // 업로드된 사진 기반 성공 이미지 생성
       const base64Data = profileImageBase64.replace(/^data:image\/\w+;base64,/, '')
       const imageBuffer = Buffer.from(base64Data, 'base64')
       const imageFile = await toFile(imageBuffer, 'profile.png', { type: 'image/png' })
 
-      const prompt = `Keep this character's appearance, face, style, and identity EXACTLY as shown.
+      const prompt = imageStyle === 'cartoon'
+        ? `Transform this person into a warm anime/illustration style character, preserving their facial features, hair color, and identity.
+Place them in a beautiful, magical success scene that visually embodies: ${sceneContext}
+Art style: Studio Ghibli anime — soft colors, warm golden light, painterly and heartwarming.
+The character radiates genuine joy, confidence, and deep fulfillment.
+NO TEXT OR LETTERS in the image.`
+        : `Keep this person's appearance, face, and identity EXACTLY as shown.
 Place them in a beautiful, inspiring success scene that visually embodies: ${sceneContext}
-The character is radiating genuine joy, deep fulfillment, confidence, and inner peace.
-Maintain the exact same art style and visual aesthetic. Warm golden light, uplifting and heartwarming atmosphere.
-The image must be deeply positive, encouraging, and filled with hope and warmth.
+The person radiates genuine joy, deep fulfillment, confidence, and inner peace.
+Style: Photorealistic, warm golden light, cinematic photography quality.
 NO TEXT OR LETTERS in the image.`
 
       const response = await openai.images.edit({

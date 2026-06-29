@@ -1,18 +1,18 @@
 'use client'
 
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import { getAffirmations, clearAllData, type Affirmation } from '@/lib/storage'
+import { getAffirmations, type Affirmation } from '@/lib/storage'
 import {
   getFaceProfile,
   saveFaceProfile,
   deleteFaceProfile,
   clearFaceStorage,
   type FaceProfile,
-  type FaceData,
 } from '@/lib/faceStorage'
 import { saveSuccessImage, clearSuccessImages } from '@/lib/successImageStorage'
 import { clearAllAudioRecords } from '@/lib/audioStorage'
+import { clearAllData } from '@/lib/storage'
 
 function resizeImage(file: File | Blob, maxPx = 900, format: 'jpeg' | 'png' = 'jpeg'): Promise<string> {
   return new Promise((resolve) => {
@@ -46,53 +46,29 @@ function dataURLtoBlob(dataURL: string): Blob {
 
 export default function SuccessImagePage() {
   const router = useRouter()
-  const fileInputRef = useRef<HTMLInputElement>(null)
-  const directFileInputRef = useRef<HTMLInputElement>(null)
+  const photoInputRef = useRef<HTMLInputElement>(null)
 
   const [affirmations, setAffirmations] = useState<Affirmation[]>([])
   const [selectedIds, setSelectedIds] = useState<string[]>([])
-
-  // 얼굴
-  const [faceFile, setFaceFile] = useState<File | null>(null)
-  const [faceThumbnail, setFaceThumbnail] = useState<string | null>(null)
-  const [faceData, setFaceData] = useState<FaceData | null>(null)
-  const [faceAnalyzing, setFaceAnalyzing] = useState(false)
-  const [faceError, setFaceError] = useState<string | null>(null)
-
-  // 글 + 스타일
-  const [text, setText] = useState('')
-  const [imageStyle, setImageStyle] = useState<'ghibli' | 'realistic'>('ghibli')
 
   // 저장된 프로필
   const [savedProfile, setSavedProfile] = useState<FaceProfile | null>(null)
   const [savedProfileUrl, setSavedProfileUrl] = useState<string | null>(null)
 
-  // Step 1 — 프로필 이미지 생성
-  const [showCreationUI, setShowCreationUI] = useState(false) // 생성 폼 표시 여부
-  const [isRegenerating, setIsRegenerating] = useState(false) // 기존 프로필이 있을 때 다시 만들기 중
-  const [profileGenerating, setProfileGenerating] = useState(false)
-  const [profileUrl, setProfileUrl] = useState<string | null>(null)
-  const [profileSaved, setProfileSaved] = useState(false)
-  const [profileError, setProfileError] = useState<string | null>(null)
+  // 사진 업로드
+  const [photoFile, setPhotoFile] = useState<File | null>(null)
+  const [photoPreviewUrl, setPhotoPreviewUrl] = useState<string | null>(null)
+  const [photoSaving, setPhotoSaving] = useState(false)
 
-  // 부정어 감지
-  const [positiveSuggestion, setPositiveSuggestion] = useState<string | null>(null)
-  const negativeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  // 성공 이미지 스타일
+  const [imageStyle, setImageStyle] = useState<'cartoon' | 'realistic'>('cartoon')
 
-  // 원본 사진 직접 사용
-  const [directFile, setDirectFile] = useState<File | null>(null)
-  const [directPreviewUrl, setDirectPreviewUrl] = useState<string | null>(null)
-  const [directSaving, setDirectSaving] = useState(false)
-  const [directSaved, setDirectSaved] = useState(false)
-
-  // Step 2 — 성공 이미지 생성
+  // 성공 이미지 생성
   const [successGenerating, setSuccessGenerating] = useState(false)
   const [successUrl, setSuccessUrl] = useState<string | null>(null)
   const [successError, setSuccessError] = useState<string | null>(null)
 
-  // 이미지 생성 횟수 제한 (하루 3회)
   const IMAGE_GEN_KEY = 'ealo-image-gen-count'
-  const PROFILE_GEN_KEY = 'ealo-profile-gen-count'
   const MAX_DAILY = 3
 
   function getDailyCount(key: string): number {
@@ -117,9 +93,7 @@ export default function SuccessImagePage() {
     setAffirmations(getAffirmations())
     getFaceProfile().then((p) => {
       setSavedProfile(p)
-      // 저장된 프로필이 없으면 바로 생성 UI 표시
-      if (!p?.profileImageBlob) setShowCreationUI(true)
-    }).catch(() => { setShowCreationUI(true) })
+    }).catch(() => {})
   }, [])
 
   useEffect(() => {
@@ -133,172 +107,56 @@ export default function SuccessImagePage() {
   }, [savedProfile])
 
   useEffect(() => {
-    return () => { if (faceThumbnail) URL.revokeObjectURL(faceThumbnail) }
-  }, [faceThumbnail])
+    return () => { if (photoPreviewUrl) URL.revokeObjectURL(photoPreviewUrl) }
+  }, [photoPreviewUrl])
 
-  useEffect(() => {
-    return () => { if (directPreviewUrl) URL.revokeObjectURL(directPreviewUrl) }
-  }, [directPreviewUrl])
-
-  const handleDirectFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
     e.target.value = ''
-    if (directPreviewUrl) URL.revokeObjectURL(directPreviewUrl)
-    setDirectFile(file)
-    setDirectPreviewUrl(URL.createObjectURL(file))
-    setDirectSaved(false)
+    if (photoPreviewUrl) URL.revokeObjectURL(photoPreviewUrl)
+    setPhotoFile(file)
+    setPhotoPreviewUrl(URL.createObjectURL(file))
+    setSuccessUrl(null)
   }
 
-  const handleSaveDirectly = async () => {
-    if (!directFile) return
-    setDirectSaving(true)
+  const handleSavePhoto = async () => {
+    if (!photoFile) return
+    setPhotoSaving(true)
     try {
-      const resizedDataUrl = await resizeImage(directFile, 800)
+      const resizedDataUrl = await resizeImage(photoFile, 800)
       const profileBlob = dataURLtoBlob(resizedDataUrl)
       const toSave: FaceProfile = {
         id: 'default',
         createdAt: Date.now(),
         profileImageBlob: profileBlob,
-        imageBlob: directFile,
+        imageBlob: photoFile,
       }
-      if (savedProfile?.faceData) toSave.faceData = savedProfile.faceData
       await saveFaceProfile(toSave)
       setSavedProfile(toSave)
-      setDirectSaved(true)
-      setShowCreationUI(false)
-    } catch {
-      // 저장 실패 시 UI 유지
-    }
-    setDirectSaving(false)
+      setPhotoFile(null)
+      if (photoPreviewUrl) URL.revokeObjectURL(photoPreviewUrl)
+      setPhotoPreviewUrl(null)
+    } catch {}
+    setPhotoSaving(false)
   }
 
-  const checkNegative = useCallback((val: string) => {
-    if (negativeTimerRef.current) clearTimeout(negativeTimerRef.current)
-    if (!val.trim()) { setPositiveSuggestion(null); return }
-    negativeTimerRef.current = setTimeout(async () => {
-      try {
-        const res = await fetch('/api/detect-negative', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ text: val }),
-        })
-        const data = await res.json() as { isNegative: boolean; alternative: string | null }
-        setPositiveSuggestion(data.isNegative && data.alternative ? data.alternative : null)
-      } catch { setPositiveSuggestion(null) }
-    }, 800)
-  }, [])
-
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-    e.target.value = ''
-
-    if (faceThumbnail) URL.revokeObjectURL(faceThumbnail)
-    setFaceThumbnail(URL.createObjectURL(file))
-    setFaceFile(file)
-    setFaceData(null)
-    setFaceError(null)
-    setProfileUrl(null)
-    setProfileSaved(false)
+  const handleResetPhoto = async () => {
+    clearAllData()
+    await Promise.all([
+      deleteFaceProfile().catch(() => {}),
+      clearFaceStorage().catch(() => {}),
+      clearSuccessImages().catch(() => {}),
+      clearAllAudioRecords().catch(() => {}),
+    ])
+    setSavedProfile(null)
+    setSavedProfileUrl(null)
+    setPhotoFile(null)
+    if (photoPreviewUrl) URL.revokeObjectURL(photoPreviewUrl)
+    setPhotoPreviewUrl(null)
+    setSelectedIds([])
     setSuccessUrl(null)
-
-    setFaceAnalyzing(true)
-    try {
-      const imageBase64 = await resizeImage(file)
-      const res = await fetch('/api/analyze-face', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ imageBase64 }),
-      })
-      const data = await res.json() as { faceData?: FaceData; error?: string }
-      if (!res.ok || !data.faceData) {
-        setFaceError(data.error ?? '얼굴이 잘 보이는 사진을 사용해 주세요.')
-      } else {
-        setFaceData(data.faceData)
-      }
-    } catch {
-      setFaceError('얼굴 분석 중 오류가 발생했어요.')
-    }
-    setFaceAnalyzing(false)
-  }
-
-  // 입력 조합에 따라 모드 자동 결정
-  const getProfileMode = () => {
-    const hasFace = faceFile !== null && faceData !== null
-    const hasText = text.trim().length > 0
-    if (hasFace && hasText) return 'face+text' as const
-    if (hasFace) return 'face' as const
-    return 'text' as const
-  }
-
-
-  const handleGenerateProfile = async () => {
-    if (getDailyCount(PROFILE_GEN_KEY) >= MAX_DAILY) {
-      setProfileError('오늘은 프로필 이미지 생성을 모두 사용했어요. 내일 다시 시도해보세요.')
-      return
-    }
-    setProfileGenerating(true)
-    setProfileError(null)
-    setProfileUrl(null)
-    setProfileSaved(false)
-    setSuccessUrl(null)
-
-    try {
-      let faceImageBase64: string | undefined
-      if (faceFile && faceData) faceImageBase64 = await resizeImage(faceFile)
-
-      const mode = getProfileMode()
-      // 글도 얼굴도 없으면 현재 확언 텍스트로 생성
-      const textToSend = text.trim() || affirmations.slice(0, 3).map((a) => a.text).join(', ')
-
-      const res = await fetch('/api/generate-profile-image', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          mode,
-          imageStyle,
-          faceImageBase64,
-          faceData: faceData ?? undefined,
-          text: textToSend || undefined,
-        }),
-      })
-      const data = await res.json() as { url?: string; error?: string }
-      if (data.error) {
-        setProfileError(data.error)
-      } else if (data.url) {
-        setProfileUrl(data.url)
-        incrementDailyCount(PROFILE_GEN_KEY)
-      }
-    } catch {
-      setProfileError('프로필 이미지 생성 중 오류가 발생했어요.')
-    }
-    setProfileGenerating(false)
-  }
-
-  const handleSaveProfile = async () => {
-    if (!profileUrl) return
-    try {
-      const blob = dataURLtoBlob(profileUrl)
-      const toSave: FaceProfile = {
-        id: 'default',
-        createdAt: Date.now(),
-        profileImageBlob: blob,
-        profileDescription: text.trim() || undefined,
-      }
-      if (faceData) toSave.faceData = faceData
-      else if (savedProfile?.faceData) toSave.faceData = savedProfile.faceData
-      if (faceFile) toSave.imageBlob = faceFile
-      else if (savedProfile?.imageBlob) toSave.imageBlob = savedProfile.imageBlob
-
-      await saveFaceProfile(toSave)
-      setSavedProfile(toSave)
-      setProfileSaved(true)
-      setIsRegenerating(false)
-      setShowCreationUI(false)
-    } catch {
-      setProfileError('저장 중 오류가 발생했어요.')
-    }
+    setSuccessError(null)
   }
 
   const toggleSelect = (id: string) => {
@@ -309,8 +167,7 @@ export default function SuccessImagePage() {
     })
   }
 
-  // Step 2 진입 조건: 새로 저장했거나 기존 프로필 있음
-  const hasProfile = profileSaved || !!savedProfile?.profileImageBlob
+  const hasProfile = !!savedProfile?.profileImageBlob
 
   const handleGenerateSuccess = async () => {
     if (!hasProfile || selectedIds.length === 0) return
@@ -337,7 +194,7 @@ export default function SuccessImagePage() {
         body: JSON.stringify({
           affirmations: affirmationTexts,
           profileImageBase64: profileBase64,
-          profileDescription: latest?.profileDescription ?? undefined,
+          imageStyle,
         }),
       })
       const data = await res.json() as { url?: string; error?: string }
@@ -364,9 +221,6 @@ export default function SuccessImagePage() {
     document.body.removeChild(a)
   }
 
-  // 화면에 표시할 프로필 이미지 (새로 생성한 것 > 저장된 것)
-  const displayProfileUrl = profileUrl ?? savedProfileUrl
-
   const canGenerateSuccess = hasProfile && selectedIds.length > 0 && !successGenerating
 
   return (
@@ -384,7 +238,7 @@ export default function SuccessImagePage() {
         </h1>
       </div>
 
-      {/* ───── Step 1: 프로필 이미지 ───── */}
+      {/* ───── Step 1: 내 사진 추가 ───── */}
       <div
         style={{
           padding: '18px 16px',
@@ -393,7 +247,6 @@ export default function SuccessImagePage() {
           marginBottom: '20px',
         }}
       >
-        {/* 스텝 헤더 */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
           <div
             style={{
@@ -412,25 +265,25 @@ export default function SuccessImagePage() {
           >
             1
           </div>
-          <div>
-            <p style={{ fontSize: '15px', fontWeight: 600, color: 'var(--color-text-primary)', marginBottom: '2px' }}>
-              내 캐릭터 만들기
-            </p>
-          </div>
+          <p style={{ fontSize: '15px', fontWeight: 600, color: 'var(--color-text-primary)' }}>
+            내 사진 추가
+          </p>
         </div>
 
-        {/* ── 저장된 프로필 크게 표시 (생성 UI가 꺼져 있을 때) ── */}
-        {!showCreationUI && savedProfileUrl && (
+        {/* 저장된 프로필 표시 */}
+        {hasProfile && savedProfileUrl && !photoPreviewUrl ? (
           <div>
             <img
               src={savedProfileUrl}
-              alt="저장된 프로필"
+              alt="내 사진"
               style={{
                 width: '100%',
                 borderRadius: '16px',
                 display: 'block',
                 marginBottom: '12px',
                 border: '2px solid var(--color-accent-secondary)',
+                maxHeight: '260px',
+                objectFit: 'cover',
               }}
             />
             <div
@@ -445,62 +298,62 @@ export default function SuccessImagePage() {
                 marginBottom: '12px',
               }}
             >
-              ✓ 저장된 프로필 사용 중 · 아래에서 성공의 말을 선택해요
+              ✓ 사진이 준비됐어요 · 아래에서 성공의 말을 선택해요
             </div>
+            <button
+              onClick={handleResetPhoto}
+              style={{
+                width: '100%',
+                padding: '11px',
+                background: 'transparent',
+                border: '1.5px solid var(--color-border)',
+                borderRadius: '12px',
+                fontSize: '13px',
+                color: 'var(--color-text-muted)',
+                cursor: 'pointer',
+              }}
+            >
+              사진 변경하기
+            </button>
+          </div>
+        ) : photoPreviewUrl ? (
+          /* 새 사진 선택 후 미리보기 */
+          <div>
+            <img
+              src={photoPreviewUrl}
+              alt="선택한 사진"
+              style={{
+                width: '100%',
+                borderRadius: '12px',
+                marginBottom: '10px',
+                display: 'block',
+                maxHeight: '260px',
+                objectFit: 'cover',
+              }}
+            />
             <div style={{ display: 'flex', gap: '8px' }}>
               <button
-                onClick={async () => {
-                  clearAllData()
-                  await Promise.all([
-                    deleteFaceProfile().catch(() => {}),
-                    clearFaceStorage().catch(() => {}),
-                    clearSuccessImages().catch(() => {}),
-                    clearAllAudioRecords().catch(() => {}),
-                  ])
-                  setSavedProfile(null)
-                  setSavedProfileUrl(null)
-                  setProfileUrl(null)
-                  setProfileSaved(false)
-                  setProfileError(null)
-                  setIsRegenerating(false)
-                  if (faceThumbnail) URL.revokeObjectURL(faceThumbnail)
-                  setFaceThumbnail(null)
-                  setFaceFile(null)
-                  setFaceData(null)
-                  setFaceError(null)
-                  setText('')
-                  setImageStyle('ghibli')
-                  setPositiveSuggestion(null)
-                  setSelectedIds([])
-                  setSuccessUrl(null)
-                  setSuccessError(null)
-                  setShowCreationUI(true)
-                }}
+                onClick={handleSavePhoto}
+                disabled={photoSaving}
                 style={{
                   flex: 1,
-                  padding: '11px',
-                  background: 'transparent',
-                  border: '1.5px solid var(--color-border)',
+                  padding: '12px',
+                  background: 'var(--color-accent-primary)',
+                  color: 'white',
+                  border: 'none',
                   borderRadius: '12px',
-                  fontSize: '13px',
-                  color: 'var(--color-text-muted)',
-                  cursor: 'pointer',
+                  fontSize: '14px',
+                  fontWeight: 600,
+                  cursor: photoSaving ? 'not-allowed' : 'pointer',
+                  opacity: photoSaving ? 0.7 : 1,
                 }}
               >
-                프로필 다시 만들기
+                {photoSaving ? '저장 중...' : '이 사진 사용하기'}
               </button>
               <button
-                onClick={() => {
-                  if (!savedProfileUrl) return
-                  const a = document.createElement('a')
-                  a.href = savedProfileUrl
-                  a.download = 'ealo-프로필.png'
-                  document.body.appendChild(a)
-                  a.click()
-                  document.body.removeChild(a)
-                }}
+                onClick={() => photoInputRef.current?.click()}
                 style={{
-                  padding: '11px 16px',
+                  padding: '12px 16px',
                   background: 'transparent',
                   border: '1.5px solid var(--color-border)',
                   borderRadius: '12px',
@@ -510,366 +363,40 @@ export default function SuccessImagePage() {
                   whiteSpace: 'nowrap',
                 }}
               >
-                다운로드
+                변경
               </button>
             </div>
           </div>
-        )}
-
-        {/* ── 생성 UI (처음 만들기 or 다시 만들기) ── */}
-        {showCreationUI && (
-          <>
-            {/* 얼굴 사진 업로드 */}
-            <div style={{ marginBottom: '12px' }}>
-              {faceAnalyzing ? (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 0' }}>
-                  <span style={{ animation: 'spin 1s linear infinite', display: 'inline-block', fontSize: '16px' }}>✨</span>
-                  <span style={{ fontSize: '13px', color: 'var(--color-text-muted)' }}>AI가 얼굴을 분석하는 중...</span>
-                </div>
-              ) : faceThumbnail ? (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  <img
-                    src={faceThumbnail}
-                    alt="얼굴"
-                    style={{
-                      width: '48px',
-                      height: '48px',
-                      borderRadius: '50%',
-                      objectFit: 'cover',
-                      flexShrink: 0,
-                      border: faceData ? '2px solid var(--color-accent-primary)' : '2px solid var(--color-border)',
-                    }}
-                  />
-                  <div>
-                    <p style={{ fontSize: '12px', color: faceData ? 'var(--color-accent-primary)' : '#E53935', marginBottom: '3px', fontWeight: 500 }}>
-                      {faceData ? '✓ 얼굴 분석 완료' : '얼굴 분석 실패'}
-                    </p>
-                    <button
-                      onClick={() => fileInputRef.current?.click()}
-                      style={{ fontSize: '12px', color: 'var(--color-accent-primary)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
-                    >
-                      사진 변경
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <button
-                  onClick={() => fileInputRef.current?.click()}
-                  style={{
-                    width: '100%',
-                    padding: '11px',
-                    background: 'var(--color-bg-primary)',
-                    border: '1.5px dashed var(--color-border)',
-                    borderRadius: '11px',
-                    fontSize: '13px',
-                    color: 'var(--color-text-muted)',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '8px',
-                  }}
-                >
-                  <span>📷</span>
-                  얼굴 사진 추가 (선택)
-                </button>
-              )}
-              {faceError && (
-                <p style={{ marginTop: '5px', fontSize: '11px', color: '#E53935' }}>{faceError}</p>
-              )}
-            </div>
-
-            {/* 글 입력 */}
-            <textarea
-              value={text}
-              onChange={(e) => {
-                setText(e.target.value)
-                setPositiveSuggestion(null)
-                setProfileUrl(null)
-                setProfileSaved(false)
-                setSuccessUrl(null)
-                checkNegative(e.target.value)
-              }}
-              placeholder="원하는 느낌이나 긍정의 말을 입력해요 (선택)"
-              rows={2}
-              style={{
-                width: '100%',
-                padding: '11px 13px',
-                background: 'var(--color-bg-primary)',
-                border: positiveSuggestion ? '1.5px solid #F59E0B' : '1.5px solid var(--color-border)',
-                borderRadius: '11px',
-                fontSize: '13px',
-                color: 'var(--color-text-primary)',
-                resize: 'none',
-                outline: 'none',
-                lineHeight: 1.6,
-                boxSizing: 'border-box',
-                marginBottom: positiveSuggestion ? '8px' : '12px',
-              }}
-            />
-            {/* 부정어 감지 시 긍정 제안 */}
-            {positiveSuggestion && (
-              <div style={{
-                marginBottom: '12px',
-                padding: '10px 12px',
-                background: '#FFFBEB',
-                border: '1px solid #F59E0B',
-                borderRadius: '10px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                flexWrap: 'wrap',
-              }}>
-                <span style={{ fontSize: '13px', color: '#92400E', flex: 1 }}>
-                  💡 긍정의 말로 바꿔볼까요?<br />
-                  <span style={{ fontWeight: 600 }}>"{positiveSuggestion}"</span>
-                </span>
-                <button
-                  onClick={() => {
-                    setText(positiveSuggestion)
-                    setPositiveSuggestion(null)
-                    setProfileUrl(null)
-                    setProfileSaved(false)
-                    setSuccessUrl(null)
-                  }}
-                  style={{
-                    padding: '6px 12px',
-                    background: '#F59E0B',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '8px',
-                    fontSize: '12px',
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    whiteSpace: 'nowrap',
-                  }}
-                >
-                  바꾸기
-                </button>
-              </div>
-            )}
-
-            {/* 스타일 선택 */}
-            <div
-              style={{
-                display: 'flex',
-                gap: '6px',
-                marginBottom: '14px',
-                padding: '4px',
-                background: 'var(--color-bg-primary)',
-                borderRadius: '12px',
-              }}
-            >
-              {([
-                { id: 'ghibli', label: '✨ 만화 느낌' },
-                { id: 'realistic', label: '📸 사진 느낌' },
-              ] as const).map((s) => (
-                <button
-                  key={s.id}
-                  onClick={() => setImageStyle(s.id)}
-                  style={{
-                    flex: 1,
-                    padding: '9px 6px',
-                    borderRadius: '9px',
-                    background: imageStyle === s.id ? 'var(--color-accent-primary)' : 'transparent',
-                    color: imageStyle === s.id ? 'white' : 'var(--color-text-muted)',
-                    border: 'none',
-                    fontSize: '13px',
-                    fontWeight: imageStyle === s.id ? 600 : 400,
-                    cursor: 'pointer',
-                    transition: 'all 0.15s ease',
-                  }}
-                >
-                  {s.label}
-                </button>
-              ))}
-            </div>
-
-            {/* 프로필 생성 버튼 */}
-            <button
-              onClick={handleGenerateProfile}
-              disabled={profileGenerating || faceAnalyzing}
-              style={{
-                width: '100%',
-                padding: '13px',
-                background: profileGenerating || faceAnalyzing ? 'var(--color-border)' : 'var(--color-accent-primary)',
-                color: 'white',
-                border: 'none',
-                borderRadius: '13px',
-                fontSize: '14px',
-                fontWeight: 600,
-                cursor: profileGenerating || faceAnalyzing ? 'not-allowed' : 'pointer',
-                opacity: profileGenerating || faceAnalyzing ? 0.7 : 1,
-              }}
-            >
-              {profileGenerating ? (
-                <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
-                  <span style={{ animation: 'spin 1s linear infinite', display: 'inline-block' }}>✨</span>
-                  프로필 이미지 만드는 중...
-                </span>
-              ) : '✨ 프로필 만들기'}
-            </button>
-
-            {profileError && (
-              <p style={{ marginTop: '8px', fontSize: '12px', color: '#E53935', textAlign: 'center' }}>{profileError}</p>
-            )}
-
-            {/* 구분선 */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', margin: '14px 0' }}>
-              <div style={{ flex: 1, height: '1px', background: 'var(--color-border)' }} />
-              <span style={{ fontSize: '11px', color: 'var(--color-text-muted)', flexShrink: 0 }}>또는</span>
-              <div style={{ flex: 1, height: '1px', background: 'var(--color-border)' }} />
-            </div>
-
-            {/* 원본 사진 직접 사용 */}
-            {directPreviewUrl ? (
-              <div>
-                <img
-                  src={directPreviewUrl}
-                  alt="원본 사진"
-                  style={{ width: '100%', borderRadius: '12px', marginBottom: '10px', display: 'block', maxHeight: '240px', objectFit: 'cover' }}
-                />
-                <div style={{ display: 'flex', gap: '8px' }}>
-                  <button
-                    onClick={handleSaveDirectly}
-                    disabled={directSaving}
-                    style={{ flex: 1, padding: '11px', background: 'var(--color-accent-primary)', color: 'white', border: 'none', borderRadius: '11px', fontSize: '13px', fontWeight: 600, cursor: directSaving ? 'not-allowed' : 'pointer' }}
-                  >
-                    {directSaving ? '저장 중...' : '📷 이 사진으로 프로필 저장'}
-                  </button>
-                  <button
-                    onClick={() => directFileInputRef.current?.click()}
-                    style={{ padding: '11px 13px', background: 'transparent', border: '1.5px solid var(--color-border)', borderRadius: '11px', fontSize: '12px', color: 'var(--color-text-muted)', cursor: 'pointer', whiteSpace: 'nowrap' }}
-                  >
-                    변경
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <button
-                onClick={() => directFileInputRef.current?.click()}
-                style={{ width: '100%', padding: '11px', background: 'var(--color-bg-primary)', border: '1.5px dashed var(--color-border)', borderRadius: '11px', fontSize: '13px', color: 'var(--color-text-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
-              >
-                <span>📷</span>
-                내 사진 그대로 프로필로 사용하기
-              </button>
-            )}
-
-            {/* 생성된 프로필 이미지 결과 */}
-            {profileUrl && (
-              <div style={{ marginTop: '16px' }}>
-                <img
-                  src={profileUrl}
-                  alt="생성된 프로필"
-                  style={{ width: '100%', borderRadius: '16px', display: 'block', marginBottom: '12px' }}
-                />
-                {profileSaved ? (
-                  <div
-                    style={{
-                      padding: '12px',
-                      background: 'var(--color-accent-light)',
-                      borderRadius: '12px',
-                      color: 'var(--color-accent-primary)',
-                      fontSize: '14px',
-                      fontWeight: 600,
-                      textAlign: 'center',
-                    }}
-                  >
-                    ✓ 프로필로 저장됐어요! 아래에서 성공의 말을 선택해요
-                  </div>
-                ) : (
-                  <div style={{ display: 'flex', gap: '8px' }}>
-                    <button
-                      onClick={handleSaveProfile}
-                      style={{
-                        flex: 1,
-                        padding: '12px',
-                        background: 'var(--color-accent-primary)',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '12px',
-                        fontSize: '14px',
-                        fontWeight: 600,
-                        cursor: 'pointer',
-                      }}
-                    >
-                      프로필로 저장
-                    </button>
-                    <button
-                      onClick={() => {
-                        if (!profileUrl) return
-                        const a = document.createElement('a')
-                        a.href = profileUrl
-                        a.download = 'ealo-프로필.png'
-                        document.body.appendChild(a)
-                        a.click()
-                        document.body.removeChild(a)
-                      }}
-                      style={{
-                        padding: '12px 14px',
-                        background: 'transparent',
-                        border: '1.5px solid var(--color-border)',
-                        borderRadius: '12px',
-                        fontSize: '13px',
-                        color: 'var(--color-text-muted)',
-                        cursor: 'pointer',
-                        whiteSpace: 'nowrap',
-                      }}
-                    >
-                      다운로드
-                    </button>
-                    {isRegenerating ? (
-                      /* 기존 프로필이 있었을 때 → 취소 */
-                      <button
-                        onClick={() => {
-                          setShowCreationUI(false)
-                          setIsRegenerating(false)
-                          setProfileUrl(null)
-                          setProfileSaved(false)
-                        }}
-                        style={{
-                          padding: '12px 16px',
-                          background: 'transparent',
-                          border: '1.5px solid var(--color-border)',
-                          borderRadius: '12px',
-                          fontSize: '13px',
-                          color: 'var(--color-text-muted)',
-                          cursor: 'pointer',
-                        }}
-                      >
-                        취소
-                      </button>
-                    ) : (
-                      /* 처음 만들 때 → 다시 */
-                      <button
-                        onClick={handleGenerateProfile}
-                        style={{
-                          padding: '12px 16px',
-                          background: 'transparent',
-                          border: '1.5px solid var(--color-border)',
-                          borderRadius: '12px',
-                          fontSize: '13px',
-                          color: 'var(--color-text-muted)',
-                          cursor: 'pointer',
-                        }}
-                      >
-                        다시
-                      </button>
-                    )}
-                  </div>
-                )}
-              </div>
-            )}
-          </>
+        ) : (
+          /* 사진 없음: 업로드 버튼 */
+          <button
+            onClick={() => photoInputRef.current?.click()}
+            style={{
+              width: '100%',
+              padding: '32px 16px',
+              background: 'var(--color-bg-primary)',
+              border: '1.5px dashed var(--color-border)',
+              borderRadius: '14px',
+              fontSize: '14px',
+              color: 'var(--color-text-muted)',
+              cursor: 'pointer',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: '10px',
+            }}
+          >
+            <span style={{ fontSize: '32px' }}>📷</span>
+            <span>내 사진 추가하기</span>
+          </button>
         )}
       </div>
 
-      {/* ───── Step 2 + 3: 성공의 말 선택 & 이미지 생성 ───── */}
+      {/* ───── Step 2: 스타일 선택 & 성공의 말 ───── */}
       {hasProfile && (
         <>
-          {/* Step 2: 성공의 말 */}
           <div style={{ marginBottom: '20px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
               <div
                 style={{
                   width: '26px',
@@ -889,14 +416,51 @@ export default function SuccessImagePage() {
               </div>
               <div>
                 <p style={{ fontSize: '15px', fontWeight: 600, color: 'var(--color-text-primary)', marginBottom: '2px' }}>
-                  성공의 말 선택
+                  스타일 & 성공의 말 선택
                 </p>
                 <p style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>
-                  1~3개 선택 · {selectedIds.length}/3
+                  성공의 말 1~3개 · {selectedIds.length}/3
                 </p>
               </div>
             </div>
 
+            {/* 스타일 선택 */}
+            <div
+              style={{
+                display: 'flex',
+                gap: '6px',
+                marginBottom: '16px',
+                padding: '4px',
+                background: 'var(--color-bg-card)',
+                borderRadius: '14px',
+              }}
+            >
+              {([
+                { id: 'cartoon', label: '✨ 만화 느낌' },
+                { id: 'realistic', label: '📸 사진 느낌' },
+              ] as const).map((s) => (
+                <button
+                  key={s.id}
+                  onClick={() => setImageStyle(s.id)}
+                  style={{
+                    flex: 1,
+                    padding: '10px 6px',
+                    borderRadius: '10px',
+                    background: imageStyle === s.id ? 'var(--color-accent-primary)' : 'transparent',
+                    color: imageStyle === s.id ? 'white' : 'var(--color-text-muted)',
+                    border: 'none',
+                    fontSize: '14px',
+                    fontWeight: imageStyle === s.id ? 600 : 400,
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease',
+                  }}
+                >
+                  {s.label}
+                </button>
+              ))}
+            </div>
+
+            {/* 성공의 말 목록 */}
             {affirmations.length === 0 ? (
               <div style={{ padding: '20px', textAlign: 'center', color: 'var(--color-text-muted)', fontSize: '14px', background: 'var(--color-bg-card)', borderRadius: '16px' }}>
                 저장된 성공의 말이 없어요.{' '}
@@ -937,7 +501,7 @@ export default function SuccessImagePage() {
             )}
           </div>
 
-          {/* Step 3: 성공 이미지 생성 */}
+          {/* 성공 이미지 생성 버튼 */}
           <button
             onClick={handleGenerateSuccess}
             disabled={!canGenerateSuccess}
@@ -972,7 +536,7 @@ export default function SuccessImagePage() {
           {successUrl && (
             <div style={{ textAlign: 'center' }}>
               <p style={{ fontSize: '14px', color: 'var(--color-text-muted)', marginBottom: '12px' }}>
-                내 캐릭터의 성공한 미래예요 ✨
+                나의 성공한 미래예요 ✨
               </p>
               <img
                 src={successUrl}
@@ -1019,22 +583,13 @@ export default function SuccessImagePage() {
       <input
         type="file"
         accept="image/*"
-        capture="user"
-        ref={fileInputRef}
+        ref={photoInputRef}
         style={{ display: 'none' }}
-        onChange={handleFileChange}
-      />
-      <input
-        type="file"
-        accept="image/*"
-        ref={directFileInputRef}
-        style={{ display: 'none' }}
-        onChange={handleDirectFileChange}
+        onChange={handlePhotoChange}
       />
 
       <style>{`
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-        textarea:focus { border-color: var(--color-accent-primary) !important; }
       `}</style>
     </div>
   )
