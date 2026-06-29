@@ -1,9 +1,33 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { AppLayout } from '@/components/ui/AppLayout'
-import { Users, Plus, ChevronRight, CheckCircle, Search, X } from 'lucide-react'
+import { Users, Plus, ChevronRight, CheckCircle, Search, X, UserCircle, Camera } from 'lucide-react'
+
+interface UserProfile {
+  nickname: string
+  profileImage: string | null
+  googleEmail?: string
+}
+
+function resizeImageToBase64(file: File, maxPx = 200): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const img = new Image()
+    const url = URL.createObjectURL(file)
+    img.onload = () => {
+      URL.revokeObjectURL(url)
+      const scale = Math.min(maxPx / img.naturalWidth, maxPx / img.naturalHeight, 1)
+      const canvas = document.createElement('canvas')
+      canvas.width = Math.round(img.naturalWidth * scale)
+      canvas.height = Math.round(img.naturalHeight * scale)
+      canvas.getContext('2d')!.drawImage(img, 0, 0, canvas.width, canvas.height)
+      resolve(canvas.toDataURL('image/jpeg', 0.8))
+    }
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('이미지를 불러올 수 없어요.')) }
+    img.src = url
+  })
+}
 
 type CommunityTab = '내 방' | '방 둘러보기' | '방 만들기'
 type NegResult = { isNegative: boolean; alternative: string | null; suggestedDesc?: string | null }
@@ -46,6 +70,8 @@ async function checkField(
 
 export default function CommunityPage() {
   const router = useRouter()
+  const photoInputRef = useRef<HTMLInputElement>(null)
+
   const [activeTab, setActiveTab] = useState<CommunityTab>('내 방')
   const [selectedTag, setSelectedTag] = useState('전체')
   const [searchQuery, setSearchQuery] = useState('')
@@ -57,6 +83,13 @@ export default function CommunityPage() {
   const [roomDescBanner, setRoomDescBanner] = useState<NegBanner>(null)
   const [creating, setCreating] = useState(false)
 
+  // 프로필
+  const [userProfile, setUserProfile] = useState<UserProfile>({ nickname: '', profileImage: null })
+  const [showProfileSheet, setShowProfileSheet] = useState(false)
+  const [editNickname, setEditNickname] = useState('')
+  const [editImageData, setEditImageData] = useState<string | null>(null)
+  const [profileSaving, setProfileSaving] = useState(false)
+
   // localStorage에서 내 방 목록 불러오기
   useEffect(() => {
     try {
@@ -65,10 +98,47 @@ export default function CommunityPage() {
     } catch {}
   }, [])
 
+  // localStorage에서 프로필 불러오기
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('ealo-user-profile')
+      if (saved) setUserProfile(JSON.parse(saved) as UserProfile)
+    } catch {}
+  }, [])
+
   // 내 방 목록 변경 시 localStorage 저장
   useEffect(() => {
     try { localStorage.setItem('ealo-my-rooms', JSON.stringify(myRooms)) } catch {}
   }, [myRooms])
+
+  const handleOpenProfile = () => {
+    setEditNickname(userProfile.nickname)
+    setEditImageData(userProfile.profileImage)
+    setShowProfileSheet(true)
+  }
+
+  const handleProfileImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    e.target.value = ''
+    try {
+      const data = await resizeImageToBase64(file, 200)
+      setEditImageData(data)
+    } catch {}
+  }
+
+  const handleSaveProfile = () => {
+    setProfileSaving(true)
+    const profile: UserProfile = {
+      ...userProfile,
+      nickname: editNickname.trim() || '나',
+      profileImage: editImageData,
+    }
+    try { localStorage.setItem('ealo-user-profile', JSON.stringify(profile)) } catch {}
+    setUserProfile(profile)
+    setProfileSaving(false)
+    setShowProfileSheet(false)
+  }
 
   const filteredRooms = MOCK_ROOMS
     .filter(r => !myRooms.includes(r.id))
@@ -169,6 +239,75 @@ export default function CommunityPage() {
           {/* 내 방 */}
           {activeTab === '내 방' && (
             <div>
+              {/* 프로필 배너 */}
+              {!userProfile.nickname ? (
+                <button
+                  onClick={handleOpenProfile}
+                  style={{
+                    width: '100%',
+                    padding: '12px 14px',
+                    background: '#FFFBEB',
+                    border: '1.5px dashed #F59E0B',
+                    borderRadius: '14px',
+                    fontSize: '13px',
+                    color: '#92400E',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '10px',
+                    marginBottom: '16px',
+                    textAlign: 'left',
+                    boxSizing: 'border-box',
+                  }}
+                >
+                  <UserCircle size={22} color="#F59E0B" style={{ flexShrink: 0 }} />
+                  <span>프로필을 설정하면 성공의 말을 공유할 수 있어요 →</span>
+                </button>
+              ) : (
+                <button
+                  onClick={handleOpenProfile}
+                  style={{
+                    width: '100%',
+                    padding: '12px 14px',
+                    background: 'var(--color-bg-card)',
+                    border: '1px solid var(--color-border)',
+                    borderRadius: '14px',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '10px',
+                    marginBottom: '16px',
+                    textAlign: 'left',
+                    boxSizing: 'border-box',
+                  }}
+                >
+                  {userProfile.profileImage ? (
+                    <img
+                      src={userProfile.profileImage}
+                      alt="프로필"
+                      style={{ width: '36px', height: '36px', borderRadius: '50%', objectFit: 'cover', border: '2px solid #F59E0B', flexShrink: 0 }}
+                    />
+                  ) : (
+                    <UserCircle size={36} color="#F59E0B" style={{ flexShrink: 0 }} />
+                  )}
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px', flexWrap: 'wrap' }}>
+                      <span style={{ fontSize: '14px', fontWeight: 600, color: 'var(--color-text-primary)' }}>
+                        {userProfile.nickname}
+                      </span>
+                      {userProfile.googleEmail && (
+                        <span style={{ fontSize: '11px', color: 'var(--color-text-muted)', fontWeight: 400 }}>
+                          {userProfile.googleEmail}
+                        </span>
+                      )}
+                    </div>
+                    <div style={{ fontSize: '11px', color: 'var(--color-text-muted)', marginTop: '2px' }}>
+                      프로필 편집
+                    </div>
+                  </div>
+                </button>
+              )}
+
               {myRoomData.length === 0 ? (
                 <div style={{ textAlign: 'center', padding: '60px 0' }}>
                   <div style={{ fontSize: '40px', marginBottom: '12px' }}>🏠</div>
@@ -579,6 +718,73 @@ export default function CommunityPage() {
           )}
         </div>
       </div>
+
+      {/* ── 프로필 설정 바텀시트 ── */}
+      {showProfileSheet && (
+        <>
+          <div onClick={() => setShowProfileSheet(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 40 }} />
+          <div style={{
+            position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 50,
+            background: 'var(--color-bg-primary)',
+            borderRadius: '20px 20px 0 0',
+            padding: '20px 16px 40px',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
+              <h3 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--color-text-primary)' }}>프로필 설정</h3>
+              <button onClick={() => setShowProfileSheet(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex' }}>
+                <X size={20} color="var(--color-text-muted)" />
+              </button>
+            </div>
+
+            {/* 프로필 이미지 */}
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '20px' }}>
+              <div onClick={() => photoInputRef.current?.click()} style={{ position: 'relative', cursor: 'pointer' }}>
+                {editImageData ? (
+                  <img src={editImageData} alt="프로필" style={{ width: '80px', height: '80px', borderRadius: '50%', objectFit: 'cover', border: '3px solid #F59E0B' }} />
+                ) : (
+                  <div style={{ width: '80px', height: '80px', borderRadius: '50%', background: '#FEF3C7', border: '3px dashed #F59E0B', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <UserCircle size={40} color="#F59E0B" />
+                  </div>
+                )}
+                <div style={{ position: 'absolute', bottom: 0, right: 0, width: '26px', height: '26px', borderRadius: '50%', background: '#F59E0B', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px solid white' }}>
+                  <Camera size={13} color="white" />
+                </div>
+              </div>
+              <p style={{ fontSize: '12px', color: 'var(--color-text-muted)', marginTop: '8px' }}>사진을 탭해서 변경</p>
+            </div>
+
+            {/* 닉네임 */}
+            <div style={{ marginBottom: '20px' }}>
+              <label style={{ fontSize: '13px', fontWeight: 600, color: 'var(--color-text-secondary)', display: 'block', marginBottom: '8px' }}>닉네임</label>
+              <input
+                value={editNickname}
+                onChange={e => setEditNickname(e.target.value)}
+                placeholder="방에서 사용할 이름"
+                maxLength={12}
+                style={{ width: '100%', padding: '13px 14px', background: 'var(--color-bg-card)', border: '1px solid var(--color-border)', borderRadius: '12px', fontSize: '15px', color: 'var(--color-text-primary)', outline: 'none', boxSizing: 'border-box' }}
+              />
+              {userProfile.googleEmail && (
+                <p style={{ fontSize: '12px', color: 'var(--color-text-muted)', marginTop: '6px' }}>
+                  Google 계정: <span style={{ color: 'var(--color-text-primary)' }}>{userProfile.googleEmail}</span>
+                </p>
+              )}
+              {!userProfile.googleEmail && (
+                <p style={{ fontSize: '11px', color: 'var(--color-text-muted)', marginTop: '4px' }}>구글 로그인 후 이름이 자동으로 연결돼요</p>
+              )}
+            </div>
+
+            <button
+              onClick={handleSaveProfile}
+              disabled={profileSaving}
+              style={{ width: '100%', padding: '14px', background: '#F59E0B', color: 'white', border: 'none', borderRadius: '14px', fontSize: '15px', fontWeight: 700, cursor: 'pointer' }}
+            >
+              {profileSaving ? '저장 중...' : '프로필 저장'}
+            </button>
+
+            <input type="file" accept="image/*" ref={photoInputRef} style={{ display: 'none' }} onChange={handleProfileImageChange} />
+          </div>
+        </>
+      )}
 
       <style>{`
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }

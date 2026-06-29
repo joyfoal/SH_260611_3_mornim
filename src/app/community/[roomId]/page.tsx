@@ -44,6 +44,7 @@ interface Challenge {
 interface UserProfile {
   nickname: string
   profileImage: string | null
+  googleEmail?: string
 }
 
 const MOCK_FEED: FeedItem[] = [
@@ -359,45 +360,63 @@ export default function RoomPage() {
           {/* 성공의 말 나누기 피드 */}
           {activeTab === '성공의 말 나누기' && (
             <div>
-              {/* 프로필 미설정 안내 */}
-              {!userProfile.nickname && (
-                <button
-                  onClick={handleOpenProfile}
-                  style={{
-                    width: '100%',
-                    padding: '12px 14px',
-                    background: '#FFFBEB',
-                    border: '1.5px dashed #F59E0B',
-                    borderRadius: '12px',
-                    fontSize: '13px',
-                    color: '#92400E',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    marginBottom: '12px',
-                    textAlign: 'left',
-                  }}
-                >
-                  <UserCircle size={18} color="#F59E0B" />
-                  <span>프로필을 설정하면 성공의 말을 공유할 수 있어요 →</span>
-                </button>
-              )}
+              {/* 공유하기 앞 프로필 한 줄 */}
+              <button
+                onClick={handleOpenProfile}
+                style={{
+                  width: '100%',
+                  padding: '10px 12px',
+                  background: 'var(--color-bg-card)',
+                  border: userProfile.nickname ? '1px solid var(--color-border)' : '1.5px dashed #F59E0B',
+                  borderRadius: '12px',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '10px',
+                  marginBottom: '10px',
+                  textAlign: 'left',
+                  boxSizing: 'border-box',
+                }}
+              >
+                {userProfile.profileImage ? (
+                  <img
+                    src={userProfile.profileImage}
+                    alt="프로필"
+                    style={{ width: '32px', height: '32px', borderRadius: '50%', objectFit: 'cover', border: '2px solid #F59E0B', flexShrink: 0 }}
+                  />
+                ) : (
+                  <UserCircle size={32} color={userProfile.nickname ? '#F59E0B' : 'var(--color-text-muted)'} style={{ flexShrink: 0 }} />
+                )}
+                {userProfile.nickname ? (
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px', minWidth: 0, flex: 1 }}>
+                    <span style={{ fontSize: '14px', fontWeight: 600, color: 'var(--color-text-primary)' }}>
+                      {userProfile.nickname}
+                    </span>
+                    {userProfile.googleEmail && (
+                      <span style={{ fontSize: '11px', color: 'var(--color-text-muted)', fontWeight: 400, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {userProfile.googleEmail}
+                      </span>
+                    )}
+                  </div>
+                ) : (
+                  <span style={{ fontSize: '13px', color: '#92400E' }}>프로필을 설정하면 성공의 말을 공유할 수 있어요 →</span>
+                )}
+              </button>
 
               {/* 공유하기 버튼 */}
               <button
                 onClick={handleOpenShare}
-                disabled={sharedIds.length >= 3}
+                disabled={sharedIds.length >= 3 || !userProfile.nickname}
                 style={{
                   width: '100%',
                   padding: '12px',
-                  background: sharedIds.length >= 3 ? 'var(--color-border)' : '#F59E0B',
-                  color: sharedIds.length >= 3 ? 'var(--color-text-muted)' : 'white',
+                  background: sharedIds.length >= 3 || !userProfile.nickname ? 'var(--color-border)' : '#F59E0B',
+                  color: sharedIds.length >= 3 || !userProfile.nickname ? 'var(--color-text-muted)' : 'white',
                   border: 'none',
                   borderRadius: '12px',
                   fontSize: '14px',
                   fontWeight: 600,
-                  cursor: sharedIds.length >= 3 ? 'not-allowed' : 'pointer',
+                  cursor: sharedIds.length >= 3 || !userProfile.nickname ? 'not-allowed' : 'pointer',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -720,7 +739,7 @@ export default function RoomPage() {
               <input
                 value={editNickname}
                 onChange={e => setEditNickname(e.target.value)}
-                placeholder="방에서 사용할 이름 (나중에 구글 이름으로 교체)"
+                placeholder="방에서 사용할 이름"
                 maxLength={12}
                 style={{
                   width: '100%',
@@ -734,9 +753,24 @@ export default function RoomPage() {
                   boxSizing: 'border-box',
                 }}
               />
-              <p style={{ fontSize: '11px', color: 'var(--color-text-muted)', marginTop: '4px' }}>
-                구글 로그인 후 이름이 자동으로 연결돼요
-              </p>
+              {/* 닉네임 미리보기 (구글 아이디 포함) */}
+              {(editNickname.trim() || userProfile.googleEmail) && (
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px', marginTop: '8px', padding: '8px 12px', background: 'var(--color-bg-card)', borderRadius: '10px' }}>
+                  <span style={{ fontSize: '14px', fontWeight: 600, color: 'var(--color-text-primary)' }}>
+                    {editNickname.trim() || '나'}
+                  </span>
+                  {userProfile.googleEmail && (
+                    <span style={{ fontSize: '11px', color: 'var(--color-text-muted)', fontWeight: 400 }}>
+                      {userProfile.googleEmail}
+                    </span>
+                  )}
+                  {!userProfile.googleEmail && (
+                    <span style={{ fontSize: '11px', color: 'var(--color-text-muted)', fontWeight: 400 }}>
+                      구글 로그인 후 연결돼요
+                    </span>
+                  )}
+                </div>
+              )}
             </div>
 
             <button
