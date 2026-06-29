@@ -969,6 +969,7 @@ export default function CreatePage() {
                       생각 중...
                     </div>
                   )}
+                  <div ref={chatBottomRef} />
                 </div>
 
                 {/* 성공의 말 추천 결과 */}
@@ -1012,8 +1013,6 @@ export default function CreatePage() {
                     ))}
                   </div>
                 )}
-
-                <div ref={chatBottomRef} />
 
                 {/* 중간에 성공의 말 생성하기 버튼 */}
                 {chatAffirmations.length === 0 && chatMessages.length >= 2 && (
