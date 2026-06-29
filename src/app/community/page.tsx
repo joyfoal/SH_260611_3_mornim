@@ -218,9 +218,40 @@ export default function CommunityPage() {
       <div style={{ paddingBottom: '32px' }}>
         {/* 헤더 */}
         <div style={{ padding: '20px 16px 0' }}>
-          <h1 style={{ fontSize: '24px', fontWeight: 700, color: 'var(--color-text-primary)', marginBottom: '4px' }}>
-            함께
-          </h1>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
+            <h1 style={{ fontSize: '24px', fontWeight: 700, color: 'var(--color-text-primary)' }}>
+              함께
+            </h1>
+            {/* 프로필 버튼 */}
+            <button
+              onClick={handleOpenProfile}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', padding: '4px' }}
+            >
+              {(userProfile.nickname || userProfile.googleEmail) && (
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
+                  {userProfile.nickname && (
+                    <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--color-text-primary)', lineHeight: 1.2 }}>
+                      {userProfile.nickname}
+                    </span>
+                  )}
+                  {userProfile.googleEmail && (
+                    <span style={{ fontSize: '10px', color: 'var(--color-text-muted)', fontWeight: 400, lineHeight: 1.2 }}>
+                      {userProfile.googleEmail}
+                    </span>
+                  )}
+                </div>
+              )}
+              {userProfile.profileImage ? (
+                <img
+                  src={userProfile.profileImage}
+                  alt="프로필"
+                  style={{ width: '32px', height: '32px', borderRadius: '50%', objectFit: 'cover', border: '2px solid #F59E0B', flexShrink: 0 }}
+                />
+              ) : (
+                <UserCircle size={30} color={userProfile.nickname ? '#F59E0B' : 'var(--color-text-muted)'} style={{ flexShrink: 0 }} />
+              )}
+            </button>
+          </div>
           <p style={{ fontSize: '14px', color: 'var(--color-text-muted)', marginBottom: '16px' }}>
             같은 목표를 가진 사람들과 성공의 말을 나눠요
           </p>
@@ -239,75 +270,6 @@ export default function CommunityPage() {
           {/* 내 방 */}
           {activeTab === '내 방' && (
             <div>
-              {/* 프로필 배너 */}
-              {!userProfile.nickname ? (
-                <button
-                  onClick={handleOpenProfile}
-                  style={{
-                    width: '100%',
-                    padding: '12px 14px',
-                    background: '#FFFBEB',
-                    border: '1.5px dashed #F59E0B',
-                    borderRadius: '14px',
-                    fontSize: '13px',
-                    color: '#92400E',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '10px',
-                    marginBottom: '16px',
-                    textAlign: 'left',
-                    boxSizing: 'border-box',
-                  }}
-                >
-                  <UserCircle size={22} color="#F59E0B" style={{ flexShrink: 0 }} />
-                  <span>프로필을 설정하면 성공의 말을 공유할 수 있어요 →</span>
-                </button>
-              ) : (
-                <button
-                  onClick={handleOpenProfile}
-                  style={{
-                    width: '100%',
-                    padding: '12px 14px',
-                    background: 'var(--color-bg-card)',
-                    border: '1px solid var(--color-border)',
-                    borderRadius: '14px',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '10px',
-                    marginBottom: '16px',
-                    textAlign: 'left',
-                    boxSizing: 'border-box',
-                  }}
-                >
-                  {userProfile.profileImage ? (
-                    <img
-                      src={userProfile.profileImage}
-                      alt="프로필"
-                      style={{ width: '36px', height: '36px', borderRadius: '50%', objectFit: 'cover', border: '2px solid #F59E0B', flexShrink: 0 }}
-                    />
-                  ) : (
-                    <UserCircle size={36} color="#F59E0B" style={{ flexShrink: 0 }} />
-                  )}
-                  <div style={{ minWidth: 0 }}>
-                    <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px', flexWrap: 'wrap' }}>
-                      <span style={{ fontSize: '14px', fontWeight: 600, color: 'var(--color-text-primary)' }}>
-                        {userProfile.nickname}
-                      </span>
-                      {userProfile.googleEmail && (
-                        <span style={{ fontSize: '11px', color: 'var(--color-text-muted)', fontWeight: 400 }}>
-                          {userProfile.googleEmail}
-                        </span>
-                      )}
-                    </div>
-                    <div style={{ fontSize: '11px', color: 'var(--color-text-muted)', marginTop: '2px' }}>
-                      프로필 편집
-                    </div>
-                  </div>
-                </button>
-              )}
-
               {myRoomData.length === 0 ? (
                 <div style={{ textAlign: 'center', padding: '60px 0' }}>
                   <div style={{ fontSize: '40px', marginBottom: '12px' }}>🏠</div>

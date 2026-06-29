@@ -15,7 +15,8 @@ const MOCK_ROOM_INFO: Record<string, { name: string }> = {
   r4: { name: '다이어트 확언단' },
 }
 
-type Reactions = { '😍': number; '👏': number; '🔥': number; '💪': number }
+type EmojiKey = '😍' | '👏' | '🔥' | '💪' | '✨' | '🌟' | '💛' | '🙌' | '💯' | '🎯' | '🦋' | '🌈'
+type Reactions = Record<EmojiKey, number>
 
 interface FeedItem {
   id: string
@@ -47,43 +48,53 @@ interface UserProfile {
   googleEmail?: string
 }
 
+const ZERO_REACTIONS: Reactions = { '😍': 0, '👏': 0, '🔥': 0, '💪': 0, '✨': 0, '🌟': 0, '💛': 0, '🙌': 0, '💯': 0, '🎯': 0, '🦋': 0, '🌈': 0 }
+
 const MOCK_FEED: FeedItem[] = [
-  { id: 'f1', nickname: '햇살이', initial: '햇', content: '나는 오늘도 최선을 다하고 있다', daysCount: 23, reactions: { '😍': 4, '👏': 2, '🔥': 1, '💪': 0 }, createdAt: '2시간 전' },
-  { id: 'f2', nickname: '별빛나', initial: '별', content: '나는 매일 성장하고 있다', daysCount: 11, reactions: { '😍': 1, '👏': 3, '🔥': 0, '💪': 2 }, createdAt: '5시간 전' },
-  { id: 'f3', nickname: '파란봄', initial: '파', content: '나는 나를 믿는다', daysCount: 8, reactions: { '😍': 0, '👏': 0, '🔥': 0, '💪': 1 }, createdAt: '어제' },
+  { id: 'f1', nickname: '햇살이', initial: '햇', content: '나는 오늘도 최선을 다하고 있다', daysCount: 23, reactions: { ...ZERO_REACTIONS, '😍': 4, '👏': 2, '🔥': 1, '🙌': 3 }, createdAt: '2시간 전' },
+  { id: 'f2', nickname: '별빛나', initial: '별', content: '나는 매일 성장하고 있다', daysCount: 11, reactions: { ...ZERO_REACTIONS, '😍': 1, '👏': 3, '💛': 2, '✨': 1 }, createdAt: '5시간 전' },
+  { id: 'f3', nickname: '파란봄', initial: '파', content: '나는 나를 믿는다', daysCount: 8, reactions: { ...ZERO_REACTIONS, '💪': 1, '🌈': 2 }, createdAt: '어제' },
 ]
 
 const MOCK_CHALLENGE: Challenge[] = [
   {
     content: '나는 매일 성장하고 있다',
     participants: [
-      { nickname: '별빛나', initial: '별', daysCount: 11, reactions: { '😍': 1, '👏': 3, '🔥': 0, '💪': 2 } },
-      { nickname: '하늘맑음', initial: '하', daysCount: 9, reactions: { '😍': 0, '👏': 0, '🔥': 1, '💪': 0 } },
+      { nickname: '별빛나', initial: '별', daysCount: 11, reactions: { ...ZERO_REACTIONS, '😍': 1, '👏': 3, '💪': 2 } },
+      { nickname: '하늘맑음', initial: '하', daysCount: 9, reactions: { ...ZERO_REACTIONS, '🔥': 1, '✨': 2 } },
     ],
   },
   {
     content: '나는 오늘도 최선을 다하고 있다',
     participants: [
-      { nickname: '햇살이', initial: '햇', daysCount: 23, reactions: { '😍': 4, '👏': 2, '🔥': 1, '💪': 0 } },
+      { nickname: '햇살이', initial: '햇', daysCount: 23, reactions: { ...ZERO_REACTIONS, '😍': 4, '👏': 2, '🔥': 1, '🙌': 3 } },
     ],
   },
   {
     content: '나는 나를 믿는다',
     participants: [
-      { nickname: '파란봄', initial: '파', daysCount: 8, reactions: { '😍': 0, '👏': 0, '🔥': 0, '💪': 1 } },
+      { nickname: '파란봄', initial: '파', daysCount: 8, reactions: { ...ZERO_REACTIONS, '💪': 1, '🌈': 2 } },
     ],
   },
 ]
 
-const EMOJIS: Array<{ emoji: keyof Reactions; label: string }> = [
+const EMOJIS: Array<{ emoji: EmojiKey; label: string }> = [
   { emoji: '😍', label: '멋져요' },
   { emoji: '👏', label: '잘했어요' },
   { emoji: '🔥', label: '대단해요' },
   { emoji: '💪', label: '할 수 있어요' },
+  { emoji: '✨', label: '빛나요' },
+  { emoji: '🌟', label: '최고예요' },
+  { emoji: '💛', label: '응원해요' },
+  { emoji: '🙌', label: '화이팅' },
+  { emoji: '💯', label: '완벽해요' },
+  { emoji: '🎯', label: '집중해요' },
+  { emoji: '🦋', label: '변화해요' },
+  { emoji: '🌈', label: '희망이에요' },
 ]
 
 function totalReactions(r: Reactions) {
-  return r['😍'] + r['👏'] + r['🔥'] + r['💪']
+  return Object.values(r).reduce((s, v) => s + v, 0)
 }
 
 function totalDays(challenge: Challenge) {
@@ -187,7 +198,7 @@ export default function RoomPage() {
       profileImage: userProfile.profileImage,
       content: aff.text,
       daysCount: aff.completedDates.length,
-      reactions: { '😍': 0, '👏': 0, '🔥': 0, '💪': 0 },
+      reactions: { ...ZERO_REACTIONS },
       createdAt: '방금',
       isMe: true,
     }
@@ -302,44 +313,6 @@ export default function RoomPage() {
           {/* 성공의 말 나누기 피드 */}
           {activeTab === '성공의 말 나누기' && (
             <div>
-              {/* 공유하기 앞 프로필 한 줄 (표시 전용) */}
-              <div style={{
-                width: '100%',
-                padding: '10px 12px',
-                background: 'var(--color-bg-card)',
-                border: userProfile.nickname ? '1px solid var(--color-border)' : '1.5px dashed #F59E0B',
-                borderRadius: '12px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '10px',
-                marginBottom: '10px',
-                boxSizing: 'border-box',
-              }}>
-                {userProfile.profileImage ? (
-                  <img
-                    src={userProfile.profileImage}
-                    alt="프로필"
-                    style={{ width: '32px', height: '32px', borderRadius: '50%', objectFit: 'cover', border: '2px solid #F59E0B', flexShrink: 0 }}
-                  />
-                ) : (
-                  <UserCircle size={32} color={userProfile.nickname ? '#F59E0B' : 'var(--color-text-muted)'} style={{ flexShrink: 0 }} />
-                )}
-                {userProfile.nickname ? (
-                  <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px', minWidth: 0, flex: 1 }}>
-                    <span style={{ fontSize: '14px', fontWeight: 600, color: 'var(--color-text-primary)' }}>
-                      {userProfile.nickname}
-                    </span>
-                    {userProfile.googleEmail && (
-                      <span style={{ fontSize: '11px', color: 'var(--color-text-muted)', fontWeight: 400, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        {userProfile.googleEmail}
-                      </span>
-                    )}
-                  </div>
-                ) : (
-                  <span style={{ fontSize: '13px', color: '#92400E' }}>함께(커뮤니티) 탭에서 프로필을 먼저 설정해주세요</span>
-                )}
-              </div>
-
               {/* 공유하기 버튼 */}
               <button
                 onClick={handleOpenShare}
@@ -486,17 +459,17 @@ export default function RoomPage() {
                 ))}
               </div>
 
-              {/* 방 나가기 */}
+              {/* 방 지우기 */}
               <button
                 onClick={() => setShowLeaveConfirm(true)}
                 style={{
                   width: '100%',
                   padding: '13px',
                   background: 'none',
-                  border: '1px solid var(--color-border)',
+                  border: '1px solid #FECACA',
                   borderRadius: '12px',
                   fontSize: '14px',
-                  color: 'var(--color-text-muted)',
+                  color: '#EF5350',
                   cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
@@ -506,7 +479,7 @@ export default function RoomPage() {
                 }}
               >
                 <LogOut size={15} />
-                방 나가기
+                방 지우기
               </button>
             </div>
           )}
@@ -731,7 +704,7 @@ export default function RoomPage() {
         </>
       )}
 
-      {/* ── 방 나가기 확인 모달 ── */}
+      {/* ── 방 지우기 확인 모달 ── */}
       {showLeaveConfirm && (
         <>
           <div onClick={() => setShowLeaveConfirm(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 40 }} />
@@ -742,12 +715,12 @@ export default function RoomPage() {
             padding: '28px 16px 40px',
           }}>
             <div style={{ textAlign: 'center', marginBottom: '24px' }}>
-              <div style={{ fontSize: '36px', marginBottom: '12px' }}>🚪</div>
+              <div style={{ fontSize: '36px', marginBottom: '12px' }}>🗑️</div>
               <h3 style={{ fontSize: '17px', fontWeight: 700, color: 'var(--color-text-primary)', marginBottom: '8px' }}>
-                방을 나갈까요?
+                방을 지울까요?
               </h3>
               <p style={{ fontSize: '13px', color: 'var(--color-text-muted)', lineHeight: 1.6 }}>
-                나가면 이 방의 성공의 말 공유가 취소되고<br />내 방 목록에서도 사라져요.
+                지우면 이 방의 성공의 말 공유가 취소되고<br />내 방 목록에서도 사라져요.
               </p>
             </div>
             <div style={{ display: 'flex', gap: '10px' }}>
@@ -775,7 +748,7 @@ export default function RoomPage() {
                   color: 'white', cursor: 'pointer',
                 }}
               >
-                나가기
+                지우기
               </button>
             </div>
           </div>
