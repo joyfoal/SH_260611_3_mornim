@@ -6,7 +6,8 @@ import { AppLayout } from '@/components/ui/AppLayout'
 import { Users, Plus, ChevronRight, CheckCircle, Search, X } from 'lucide-react'
 
 type CommunityTab = '내 방' | '방 둘러보기' | '방 만들기'
-type NegBanner = { isNegative: boolean; alternative: string | null } | null
+type NegResult = { isNegative: boolean; alternative: string | null; suggestedDesc?: string | null }
+type NegBanner = NegResult | null
 
 const ROOM_TAGS = [
   '아침 확언', '자존감', '다이어트', '취업준비', '돈과 풍요',
@@ -26,15 +27,19 @@ const MOCK_ROOMS = [
 
 const DEFAULT_MY_ROOMS = ['r1', 'r3']
 
-async function checkField(text: string, setter: (v: NegBanner) => void) {
+async function checkField(
+  text: string,
+  setter: (v: NegBanner) => void,
+  context?: 'roomName' | 'general',
+) {
   if (!text.trim()) return
   try {
     const res = await fetch('/api/detect-negative', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text }),
+      body: JSON.stringify({ text, context }),
     })
-    const data = await res.json() as { isNegative: boolean; alternative: string | null }
+    const data = await res.json() as NegResult
     if (data.isNegative) setter(data)
   } catch {}
 }
@@ -93,15 +98,15 @@ export default function CommunityPage() {
       fetch('/api/detect-negative', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: roomName }),
-      }).then(r => r.json() as Promise<{ isNegative: boolean; alternative: string | null }>).catch(() => ({ isNegative: false, alternative: null })),
+        body: JSON.stringify({ text: roomName, context: 'roomName' }),
+      }).then(r => r.json() as Promise<NegResult>).catch((): NegResult => ({ isNegative: false, alternative: null, suggestedDesc: null })),
       roomDesc.trim()
         ? fetch('/api/detect-negative', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ text: roomDesc }),
-          }).then(r => r.json() as Promise<{ isNegative: boolean; alternative: string | null }>).catch(() => ({ isNegative: false, alternative: null }))
-        : Promise.resolve({ isNegative: false, alternative: null }),
+          }).then(r => r.json() as Promise<NegResult>).catch((): NegResult => ({ isNegative: false, alternative: null, suggestedDesc: null }))
+        : Promise.resolve<NegResult>({ isNegative: false, alternative: null, suggestedDesc: null }),
     ])
 
     if (nameResult.isNegative) {
@@ -365,7 +370,7 @@ export default function CommunityPage() {
                 <input
                   value={roomName}
                   onChange={e => { setRoomName(e.target.value); setRoomNameBanner(null) }}
-                  onBlur={() => checkField(roomName, setRoomNameBanner)}
+                  onBlur={() => checkField(roomName, setRoomNameBanner, 'roomName')}
                   placeholder="예: 아침 확언 클럽"
                   maxLength={20}
                   style={{
@@ -391,10 +396,24 @@ export default function CommunityPage() {
                   }}>
                     {roomNameBanner.alternative ? (
                       <>
-                        <div style={{ marginBottom: '8px' }}>💛 이런 이름은 어때요?<br /><strong>"{roomNameBanner.alternative}"</strong></div>
+                        <div style={{ marginBottom: '8px' }}>
+                          💛 이런 이름은 어때요?<br />
+                          <strong>"{roomNameBanner.alternative}"</strong>
+                          {roomNameBanner.suggestedDesc && (
+                            <div style={{ marginTop: '4px', fontSize: '12px', color: '#92400E', fontWeight: 400 }}>
+                              소개: {roomNameBanner.suggestedDesc}
+                            </div>
+                          )}
+                        </div>
                         <div style={{ display: 'flex', gap: '8px' }}>
                           <button
-                            onClick={() => { setRoomName(roomNameBanner.alternative!); setRoomNameBanner(null) }}
+                            onClick={() => {
+                              setRoomName(roomNameBanner.alternative!)
+                              if (roomNameBanner.suggestedDesc && !roomDesc.trim()) {
+                                setRoomDesc(roomNameBanner.suggestedDesc)
+                              }
+                              setRoomNameBanner(null)
+                            }}
                             style={{ flex: 1, padding: '7px', background: '#F59E0B', color: 'white', border: 'none', borderRadius: '8px', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}
                           >
                             바꿔서 쓰기
@@ -422,27 +441,30 @@ export default function CommunityPage() {
                 )}
               </div>
 
-              {/* 한 줄 소개 */}
+              {/* 한 줄 소개 — 방 이름 입력 시에만 활성화 */}
               <div style={{ marginBottom: '20px' }}>
-                <label style={{ fontSize: '13px', fontWeight: 600, color: 'var(--color-text-secondary)', display: 'block', marginBottom: '8px' }}>
+                <label style={{ fontSize: '13px', fontWeight: 600, color: roomName.trim() ? 'var(--color-text-secondary)' : 'var(--color-text-muted)', display: 'block', marginBottom: '8px' }}>
                   한 줄 소개
                 </label>
                 <input
                   value={roomDesc}
                   onChange={e => { setRoomDesc(e.target.value); setRoomDescBanner(null) }}
                   onBlur={() => checkField(roomDesc, setRoomDescBanner)}
-                  placeholder="이 방은 어떤 방인가요?"
+                  placeholder={roomName.trim() ? '이 방은 어떤 방인가요?' : '방 이름을 먼저 입력해주세요'}
                   maxLength={40}
+                  disabled={!roomName.trim()}
                   style={{
                     width: '100%',
                     padding: '13px 14px',
-                    background: 'var(--color-bg-card)',
+                    background: roomName.trim() ? 'var(--color-bg-card)' : 'var(--color-bg-primary)',
                     border: roomDescBanner?.isNegative ? '1.5px solid #EF5350' : '1px solid var(--color-border)',
                     borderRadius: '12px',
                     fontSize: '15px',
-                    color: 'var(--color-text-primary)',
+                    color: roomName.trim() ? 'var(--color-text-primary)' : 'var(--color-text-muted)',
                     outline: 'none',
                     boxSizing: 'border-box',
+                    opacity: roomName.trim() ? 1 : 0.5,
+                    cursor: roomName.trim() ? 'text' : 'not-allowed',
                   }}
                 />
                 {roomDescBanner && (
