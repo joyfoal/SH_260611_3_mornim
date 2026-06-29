@@ -47,6 +47,7 @@ function dataURLtoBlob(dataURL: string): Blob {
 export default function SuccessImagePage() {
   const router = useRouter()
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const directFileInputRef = useRef<HTMLInputElement>(null)
 
   const [affirmations, setAffirmations] = useState<Affirmation[]>([])
   const [selectedIds, setSelectedIds] = useState<string[]>([])
@@ -77,6 +78,12 @@ export default function SuccessImagePage() {
   // 부정어 감지
   const [positiveSuggestion, setPositiveSuggestion] = useState<string | null>(null)
   const negativeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  // 원본 사진 직접 사용
+  const [directFile, setDirectFile] = useState<File | null>(null)
+  const [directPreviewUrl, setDirectPreviewUrl] = useState<string | null>(null)
+  const [directSaving, setDirectSaving] = useState(false)
+  const [directSaved, setDirectSaved] = useState(false)
 
   // Step 2 — 성공 이미지 생성
   const [successGenerating, setSuccessGenerating] = useState(false)
@@ -128,6 +135,43 @@ export default function SuccessImagePage() {
   useEffect(() => {
     return () => { if (faceThumbnail) URL.revokeObjectURL(faceThumbnail) }
   }, [faceThumbnail])
+
+  useEffect(() => {
+    return () => { if (directPreviewUrl) URL.revokeObjectURL(directPreviewUrl) }
+  }, [directPreviewUrl])
+
+  const handleDirectFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    e.target.value = ''
+    if (directPreviewUrl) URL.revokeObjectURL(directPreviewUrl)
+    setDirectFile(file)
+    setDirectPreviewUrl(URL.createObjectURL(file))
+    setDirectSaved(false)
+  }
+
+  const handleSaveDirectly = async () => {
+    if (!directFile) return
+    setDirectSaving(true)
+    try {
+      const resizedDataUrl = await resizeImage(directFile, 800)
+      const profileBlob = dataURLtoBlob(resizedDataUrl)
+      const toSave: FaceProfile = {
+        id: 'default',
+        createdAt: Date.now(),
+        profileImageBlob: profileBlob,
+        imageBlob: directFile,
+      }
+      if (savedProfile?.faceData) toSave.faceData = savedProfile.faceData
+      await saveFaceProfile(toSave)
+      setSavedProfile(toSave)
+      setDirectSaved(true)
+      setShowCreationUI(false)
+    } catch {
+      // 저장 실패 시 UI 유지
+    }
+    setDirectSaving(false)
+  }
 
   const checkNegative = useCallback((val: string) => {
     if (negativeTimerRef.current) clearTimeout(negativeTimerRef.current)
@@ -670,6 +714,47 @@ export default function SuccessImagePage() {
               <p style={{ marginTop: '8px', fontSize: '12px', color: '#E53935', textAlign: 'center' }}>{profileError}</p>
             )}
 
+            {/* 구분선 */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', margin: '14px 0' }}>
+              <div style={{ flex: 1, height: '1px', background: 'var(--color-border)' }} />
+              <span style={{ fontSize: '11px', color: 'var(--color-text-muted)', flexShrink: 0 }}>또는</span>
+              <div style={{ flex: 1, height: '1px', background: 'var(--color-border)' }} />
+            </div>
+
+            {/* 원본 사진 직접 사용 */}
+            {directPreviewUrl ? (
+              <div>
+                <img
+                  src={directPreviewUrl}
+                  alt="원본 사진"
+                  style={{ width: '100%', borderRadius: '12px', marginBottom: '10px', display: 'block', maxHeight: '240px', objectFit: 'cover' }}
+                />
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button
+                    onClick={handleSaveDirectly}
+                    disabled={directSaving}
+                    style={{ flex: 1, padding: '11px', background: 'var(--color-accent-primary)', color: 'white', border: 'none', borderRadius: '11px', fontSize: '13px', fontWeight: 600, cursor: directSaving ? 'not-allowed' : 'pointer' }}
+                  >
+                    {directSaving ? '저장 중...' : '📷 이 사진으로 프로필 저장'}
+                  </button>
+                  <button
+                    onClick={() => directFileInputRef.current?.click()}
+                    style={{ padding: '11px 13px', background: 'transparent', border: '1.5px solid var(--color-border)', borderRadius: '11px', fontSize: '12px', color: 'var(--color-text-muted)', cursor: 'pointer', whiteSpace: 'nowrap' }}
+                  >
+                    변경
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <button
+                onClick={() => directFileInputRef.current?.click()}
+                style={{ width: '100%', padding: '11px', background: 'var(--color-bg-primary)', border: '1.5px dashed var(--color-border)', borderRadius: '11px', fontSize: '13px', color: 'var(--color-text-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+              >
+                <span>📷</span>
+                내 사진 그대로 프로필로 사용하기
+              </button>
+            )}
+
             {/* 생성된 프로필 이미지 결과 */}
             {profileUrl && (
               <div style={{ marginTop: '16px' }}>
@@ -938,6 +1023,13 @@ export default function SuccessImagePage() {
         ref={fileInputRef}
         style={{ display: 'none' }}
         onChange={handleFileChange}
+      />
+      <input
+        type="file"
+        accept="image/*"
+        ref={directFileInputRef}
+        style={{ display: 'none' }}
+        onChange={handleDirectFileChange}
       />
 
       <style>{`
