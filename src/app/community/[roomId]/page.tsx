@@ -151,6 +151,10 @@ export default function RoomPage() {
   const [importedContents, setImportedContents] = useState<Set<string>>(new Set())
   const [toast, setToast] = useState('')
 
+  // 내 칭찬 선택 상태 (토글)
+  const [myFeedReactions, setMyFeedReactions] = useState<Record<string, Set<EmojiKey>>>({})
+  const [myChallengeReactions, setMyChallengeReactions] = useState<Record<string, Set<EmojiKey>>>({})
+
   // 방 나가기 확인 모달
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false)
 
@@ -220,25 +224,33 @@ export default function RoomPage() {
     showToast('내 성공의 말에 추가됐어요 ✨')
   }
 
-  const handleFeedReaction = (feedId: string, emoji: keyof Reactions) => {
+  const handleFeedReaction = (feedId: string, emoji: EmojiKey) => {
+    const selected = myFeedReactions[feedId] ?? new Set<EmojiKey>()
+    const isOn = selected.has(emoji)
+    const next = new Set(selected)
+    if (isOn) { next.delete(emoji) } else { next.add(emoji) }
+    setMyFeedReactions(r => ({ ...r, [feedId]: next }))
     setFeed(prev => prev.map(item =>
       item.id === feedId
-        ? { ...item, reactions: { ...item.reactions, [emoji]: item.reactions[emoji] + 1 } }
+        ? { ...item, reactions: { ...item.reactions, [emoji]: Math.max(0, item.reactions[emoji] + (isOn ? -1 : 1)) } }
         : item
     ))
   }
 
-  const handleChallengeReaction = (challengeContent: string, participantNickname: string, emoji: keyof Reactions) => {
-    setChallenges(prev => prev.map(c =>
+  const handleChallengeReaction = (challengeContent: string, participantNickname: string, emoji: EmojiKey) => {
+    const key = `${challengeContent}::${participantNickname}`
+    const selected = myChallengeReactions[key] ?? new Set<EmojiKey>()
+    const isOn = selected.has(emoji)
+    const next = new Set(selected)
+    if (isOn) { next.delete(emoji) } else { next.add(emoji) }
+    setMyChallengeReactions(r => ({ ...r, [key]: next }))
+    setChallenges(prevChallenges => prevChallenges.map(c =>
       c.content === challengeContent
-        ? {
-            ...c,
-            participants: c.participants.map(p =>
-              p.nickname === participantNickname
-                ? { ...p, reactions: { ...p.reactions, [emoji]: p.reactions[emoji] + 1 } }
-                : p
-            ),
-          }
+        ? { ...c, participants: c.participants.map(p =>
+            p.nickname === participantNickname
+              ? { ...p, reactions: { ...p.reactions, [emoji]: Math.max(0, p.reactions[emoji] + (isOn ? -1 : 1)) } }
+              : p
+          )}
         : c
     ))
   }
@@ -402,26 +414,29 @@ export default function RoomPage() {
                     {/* 칭찬 버튼 한 줄 + 가져오기 */}
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                       <div style={{ display: 'flex', gap: '6px', overflowX: 'auto', flex: 1, scrollbarWidth: 'none' }}>
-                        {!item.isMe && EMOJIS.map(e => (
-                          <button
-                            key={e.emoji}
-                            onClick={() => handleFeedReaction(item.id, e.emoji)}
-                            style={{
-                              flexShrink: 0,
-                              padding: '6px 10px',
-                              background: '#FEF3C7',
-                              border: '1px solid #FCD34D',
-                              borderRadius: '999px',
-                              fontSize: '12px',
-                              color: '#92400E',
-                              cursor: 'pointer',
-                              fontWeight: 500,
-                              whiteSpace: 'nowrap',
-                            }}
-                          >
-                            {e.emoji} {e.label}
-                          </button>
-                        ))}
+                        {!item.isMe && EMOJIS.map(e => {
+                          const isOn = (myFeedReactions[item.id] ?? new Set()).has(e.emoji)
+                          return (
+                            <button
+                              key={e.emoji}
+                              onClick={() => handleFeedReaction(item.id, e.emoji)}
+                              style={{
+                                flexShrink: 0,
+                                padding: '6px 10px',
+                                background: isOn ? '#F59E0B' : '#FEF3C7',
+                                border: `1px solid ${isOn ? '#D97706' : '#FCD34D'}`,
+                                borderRadius: '999px',
+                                fontSize: '12px',
+                                color: isOn ? 'white' : '#92400E',
+                                cursor: 'pointer',
+                                fontWeight: isOn ? 700 : 500,
+                                whiteSpace: 'nowrap',
+                              }}
+                            >
+                              {e.emoji} {e.label}
+                            </button>
+                          )
+                        })}
                         {item.isMe && (
                           <span style={{ fontSize: '12px', color: 'var(--color-text-muted)', whiteSpace: 'nowrap' }}>내가 공유한 성공의 말</span>
                         )}
@@ -577,26 +592,30 @@ export default function RoomPage() {
                                 </div>
                                 {/* 챌린지 칭찬 버튼 한 줄 */}
                                 <div style={{ display: 'flex', gap: '6px', overflowX: 'auto', paddingLeft: '44px', scrollbarWidth: 'none' }}>
-                                  {EMOJIS.map(e => (
-                                    <button
-                                      key={e.emoji}
-                                      onClick={() => handleChallengeReaction(challenge.content, participant.nickname, e.emoji)}
-                                      style={{
-                                        flexShrink: 0,
-                                        padding: '5px 10px',
-                                        background: '#FEF3C7',
-                                        border: '1px solid #FCD34D',
-                                        borderRadius: '999px',
-                                        fontSize: '11px',
-                                        color: '#92400E',
-                                        cursor: 'pointer',
-                                        fontWeight: 500,
-                                        whiteSpace: 'nowrap',
-                                      }}
-                                    >
-                                      {e.emoji} {e.label}
-                                    </button>
-                                  ))}
+                                  {EMOJIS.map(e => {
+                                    const cKey = `${challenge.content}::${participant.nickname}`
+                                    const isOn = (myChallengeReactions[cKey] ?? new Set()).has(e.emoji)
+                                    return (
+                                      <button
+                                        key={e.emoji}
+                                        onClick={() => handleChallengeReaction(challenge.content, participant.nickname, e.emoji)}
+                                        style={{
+                                          flexShrink: 0,
+                                          padding: '5px 10px',
+                                          background: isOn ? '#F59E0B' : '#FEF3C7',
+                                          border: `1px solid ${isOn ? '#D97706' : '#FCD34D'}`,
+                                          borderRadius: '999px',
+                                          fontSize: '11px',
+                                          color: isOn ? 'white' : '#92400E',
+                                          cursor: 'pointer',
+                                          fontWeight: isOn ? 700 : 500,
+                                          whiteSpace: 'nowrap',
+                                        }}
+                                      >
+                                        {e.emoji} {e.label}
+                                      </button>
+                                    )
+                                  })}
                                 </div>
                               </div>
                             ))}
