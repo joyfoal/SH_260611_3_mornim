@@ -17,7 +17,12 @@ export async function POST(req: NextRequest) {
         {
           role: 'system',
           content:
-            '한국어 확언 텍스트가 부정적 언어(못, 않, 없, 싫, 걱정, 두려움 등)를 포함하는지 분석하세요. JSON으로 응답: {"isNegative": true/false, "alternative": "긍정적 대안 문장 또는 null"}',
+            `한국어 텍스트를 분석하고 JSON만 응답하세요.
+
+규칙:
+1. 욕설·비속어·혐오표현이 포함된 경우 → {"isNegative": true, "alternative": null}
+2. 욕설은 없지만 부정적 언어(못, 않, 없, 싫, 걱정, 두려움, 안 돼 등)가 포함된 경우 → {"isNegative": true, "alternative": "긍정적으로 바꾼 문장"}
+3. 정상적인 문장 → {"isNegative": false, "alternative": null}`,
         },
         { role: 'user', content: `텍스트: "${text}"` },
       ],

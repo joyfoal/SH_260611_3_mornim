@@ -109,8 +109,8 @@ export default function CreatePage() {
         body: JSON.stringify({ text }),
       })
       const data = await res.json() as { isNegative: boolean; alternative: string | null }
-      if (data.isNegative && data.alternative) {
-        setNegativeBanner({ alternative: data.alternative })
+      if (data.isNegative) {
+        setNegativeBanner({ alternative: data.alternative ?? '' })
         setDirectSaving(false)
         return
       }
@@ -478,47 +478,83 @@ export default function CreatePage() {
             </div>
 
             {negativeBanner && (
-              <div
-                style={{
-                  padding: '14px',
-                  background: '#FFF3CD',
-                  borderRadius: '12px',
-                  marginBottom: '16px',
-                  border: '1px solid #FFE082',
-                }}
-              >
-                <p style={{ fontSize: '13px', color: '#795548', marginBottom: '8px' }}>
-                  부정적인 표현이 감지되었어요. 이 버전은 어떨까요?
-                </p>
-                <p style={{ fontSize: '15px', color: '#4E342E', fontWeight: 500, marginBottom: '12px' }}>
-                  {negativeBanner.alternative}
-                </p>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => {
-                      if (directCategory) doSave(negativeBanner.alternative, directCategory)
-                    }}
-                    style={{
-                      flex: 1,
-                      padding: '10px',
-                      background: 'var(--color-accent-primary)',
-                      color: 'white',
-                      border: 'none',
-                      borderRadius: '10px',
-                      fontSize: '13px',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    바꿔서 저장
-                  </button>
+              negativeBanner.alternative ? (
+                /* 부정어 감지 → 대안 제안 */
+                <div
+                  style={{
+                    padding: '14px',
+                    background: '#FFF3CD',
+                    borderRadius: '12px',
+                    marginBottom: '16px',
+                    border: '1px solid #FFE082',
+                  }}
+                >
+                  <p style={{ fontSize: '13px', color: '#795548', marginBottom: '8px' }}>
+                    부정적인 표현이 감지되었어요. 이 버전은 어떨까요?
+                  </p>
+                  <p style={{ fontSize: '15px', color: '#4E342E', fontWeight: 500, marginBottom: '12px' }}>
+                    {negativeBanner.alternative}
+                  </p>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => {
+                        if (directCategory) doSave(negativeBanner.alternative, directCategory)
+                      }}
+                      style={{
+                        flex: 1,
+                        padding: '10px',
+                        background: 'var(--color-accent-primary)',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '10px',
+                        fontSize: '13px',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      바꿔서 저장
+                    </button>
+                    <button
+                      onClick={() => setNegativeBanner(null)}
+                      style={{
+                        flex: 1,
+                        padding: '10px',
+                        background: 'transparent',
+                        color: '#795548',
+                        border: '1px solid #FFE082',
+                        borderRadius: '10px',
+                        fontSize: '13px',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      다시 쓰기
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                /* 욕설/비속어 감지 → 차단 메시지 */
+                <div
+                  style={{
+                    padding: '14px',
+                    background: '#FFEBEE',
+                    borderRadius: '12px',
+                    marginBottom: '16px',
+                    border: '1px solid #FFCDD2',
+                  }}
+                >
+                  <p style={{ fontSize: '14px', color: '#C62828', fontWeight: 600, marginBottom: '4px' }}>
+                    부적절한 표현은 저장할 수 없어요.
+                  </p>
+                  <p style={{ fontSize: '13px', color: '#B71C1C', marginBottom: '12px' }}>
+                    긍정적인 성공의 말로 다시 작성해 주세요.
+                  </p>
                   <button
                     onClick={() => setNegativeBanner(null)}
                     style={{
-                      flex: 1,
+                      width: '100%',
                       padding: '10px',
                       background: 'transparent',
-                      color: '#795548',
-                      border: '1px solid #FFE082',
+                      color: '#C62828',
+                      border: '1px solid #FFCDD2',
                       borderRadius: '10px',
                       fontSize: '13px',
                       cursor: 'pointer',
@@ -527,7 +563,7 @@ export default function CreatePage() {
                     다시 쓰기
                   </button>
                 </div>
-              </div>
+              )
             )}
 
             {(!directText.trim() || !directCategory) && (
