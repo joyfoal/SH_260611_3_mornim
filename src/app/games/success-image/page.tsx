@@ -15,7 +15,7 @@ import { clearAllAudioRecords } from '@/lib/audioStorage'
 import { clearAllData } from '@/lib/storage'
 
 function resizeImage(file: File | Blob, maxPx = 900, format: 'jpeg' | 'png' = 'jpeg'): Promise<string> {
-  return new Promise((resolve) => {
+  return new Promise((resolve, reject) => {
     const img = new Image()
     const objectUrl = URL.createObjectURL(file)
     img.onload = () => {
@@ -29,6 +29,10 @@ function resizeImage(file: File | Blob, maxPx = 900, format: 'jpeg' | 'png' = 'j
         ? canvas.toDataURL('image/png')
         : canvas.toDataURL('image/jpeg', 0.85)
       )
+    }
+    img.onerror = () => {
+      URL.revokeObjectURL(objectUrl)
+      reject(new Error('이미지를 불러올 수 없어요.'))
     }
     img.src = objectUrl
   })
@@ -59,6 +63,8 @@ export default function SuccessImagePage() {
   const [photoFile, setPhotoFile] = useState<File | null>(null)
   const [photoPreviewUrl, setPhotoPreviewUrl] = useState<string | null>(null)
   const [photoSaving, setPhotoSaving] = useState(false)
+  const [photoError, setPhotoError] = useState<string | null>(null)
+  const [isDragOver, setIsDragOver] = useState(false)
 
   // 성공 이미지 스타일
   const [imageStyle, setImageStyle] = useState<'cartoon' | 'realistic'>('cartoon')
@@ -110,19 +116,40 @@ export default function SuccessImagePage() {
     return () => { if (photoPreviewUrl) URL.revokeObjectURL(photoPreviewUrl) }
   }, [photoPreviewUrl])
 
+  const applyPhotoFile = (file: File) => {
+    if (!file.type.startsWith('image/')) return
+    if (photoPreviewUrl) URL.revokeObjectURL(photoPreviewUrl)
+    setPhotoFile(file)
+    setPhotoPreviewUrl(URL.createObjectURL(file))
+    setPhotoError(null)
+    setSuccessUrl(null)
+  }
+
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
     e.target.value = ''
-    if (photoPreviewUrl) URL.revokeObjectURL(photoPreviewUrl)
-    setPhotoFile(file)
-    setPhotoPreviewUrl(URL.createObjectURL(file))
-    setSuccessUrl(null)
+    applyPhotoFile(file)
+  }
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault()
+    setIsDragOver(true)
+  }
+
+  const handleDragLeave = () => setIsDragOver(false)
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault()
+    setIsDragOver(false)
+    const file = e.dataTransfer.files?.[0]
+    if (file) applyPhotoFile(file)
   }
 
   const handleSavePhoto = async () => {
     if (!photoFile) return
     setPhotoSaving(true)
+    setPhotoError(null)
     try {
       const resizedDataUrl = await resizeImage(photoFile, 800)
       const profileBlob = dataURLtoBlob(resizedDataUrl)
@@ -137,7 +164,9 @@ export default function SuccessImagePage() {
       setPhotoFile(null)
       if (photoPreviewUrl) URL.revokeObjectURL(photoPreviewUrl)
       setPhotoPreviewUrl(null)
-    } catch {}
+    } catch (err) {
+      setPhotoError(err instanceof Error ? err.message : '사진 저장에 실패했어요.')
+    }
     setPhotoSaving(false)
   }
 
@@ -348,7 +377,12 @@ export default function SuccessImagePage() {
                   opacity: photoSaving ? 0.7 : 1,
                 }}
               >
-                {photoSaving ? '저장 중...' : '이 사진 사용하기'}
+                {photoSaving ? (
+                  <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+                    <span style={{ animation: 'spin 1s linear infinite', display: 'inline-block' }}>⏳</span>
+                    저장 중...
+                  </span>
+                ) : '이 사진 사용하기'}
               </button>
               <button
                 onClick={() => photoInputRef.current?.click()}
@@ -366,29 +400,41 @@ export default function SuccessImagePage() {
                 변경
               </button>
             </div>
+            {photoError && (
+              <p style={{ marginTop: '8px', fontSize: '12px', color: '#E53935', textAlign: 'center' }}>
+                {photoError}
+              </p>
+            )}
           </div>
         ) : (
-          /* 사진 없음: 업로드 버튼 */
-          <button
+          /* 사진 없음: 드래그 or 클릭 업로드 */
+          <div
             onClick={() => photoInputRef.current?.click()}
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
             style={{
               width: '100%',
-              padding: '32px 16px',
-              background: 'var(--color-bg-primary)',
-              border: '1.5px dashed var(--color-border)',
+              padding: '36px 16px',
+              background: isDragOver ? 'var(--color-accent-light)' : 'var(--color-bg-primary)',
+              border: isDragOver ? '2px dashed var(--color-accent-primary)' : '1.5px dashed var(--color-border)',
               borderRadius: '14px',
               fontSize: '14px',
-              color: 'var(--color-text-muted)',
+              color: isDragOver ? 'var(--color-accent-primary)' : 'var(--color-text-muted)',
               cursor: 'pointer',
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
               gap: '10px',
+              transition: 'all 0.15s ease',
+              boxSizing: 'border-box',
             }}
           >
-            <span style={{ fontSize: '32px' }}>📷</span>
-            <span>내 사진 추가하기</span>
-          </button>
+            <span style={{ fontSize: '32px' }}>{isDragOver ? '🖼️' : '📷'}</span>
+            <span style={{ fontWeight: isDragOver ? 600 : 400 }}>
+              {isDragOver ? '여기에 놓으세요' : '사진을 드래그하거나 탭해서 추가'}
+            </span>
+          </div>
         )}
       </div>
 
