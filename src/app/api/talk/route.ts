@@ -15,16 +15,17 @@ interface Message {
 
 export async function POST(req: NextRequest) {
   try {
-    const { messages, generateAffirmations } = await req.json() as {
+    const { messages, generateAffirmations, initialContext } = await req.json() as {
       messages: Message[]
       generateAffirmations?: boolean
+      initialContext?: string
     }
 
     if (!process.env.OPENROUTER_API_KEY || process.env.OPENROUTER_API_KEY === 'your_key_here') {
       return NextResponse.json({
         reply: generateAffirmations
-          ? '대화 내용을 바탕으로 성공의 말을 만들었어요!'
-          : '지금 당신의 이야기를 듣고 있어요. 조금 더 말씀해 주시겠어요?',
+          ? '우리의 대화를 바탕으로 당신만을 위한 성공의 말을 준비했어요 ✨ 아래에서 확인해 보세요!'
+          : '이야기를 들려주셔서 감사해요. 조금 더 여쭤봐도 될까요?',
         affirmations: generateAffirmations ? FALLBACK_AFFIRMATIONS : undefined,
       })
     }
@@ -32,20 +33,27 @@ export async function POST(req: NextRequest) {
     const OpenAI = (await import('openai')).default
     const openai = new OpenAI({ apiKey: process.env.OPENROUTER_API_KEY, baseURL: 'https://openrouter.ai/api/v1' })
 
+    const ctxLine = initialContext ? `\n사용자의 고민: "${initialContext}"` : ''
+
     let systemPrompt: string
     if (generateAffirmations) {
-      systemPrompt = `당신은 따뜻한 성공 코치입니다. 지금까지의 대화 내용을 바탕으로, 사용자에게 딱 맞는 한국어 성공의 말(긍정 확언) 5개를 만들어주세요.
+      systemPrompt = `당신은 따뜻한 성공 코치입니다.${ctxLine}
+
+지금까지의 대화 내용을 바탕으로, 사용자에게 딱 맞는 한국어 성공의 말(긍정 확언) 5개를 만들어주세요.
 반드시 다음 JSON 형식으로만 응답하세요:
-{"reply": "대화 내용을 바탕으로 성공의 말을 준비했어요 ✨", "affirmations": ["성공의 말1","성공의 말2","성공의 말3","성공의 말4","성공의 말5"]}
+{"reply": "우리의 대화를 바탕으로 당신만을 위한 성공의 말을 준비했어요 ✨ 아래에서 확인해 보세요!", "affirmations": ["성공의 말1","성공의 말2","성공의 말3","성공의 말4","성공의 말5"]}
 성공의 말은 반드시 현재형, 1인칭('나는...' 또는 '나의...')으로 작성하고, 짧고 강력하게 써주세요.`
     } else {
-      systemPrompt = `당신은 따뜻하고 용기를 주는 성공 코치입니다. 사용자의 이야기를 경청하고 공감하며 더 깊은 이야기를 이끌어내세요.
+      systemPrompt = `당신은 따뜻하고 용기를 주는 성공 코치입니다.${ctxLine}
+
+이 고민을 더 깊이 이해하기 위해 진심 어린 질문을 하나씩 해주세요.
 규칙:
-- 짧고 따뜻하게 응답하세요 (2-3문장)
+- 한 번에 하나의 질문만 하세요
+- 짧은 공감 한 마디(1문장) 후 질문을 이어주세요
+- 이전 답변을 참고해 더 구체적으로 파고드세요
 - 판단하지 말고 공감해주세요
-- 구체적인 상황이나 감정을 더 물어보세요
-- 응원과 긍정 에너지를 담아주세요
-- 절대 성공의 말을 지금 생성하지 마세요 (사용자가 버튼을 누를 때 생성합니다)`
+- 응답은 2~3문장으로 짧게 (질문 포함)
+- 절대 성공의 말을 지금 생성하지 마세요`
     }
 
     const completion = await openai.chat.completions.create({

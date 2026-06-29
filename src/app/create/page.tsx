@@ -7,7 +7,7 @@ import type { CategoryName } from '@/lib/categories'
 import { saveAffirmation, getAffirmations, getCategories, saveCategories, getTodayAffirmationIds, saveTodayAffirmationIds, type AffirmationCategory } from '@/lib/storage'
 import { Mic } from 'lucide-react'
 
-type Tab = '직접 입력' | 'AI 추천' | 'Talk Mode'
+type Tab = '직접 입력' | 'AI 추천' | '질문 추천'
 
 interface ChatMessage {
   role: 'user' | 'assistant'
@@ -90,7 +90,10 @@ export default function CreatePage() {
   const [aiResults, setAiResults] = useState<string[]>([])
   const [aiError, setAiError] = useState('')
 
-  // Talk mode state
+  // 질문 추천 state
+  const [initialInput, setInitialInput] = useState('')
+  const [initialContext, setInitialContext] = useState('')
+  const [chatStarted, setChatStarted] = useState(false)
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([])
   const [chatInput, setChatInput] = useState('')
   const [chatLoading, setChatLoading] = useState(false)
@@ -224,9 +227,31 @@ export default function CreatePage() {
     showToast('저장되었어요!', 'success')
   }
 
+  const handleStartChat = async () => {
+    if (!initialInput.trim()) return
+    const ctx = initialInput.trim()
+    setInitialContext(ctx)
+    setChatStarted(true)
+    setChatLoading(true)
+    try {
+      const res = await fetch('/api/talk', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ messages: [], initialContext: ctx, generateAffirmations: false }),
+      })
+      const data = await res.json() as { reply: string }
+      setChatMessages([{ role: 'assistant', content: data.reply }])
+    } catch {
+      setChatMessages([{ role: 'assistant', content: '이야기를 들려주셔서 감사해요. 조금 더 여쭤봐도 될까요?' }])
+    }
+    setChatLoading(false)
+  }
+
   const handleChatSend = async () => {
     if (!chatInput.trim()) return
     const newMessages: ChatMessage[] = [...chatMessages, { role: 'user', content: chatInput }]
+    const newUserCount = newMessages.filter((m) => m.role === 'user').length
+    const isLast = newUserCount >= 10
     setChatMessages(newMessages)
     setChatInput('')
     setChatLoading(true)
@@ -234,15 +259,16 @@ export default function CreatePage() {
       const res = await fetch('/api/talk', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: newMessages, generateAffirmations: false }),
+        body: JSON.stringify({ messages: newMessages, initialContext, generateAffirmations: isLast }),
       })
       const data = await res.json() as { reply: string; affirmations?: string[] }
       setChatMessages([...newMessages, { role: 'assistant', content: data.reply }])
+      if (data.affirmations) {
+        setChatAffirmations(data.affirmations)
+        setTimeout(() => chatBottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 100)
+      }
     } catch {
-      setChatMessages([
-        ...newMessages,
-        { role: 'assistant', content: '죄송해요, 잠시 후 다시 시도해주세요.' },
-      ])
+      setChatMessages([...newMessages, { role: 'assistant', content: '죄송해요, 잠시 후 다시 시도해주세요.' }])
     }
     setChatLoading(false)
   }
@@ -254,7 +280,7 @@ export default function CreatePage() {
       const res = await fetch('/api/talk', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: chatMessages, generateAffirmations: true }),
+        body: JSON.stringify({ messages: chatMessages, initialContext, generateAffirmations: true }),
       })
       const data = await res.json() as { reply: string; affirmations?: string[] }
       if (data.reply) {
@@ -264,9 +290,7 @@ export default function CreatePage() {
         setChatAffirmations(data.affirmations)
         setTimeout(() => chatBottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 100)
       }
-    } catch {
-      //
-    }
+    } catch {}
     setChatLoading(false)
   }
 
@@ -295,7 +319,7 @@ export default function CreatePage() {
             padding: '4px',
           }}
         >
-          {(['직접 입력', 'AI 추천', 'Talk Mode'] as Tab[]).map((tab) => (
+          {(['직접 입력', 'AI 추천', '질문 추천'] as Tab[]).map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
@@ -791,190 +815,282 @@ export default function CreatePage() {
           </div>
         )}
 
-        {/* Talk mode tab */}
-        {activeTab === 'Talk Mode' && (
+        {/* 질문 추천 탭 */}
+        {activeTab === '질문 추천' && (
           <div>
-            <div
-              style={{
-                minHeight: '300px',
-                maxHeight: '400px',
-                overflowY: 'auto',
-                marginBottom: '16px',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '12px',
-              }}
-            >
-              {chatMessages.length === 0 && (
-                <div
-                  style={{
-                    padding: '20px',
-                    textAlign: 'center',
-                    color: 'var(--color-text-muted)',
-                    fontSize: '14px',
-                  }}
-                >
-                  오늘 어떤 하루를 보내고 계신가요? 편하게 이야기해 주세요 🌿
-                </div>
-              )}
-              {chatMessages.map((msg, i) => (
-                <div
-                  key={i}
-                  style={{
-                    display: 'flex',
-                    justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start',
-                  }}
-                >
-                  <div
-                    style={{
-                      maxWidth: '80%',
-                      padding: '10px 14px',
-                      borderRadius: msg.role === 'user' ? '16px 16px 4px 16px' : '16px 16px 16px 4px',
-                      background: msg.role === 'user'
-                        ? 'var(--color-accent-primary)'
-                        : 'var(--color-bg-card)',
-                      color: msg.role === 'user' ? 'white' : 'var(--color-text-primary)',
-                      fontSize: '14px',
-                      lineHeight: 1.5,
-                    }}
-                  >
-                    {msg.content}
-                  </div>
-                </div>
-              ))}
-              {chatLoading && (
-                <div style={{ color: 'var(--color-text-muted)', fontSize: '14px', padding: '8px' }}>
-                  생각 중...
-                </div>
-              )}
-            </div>
-
-            {chatAffirmations.length > 0 && (
-              <div style={{ marginBottom: '16px' }}>
-                <p style={{ fontSize: '13px', color: 'var(--color-text-secondary)', marginBottom: '8px', fontWeight: 500 }}>
-                  당신을 위한 성공의 말 추천
+            {!chatStarted ? (
+              /* Phase 1: 고민 입력 */
+              <div>
+                <p style={{ fontSize: '14px', color: 'var(--color-text-muted)', marginBottom: '12px', lineHeight: 1.6 }}>
+                  요즘 어떤 점이 힘드신가요? 고민을 편하게 이야기해 주세요.<br />
+                  AI가 10가지 질문을 통해 딱 맞는 성공의 말을 추천해 드려요 🌿
                 </p>
-                {chatAffirmations.map((text, i) => (
-                  <div
-                    key={i}
+                <div style={{ position: 'relative', marginBottom: '12px' }}>
+                  <textarea
+                    value={initialInput}
+                    onChange={(e) => setInitialInput(e.target.value)}
+                    placeholder="예: 요즘 일이 잘 안 풀리고 자신감이 없어요..."
+                    rows={4}
                     style={{
-                      padding: '12px 14px',
+                      width: '100%',
+                      padding: '14px 44px 14px 14px',
                       background: 'var(--color-bg-card)',
+                      border: '1px solid var(--color-border)',
                       borderRadius: '12px',
-                      marginBottom: '8px',
+                      fontSize: '15px',
+                      color: 'var(--color-text-primary)',
+                      resize: 'none',
+                      outline: 'none',
+                      lineHeight: 1.6,
+                      boxSizing: 'border-box',
+                    }}
+                  />
+                  <button
+                    onClick={() => toggleVoiceInput(
+                      isListeningChat,
+                      setIsListeningChat,
+                      (text) => setInitialInput((prev) => prev ? prev + ' ' + text : text)
+                    )}
+                    style={{
+                      position: 'absolute',
+                      top: '10px',
+                      right: '10px',
+                      background: isListeningChat ? '#E53935' : 'var(--color-bg-surface)',
+                      border: '1px solid var(--color-border)',
+                      borderRadius: '8px',
+                      padding: '6px',
+                      cursor: 'pointer',
                       display: 'flex',
-                      justifyContent: 'space-between',
                       alignItems: 'center',
-                      gap: '12px',
+                      justifyContent: 'center',
+                      transition: 'background 0.2s',
+                    }}
+                    title={isListeningChat ? '듣는 중 — 탭하여 중지' : '음성으로 입력'}
+                  >
+                    <Mic size={16} color={isListeningChat ? 'white' : 'var(--color-text-muted)'} />
+                  </button>
+                </div>
+                <button
+                  onClick={handleStartChat}
+                  disabled={!initialInput.trim() || chatLoading}
+                  style={{
+                    width: '100%',
+                    padding: '14px',
+                    background: initialInput.trim() ? 'var(--color-accent-primary)' : 'var(--color-border)',
+                    color: initialInput.trim() ? 'white' : 'var(--color-text-muted)',
+                    border: 'none',
+                    borderRadius: '14px',
+                    fontSize: '15px',
+                    fontWeight: 600,
+                    cursor: initialInput.trim() ? 'pointer' : 'not-allowed',
+                    opacity: initialInput.trim() ? 1 : 0.6,
+                  }}
+                >
+                  {chatLoading ? '시작하는 중...' : '질문 시작하기'}
+                </button>
+              </div>
+            ) : (
+              /* Phase 2 & 3: 질문 채팅 + 결과 */
+              <div>
+                {/* 진행 표시 */}
+                {chatAffirmations.length === 0 && (
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '10px',
+                    marginBottom: '14px',
+                  }}>
+                    <div style={{
+                      flex: 1,
+                      height: '6px',
+                      background: 'var(--color-border)',
+                      borderRadius: '3px',
+                      overflow: 'hidden',
+                    }}>
+                      <div style={{
+                        width: `${Math.min(chatUserCount / 10 * 100, 100)}%`,
+                        height: '100%',
+                        background: 'var(--color-accent-primary)',
+                        borderRadius: '3px',
+                        transition: 'width 0.4s ease',
+                      }} />
+                    </div>
+                    <span style={{ fontSize: '12px', color: 'var(--color-text-muted)', flexShrink: 0 }}>
+                      질문 {chatUserCount}/10
+                    </span>
+                  </div>
+                )}
+
+                {/* 채팅 메시지 */}
+                <div
+                  style={{
+                    minHeight: '240px',
+                    maxHeight: '380px',
+                    overflowY: 'auto',
+                    marginBottom: '12px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '12px',
+                  }}
+                >
+                  {chatMessages.map((msg, i) => (
+                    <div
+                      key={i}
+                      style={{
+                        display: 'flex',
+                        justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start',
+                      }}
+                    >
+                      <div
+                        style={{
+                          maxWidth: '80%',
+                          padding: '10px 14px',
+                          borderRadius: msg.role === 'user' ? '16px 16px 4px 16px' : '16px 16px 16px 4px',
+                          background: msg.role === 'user'
+                            ? 'var(--color-accent-primary)'
+                            : 'var(--color-bg-card)',
+                          color: msg.role === 'user' ? 'white' : 'var(--color-text-primary)',
+                          fontSize: '14px',
+                          lineHeight: 1.5,
+                        }}
+                      >
+                        {msg.content}
+                      </div>
+                    </div>
+                  ))}
+                  {chatLoading && (
+                    <div style={{ color: 'var(--color-text-muted)', fontSize: '14px', padding: '8px' }}>
+                      생각 중...
+                    </div>
+                  )}
+                </div>
+
+                {/* 성공의 말 추천 결과 */}
+                {chatAffirmations.length > 0 && (
+                  <div style={{ marginBottom: '16px' }}>
+                    <p style={{ fontSize: '13px', color: 'var(--color-text-secondary)', marginBottom: '8px', fontWeight: 500 }}>
+                      당신을 위한 성공의 말 추천
+                    </p>
+                    {chatAffirmations.map((text, i) => (
+                      <div
+                        key={i}
+                        style={{
+                          padding: '12px 14px',
+                          background: 'var(--color-bg-card)',
+                          borderRadius: '12px',
+                          marginBottom: '8px',
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          gap: '12px',
+                        }}
+                      >
+                        <p style={{ flex: 1, fontSize: '14px', color: 'var(--color-text-primary)' }}>
+                          {text}
+                        </p>
+                        <button
+                          onClick={() => handleAISave(text)}
+                          style={{
+                            padding: '5px 12px',
+                            background: 'var(--color-accent-primary)',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '8px',
+                            fontSize: '12px',
+                            cursor: 'pointer',
+                          }}
+                        >
+                          저장
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <div ref={chatBottomRef} />
+
+                {/* 중간에 성공의 말 생성하기 버튼 */}
+                {chatAffirmations.length === 0 && chatMessages.length >= 2 && (
+                  <button
+                    onClick={handleGenerateAffirmations}
+                    disabled={chatLoading}
+                    style={{
+                      width: '100%',
+                      padding: '12px',
+                      background: 'var(--color-accent-secondary)',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '12px',
+                      fontSize: '14px',
+                      fontWeight: 600,
+                      cursor: chatLoading ? 'not-allowed' : 'pointer',
+                      marginBottom: '10px',
+                      opacity: chatLoading ? 0.7 : 1,
                     }}
                   >
-                    <p style={{ flex: 1, fontSize: '14px', color: 'var(--color-text-primary)' }}>
-                      {text}
-                    </p>
-                    <button
-                      onClick={() => handleAISave(text)}
+                    ✨ 성공의 말 생성하기
+                  </button>
+                )}
+
+                {/* 입력창: 10번 전까지만 */}
+                {!chatLimitReached && chatAffirmations.length === 0 && (
+                  <div className="flex gap-2">
+                    <input
+                      value={chatInput}
+                      onChange={(e) => setChatInput(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && !e.nativeEvent.isComposing) handleChatSend()
+                      }}
+                      placeholder="답변을 입력해 주세요..."
                       style={{
-                        padding: '5px 12px',
+                        flex: 1,
+                        padding: '12px 14px',
+                        background: 'var(--color-bg-card)',
+                        border: '1px solid var(--color-border)',
+                        borderRadius: '12px',
+                        fontSize: '14px',
+                        color: 'var(--color-text-primary)',
+                        outline: 'none',
+                      }}
+                    />
+                    <button
+                      onClick={() => toggleVoiceInput(
+                        isListeningChat,
+                        setIsListeningChat,
+                        (text) => setChatInput((prev) => prev ? prev + ' ' + text : text)
+                      )}
+                      style={{
+                        padding: '12px',
+                        background: isListeningChat ? '#E53935' : 'var(--color-bg-card)',
+                        border: '1px solid var(--color-border)',
+                        borderRadius: '12px',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        transition: 'background 0.2s',
+                      }}
+                      title={isListeningChat ? '듣는 중 — 탭하여 중지' : '음성으로 입력'}
+                    >
+                      <Mic size={16} color={isListeningChat ? 'white' : 'var(--color-text-muted)'} />
+                    </button>
+                    <button
+                      onClick={handleChatSend}
+                      disabled={!chatInput.trim() || chatLoading}
+                      style={{
+                        padding: '12px 20px',
                         background: 'var(--color-accent-primary)',
                         color: 'white',
                         border: 'none',
-                        borderRadius: '8px',
-                        fontSize: '12px',
-                        cursor: 'pointer',
+                        borderRadius: '12px',
+                        fontSize: '14px',
+                        cursor: !chatInput.trim() || chatLoading ? 'not-allowed' : 'pointer',
                       }}
                     >
-                      저장
+                      전송
                     </button>
                   </div>
-                ))}
+                )}
               </div>
-            )}
-
-            <div ref={chatBottomRef} />
-
-            {chatLimitReached ? (
-              <div style={{ marginTop: '8px', padding: '14px', background: 'var(--color-bg-card)', borderRadius: '12px', textAlign: 'center', fontSize: '14px', color: 'var(--color-text-secondary)' }}>
-                이제 성공의 말을 만들어볼까요? ✨
-              </div>
-            ) : (
-              <div className="flex gap-2" style={{ marginTop: '8px' }}>
-                <input
-                  value={chatInput}
-                  onChange={(e) => setChatInput(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && !e.nativeEvent.isComposing) {
-                      handleChatSend()
-                    }
-                  }}
-                  placeholder="메시지 입력..."
-                  style={{
-                    flex: 1,
-                    padding: '12px 14px',
-                    background: 'var(--color-bg-card)',
-                    border: '1px solid var(--color-border)',
-                    borderRadius: '12px',
-                    fontSize: '14px',
-                    color: 'var(--color-text-primary)',
-                    outline: 'none',
-                  }}
-                />
-                <button
-                  onClick={() => toggleVoiceInput(
-                    isListeningChat,
-                    setIsListeningChat,
-                    (text) => setChatInput((prev) => prev ? prev + ' ' + text : text)
-                  )}
-                  style={{
-                    padding: '12px',
-                    background: isListeningChat ? '#E53935' : 'var(--color-bg-card)',
-                    border: '1px solid var(--color-border)',
-                    borderRadius: '12px',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    transition: 'background 0.2s',
-                  }}
-                  title={isListeningChat ? '듣는 중 — 탭하여 중지' : '음성으로 입력'}
-                >
-                  <Mic size={16} color={isListeningChat ? 'white' : 'var(--color-text-muted)'} />
-                </button>
-                <button
-                  onClick={handleChatSend}
-                  disabled={!chatInput.trim() || chatLoading}
-                  style={{
-                    padding: '12px 20px',
-                    background: 'var(--color-accent-primary)',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '12px',
-                    fontSize: '14px',
-                    cursor: 'pointer',
-                  }}
-                >
-                  전송
-                </button>
-              </div>
-            )}
-
-            {(chatMessages.length >= 2 || chatLimitReached) && chatAffirmations.length === 0 && (
-              <button
-                onClick={handleGenerateAffirmations}
-                disabled={chatLoading}
-                style={{
-                  width: '100%',
-                  padding: '13px',
-                  background: 'var(--color-accent-secondary)',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '12px',
-                  fontSize: '14px',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  marginTop: '10px',
-                }}
-              >
-                ✨ 성공의 말 생성하기
-              </button>
             )}
           </div>
         )}
