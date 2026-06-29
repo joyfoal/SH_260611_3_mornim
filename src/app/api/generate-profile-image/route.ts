@@ -27,12 +27,12 @@ export async function POST(req: NextRequest) {
     }
     const style = imageStyle ?? 'ghibli'
 
-    if (!process.env.OPENROUTER_API_KEY || process.env.OPENROUTER_API_KEY === 'your_key_here') {
+    if (!process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY === 'your_key_here') {
       return NextResponse.json({ error: 'API 키가 설정되지 않았어요.' }, { status: 400 })
     }
 
     const { default: OpenAI, toFile } = await import('openai')
-    const openai = new OpenAI({ apiKey: process.env.OPENROUTER_API_KEY, baseURL: 'https://openrouter.ai/api/v1' })
+    const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
 
     let b64: string | null | undefined
 
@@ -61,7 +61,7 @@ The scene radiates warmth, hope, and deep positivity — a heartwarming and upli
 NO TEXT OR LETTERS in the image.`
 
       const response = await openai.images.generate({
-        model: 'openai/gpt-image-1',
+        model: 'gpt-image-1',
         prompt,
         n: 1,
         size: '1024x1024',
@@ -99,7 +99,7 @@ The character radiates joy, warmth, positivity, and hope — a deeply uplifting 
 NO TEXT OR LETTERS in the image.`
 
       const response = await openai.images.edit({
-        model: 'openai/gpt-image-1',
+        model: 'gpt-image-1',
         image: imageFile,
         prompt,
         n: 1,

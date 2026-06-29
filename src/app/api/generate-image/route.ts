@@ -74,12 +74,12 @@ export async function POST(req: NextRequest) {
       profileDescription?: string
     }
 
-    if (!process.env.OPENROUTER_API_KEY || process.env.OPENROUTER_API_KEY === 'your_key_here') {
+    if (!process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY === 'your_key_here') {
       return NextResponse.json({ error: 'API 키가 설정되지 않았어요.' }, { status: 400 })
     }
 
     const { default: OpenAI, toFile } = await import('openai')
-    const openai = new OpenAI({ apiKey: process.env.OPENROUTER_API_KEY, baseURL: 'https://openrouter.ai/api/v1' })
+    const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
 
     const affText = affirmations.join(', ')
     // 프로필 글 + 성공의 말을 함께 씬 컨텍스트로 결합
@@ -100,7 +100,7 @@ The image must be deeply positive, encouraging, and filled with hope and warmth.
 NO TEXT OR LETTERS in the image.`
 
       const response = await openai.images.edit({
-        model: 'openai/gpt-image-1',
+        model: 'gpt-image-1',
         image: imageFile,
         prompt,
         n: 1,
@@ -131,7 +131,7 @@ The image must be deeply positive, hopeful, and inspiring.
 NO TEXT OR LETTERS. Style: warm golden light, photorealistic.`
 
       const editParams: Parameters<typeof openai.images.edit>[0] = {
-        model: 'openai/gpt-image-1',
+        model: 'gpt-image-1',
         image: imageFile,
         prompt,
         n: 1,
@@ -147,7 +147,7 @@ NO TEXT OR LETTERS. Style: warm golden light, photorealistic.`
       const prompt = buildIdentityMatrix(faceData, sceneContext)
 
       const response = await openai.images.generate({
-        model: 'openai/gpt-image-1',
+        model: 'gpt-image-1',
         prompt,
         n: 1,
         size: '1024x1024',
@@ -165,7 +165,7 @@ NO TEXT OR LETTERS of any kind in the image.
 Style: warm golden light, painterly, Korean aesthetic sensibility, cinematic and deeply positive.`
 
       const response = await openai.images.generate({
-        model: 'openai/gpt-image-1',
+        model: 'gpt-image-1',
         prompt,
         n: 1,
         size: '1024x1024',
