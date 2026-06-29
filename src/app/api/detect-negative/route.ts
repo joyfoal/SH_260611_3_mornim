@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 
 export async function POST(req: NextRequest) {
   try {
-    const { text } = await req.json() as { text: string }
+    const { text, category } = await req.json() as { text: string; category?: string }
 
     if (!process.env.OPENROUTER_API_KEY || process.env.OPENROUTER_API_KEY === 'your_key_here') {
       return NextResponse.json({ isNegative: false, alternative: null })
@@ -25,10 +25,12 @@ export async function POST(req: NextRequest) {
    - alternative는 반드시 "나는..." 또는 "나의..."로 시작하는 현재형 1인칭 긍정 확언이어야 합니다
    - 원문의 감정적 맥락을 반영해 강력하고 희망적인 문장으로 만들어주세요
    - 단순히 부정어를 제거하는 게 아니라 진짜 성공의 말로 바꿔주세요
-   - 예시: "기분이 좋지 않다" → "나는 언제나 밝고 긍정적인 에너지로 가득 차 있다"
+   - 카테고리가 제공된 경우 해당 카테고리 맥락을 반드시 반영할 것
+     (예: "건강과 몸" → 건강/신체 관련, "일과 커리어" → 일/성장/직업 관련, "관계와 사랑" → 인간관계/사랑 관련)
+   - 예시: "기분이 좋지 않다" + 카테고리 "마음과 평온" → "나는 언제나 고요하고 평온한 마음으로 나를 돌보고 있다"
 3. 정상적인 문장 → {"isNegative": false, "alternative": null}`,
         },
-        { role: 'user', content: `텍스트: "${text}"` },
+        { role: 'user', content: `텍스트: "${text}"${category ? `\n카테고리: "${category}"` : ''}` },
       ],
       temperature: 0.3,
       max_tokens: 150,

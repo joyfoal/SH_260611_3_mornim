@@ -115,7 +115,7 @@ export default function CreatePage() {
       const res = await fetch('/api/detect-negative', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text }),
+        body: JSON.stringify({ text, category: directCategory }),
       })
       const data = await res.json() as { isNegative: boolean; alternative: string | null }
       if (data.isNegative) {
