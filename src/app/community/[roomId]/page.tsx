@@ -158,6 +158,9 @@ export default function RoomPage() {
   // 방 나가기 확인 모달
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false)
 
+  // 이 방의 참여 여부
+  const [isMember, setIsMember] = useState(false)
+
   // localStorage에서 프로필 불러오기
   useEffect(() => {
     try {
@@ -165,6 +168,14 @@ export default function RoomPage() {
       if (saved) setUserProfile(JSON.parse(saved) as UserProfile)
     } catch {}
   }, [])
+
+  // 참여 여부 확인
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('ealo-my-rooms')
+      if (saved) setIsMember((JSON.parse(saved) as string[]).includes(roomId))
+    } catch {}
+  }, [roomId])
 
   useEffect(() => {
     if (toast) {
@@ -328,17 +339,17 @@ export default function RoomPage() {
               {/* 공유하기 버튼 */}
               <button
                 onClick={handleOpenShare}
-                disabled={sharedIds.length >= 3 || !userProfile.nickname}
+                disabled={!isMember || sharedIds.length >= 3 || !userProfile.nickname}
                 style={{
                   width: '100%',
                   padding: '12px',
-                  background: sharedIds.length >= 3 || !userProfile.nickname ? 'var(--color-border)' : '#F59E0B',
-                  color: sharedIds.length >= 3 || !userProfile.nickname ? 'var(--color-text-muted)' : 'white',
+                  background: !isMember || sharedIds.length >= 3 || !userProfile.nickname ? 'var(--color-border)' : '#F59E0B',
+                  color: !isMember || sharedIds.length >= 3 || !userProfile.nickname ? 'var(--color-text-muted)' : 'white',
                   border: 'none',
                   borderRadius: '12px',
                   fontSize: '14px',
                   fontWeight: 600,
-                  cursor: sharedIds.length >= 3 || !userProfile.nickname ? 'not-allowed' : 'pointer',
+                  cursor: !isMember || sharedIds.length >= 3 || !userProfile.nickname ? 'not-allowed' : 'pointer',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -347,7 +358,7 @@ export default function RoomPage() {
                 }}
               >
                 <Share2 size={15} />
-                {sharedIds.length >= 3 ? '최대 3개까지 공유할 수 있어요' : '성공의 말 공유하기'}
+                {!isMember ? '방에 참여하면 공유할 수 있어요' : sharedIds.length >= 3 ? '최대 3개까지 공유할 수 있어요' : '성공의 말 공유하기'}
               </button>
 
               <p style={{ fontSize: '12px', color: 'var(--color-text-muted)', textAlign: 'center', marginBottom: '16px' }}>
