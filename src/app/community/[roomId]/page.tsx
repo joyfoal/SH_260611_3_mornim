@@ -1,9 +1,9 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { AppLayout } from '@/components/ui/AppLayout'
-import { ChevronLeft, Trophy, BookmarkPlus, Share2, X, Check } from 'lucide-react'
+import { ChevronLeft, Trophy, BookmarkPlus, Share2, X, Check, UserCircle, LogOut, Camera } from 'lucide-react'
 import { getAffirmations, saveAffirmation, type Affirmation } from '@/lib/storage'
 
 type RoomTab = '성공의 말 나누기' | '함께 도전'
@@ -21,6 +21,7 @@ interface FeedItem {
   id: string
   nickname: string
   initial: string
+  profileImage?: string | null
   content: string
   daysCount: number
   reactions: Reactions
@@ -38,6 +39,11 @@ interface Participant {
 interface Challenge {
   content: string
   participants: Participant[]
+}
+
+interface UserProfile {
+  nickname: string
+  profileImage: string | null
 }
 
 const MOCK_FEED: FeedItem[] = [
@@ -83,16 +89,68 @@ function totalDays(challenge: Challenge) {
   return challenge.participants.reduce((s, p) => s + p.daysCount, 0)
 }
 
+function resizeImageToBase64(file: File, maxPx = 200): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const img = new Image()
+    const url = URL.createObjectURL(file)
+    img.onload = () => {
+      URL.revokeObjectURL(url)
+      const scale = Math.min(maxPx / img.naturalWidth, maxPx / img.naturalHeight, 1)
+      const canvas = document.createElement('canvas')
+      canvas.width = Math.round(img.naturalWidth * scale)
+      canvas.height = Math.round(img.naturalHeight * scale)
+      canvas.getContext('2d')!.drawImage(img, 0, 0, canvas.width, canvas.height)
+      resolve(canvas.toDataURL('image/jpeg', 0.8))
+    }
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('이미지를 불러올 수 없어요.')) }
+    img.src = url
+  })
+}
+
+function Avatar({ nickname, initial, profileImage, size = 36, isMe = false }: {
+  nickname: string; initial: string; profileImage?: string | null; size?: number; isMe?: boolean
+}) {
+  if (profileImage) {
+    return (
+      <img
+        src={profileImage}
+        alt={nickname}
+        style={{ width: size, height: size, borderRadius: '50%', objectFit: 'cover', flexShrink: 0, border: isMe ? '2px solid #F59E0B' : 'none' }}
+      />
+    )
+  }
+  return (
+    <div style={{
+      width: size, height: size, borderRadius: '50%',
+      background: isMe ? '#F59E0B' : '#FEF3C7',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      fontSize: size * 0.4, fontWeight: 700,
+      color: isMe ? 'white' : '#92400E',
+      flexShrink: 0,
+    }}>
+      {initial}
+    </div>
+  )
+}
+
 export default function RoomPage() {
   const router = useRouter()
   const params = useParams()
   const roomId = params.roomId as string
   const room = MOCK_ROOM_INFO[roomId] ?? { name: '방' }
+  const photoInputRef = useRef<HTMLInputElement>(null)
 
   const [activeTab, setActiveTab] = useState<RoomTab>('성공의 말 나누기')
   const [feed, setFeed] = useState<FeedItem[]>(MOCK_FEED)
   const [challenges, setChallenges] = useState<Challenge[]>(MOCK_CHALLENGE)
   const [expandedChallenge, setExpandedChallenge] = useState<string | null>(null)
+
+  // 사용자 프로필
+  const [userProfile, setUserProfile] = useState<UserProfile>({ nickname: '', profileImage: null })
+  const [showProfileSheet, setShowProfileSheet] = useState(false)
+  const [editNickname, setEditNickname] = useState('')
+  const [editImageData, setEditImageData] = useState<string | null>(null)
+  const [profileSaving, setProfileSaving] = useState(false)
 
   // 공유하기
   const [showShareSheet, setShowShareSheet] = useState(false)
@@ -103,6 +161,17 @@ export default function RoomPage() {
   const [importedContents, setImportedContents] = useState<Set<string>>(new Set())
   const [toast, setToast] = useState('')
 
+  // 방 나가기 확인 모달
+  const [showLeaveConfirm, setShowLeaveConfirm] = useState(false)
+
+  // localStorage에서 프로필 불러오기
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('ealo-user-profile')
+      if (saved) setUserProfile(JSON.parse(saved) as UserProfile)
+    } catch {}
+  }, [])
+
   useEffect(() => {
     if (toast) {
       const t = setTimeout(() => setToast(''), 2000)
@@ -112,6 +181,55 @@ export default function RoomPage() {
 
   const showToast = (msg: string) => setToast(msg)
 
+  // 프로필 시트 열기
+  const handleOpenProfile = () => {
+    setEditNickname(userProfile.nickname)
+    setEditImageData(userProfile.profileImage)
+    setShowProfileSheet(true)
+  }
+
+  // 프로필 이미지 선택
+  const handleProfileImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    e.target.value = ''
+    try {
+      const data = await resizeImageToBase64(file, 200)
+      setEditImageData(data)
+    } catch {}
+  }
+
+  // 프로필 저장
+  const handleSaveProfile = async () => {
+    setProfileSaving(true)
+    const profile: UserProfile = {
+      nickname: editNickname.trim() || '나',
+      profileImage: editImageData,
+    }
+    try { localStorage.setItem('ealo-user-profile', JSON.stringify(profile)) } catch {}
+    setUserProfile(profile)
+    // 내가 공유한 피드 항목에도 반영
+    setFeed(prev => prev.map(item =>
+      item.isMe
+        ? { ...item, nickname: profile.nickname || '나', initial: (profile.nickname || '나')[0], profileImage: profile.profileImage }
+        : item
+    ))
+    setProfileSaving(false)
+    setShowProfileSheet(false)
+  }
+
+  // 방 나가기
+  const handleLeaveRoom = () => {
+    try {
+      const saved = localStorage.getItem('ealo-my-rooms')
+      if (saved) {
+        const rooms = JSON.parse(saved) as string[]
+        localStorage.setItem('ealo-my-rooms', JSON.stringify(rooms.filter(r => r !== roomId)))
+      }
+    } catch {}
+    router.back()
+  }
+
   const handleOpenShare = () => {
     setMyPhrases(getAffirmations())
     setShowShareSheet(true)
@@ -119,10 +237,12 @@ export default function RoomPage() {
 
   const handleSharePhrase = (aff: Affirmation) => {
     if (sharedIds.length >= 3 || sharedIds.includes(aff.id)) return
+    const displayName = userProfile.nickname || '나'
     const newItem: FeedItem = {
       id: `my-${aff.id}`,
-      nickname: '나',
-      initial: '나',
+      nickname: displayName,
+      initial: displayName[0],
+      profileImage: userProfile.profileImage,
       content: aff.text,
       daysCount: aff.completedDates.length,
       reactions: { '😍': 0, '👏': 0, '🔥': 0, '💪': 0 },
@@ -195,9 +315,35 @@ export default function RoomPage() {
           >
             <ChevronLeft size={22} color="var(--color-text-primary)" />
           </button>
-          <h1 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--color-text-primary)' }}>
+          <h1 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--color-text-primary)', flex: 1 }}>
             {room.name}
           </h1>
+
+          {/* 프로필 버튼 */}
+          <button
+            onClick={handleOpenProfile}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px', display: 'flex', alignItems: 'center', gap: '6px', borderRadius: '10px' }}
+            title="프로필 설정"
+          >
+            {userProfile.profileImage ? (
+              <img
+                src={userProfile.profileImage}
+                alt="내 프로필"
+                style={{ width: '30px', height: '30px', borderRadius: '50%', objectFit: 'cover', border: '2px solid #F59E0B' }}
+              />
+            ) : (
+              <UserCircle size={28} color={userProfile.nickname ? '#F59E0B' : 'var(--color-text-muted)'} />
+            )}
+          </button>
+
+          {/* 방 나가기 버튼 */}
+          <button
+            onClick={() => setShowLeaveConfirm(true)}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px', display: 'flex', alignItems: 'center' }}
+            title="방 나가기"
+          >
+            <LogOut size={20} color="var(--color-text-muted)" />
+          </button>
         </div>
 
         {/* 내부 탭 */}
@@ -213,6 +359,31 @@ export default function RoomPage() {
           {/* 성공의 말 나누기 피드 */}
           {activeTab === '성공의 말 나누기' && (
             <div>
+              {/* 프로필 미설정 안내 */}
+              {!userProfile.nickname && (
+                <button
+                  onClick={handleOpenProfile}
+                  style={{
+                    width: '100%',
+                    padding: '12px 14px',
+                    background: '#FFFBEB',
+                    border: '1.5px dashed #F59E0B',
+                    borderRadius: '12px',
+                    fontSize: '13px',
+                    color: '#92400E',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    marginBottom: '12px',
+                    textAlign: 'left',
+                  }}
+                >
+                  <UserCircle size={18} color="#F59E0B" />
+                  <span>프로필을 설정하면 성공의 말을 공유할 수 있어요 →</span>
+                </button>
+              )}
+
               {/* 공유하기 버튼 */}
               <button
                 onClick={handleOpenShare}
@@ -255,16 +426,13 @@ export default function RoomPage() {
                   >
                     {/* 작성자 */}
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
-                      <div style={{
-                        width: '36px', height: '36px', borderRadius: '50%',
-                        background: item.isMe ? '#F59E0B' : '#FEF3C7',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        fontSize: '15px', fontWeight: 700,
-                        color: item.isMe ? 'white' : '#92400E',
-                        flexShrink: 0,
-                      }}>
-                        {item.initial}
-                      </div>
+                      <Avatar
+                        nickname={item.nickname}
+                        initial={item.initial}
+                        profileImage={item.profileImage}
+                        size={36}
+                        isMe={item.isMe}
+                      />
                       <div>
                         <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--color-text-primary)' }}>
                           {item.nickname}{item.isMe && ' (나)'}
@@ -302,14 +470,15 @@ export default function RoomPage() {
                       {totalReactions(item.reactions) === 0 && '아직 응원이 없어요'}
                     </div>
 
-                    {/* 칭찬 버튼 + 가져오기 */}
-                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
-                      <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', flex: 1 }}>
+                    {/* 칭찬 버튼 한 줄 + 가져오기 */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <div style={{ display: 'flex', gap: '6px', overflowX: 'auto', flex: 1, scrollbarWidth: 'none' }}>
                         {!item.isMe && EMOJIS.map(e => (
                           <button
                             key={e.emoji}
                             onClick={() => handleFeedReaction(item.id, e.emoji)}
                             style={{
+                              flexShrink: 0,
                               padding: '6px 10px',
                               background: '#FEF3C7',
                               border: '1px solid #FCD34D',
@@ -318,13 +487,14 @@ export default function RoomPage() {
                               color: '#92400E',
                               cursor: 'pointer',
                               fontWeight: 500,
+                              whiteSpace: 'nowrap',
                             }}
                           >
                             {e.emoji} {e.label}
                           </button>
                         ))}
                         {item.isMe && (
-                          <span style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>내가 공유한 성공의 말</span>
+                          <span style={{ fontSize: '12px', color: 'var(--color-text-muted)', whiteSpace: 'nowrap' }}>내가 공유한 성공의 말</span>
                         )}
                       </div>
 
@@ -453,12 +623,14 @@ export default function RoomPage() {
                                     }
                                   </div>
                                 </div>
-                                <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', paddingLeft: '44px' }}>
+                                {/* 챌린지 칭찬 버튼 한 줄 */}
+                                <div style={{ display: 'flex', gap: '6px', overflowX: 'auto', paddingLeft: '44px', scrollbarWidth: 'none' }}>
                                   {EMOJIS.map(e => (
                                     <button
                                       key={e.emoji}
                                       onClick={() => handleChallengeReaction(challenge.content, participant.nickname, e.emoji)}
                                       style={{
+                                        flexShrink: 0,
                                         padding: '5px 10px',
                                         background: '#FEF3C7',
                                         border: '1px solid #FCD34D',
@@ -467,6 +639,7 @@ export default function RoomPage() {
                                         color: '#92400E',
                                         cursor: 'pointer',
                                         fontWeight: 500,
+                                        whiteSpace: 'nowrap',
                                       }}
                                     >
                                       {e.emoji} {e.label}
@@ -487,13 +660,118 @@ export default function RoomPage() {
         </div>
       </div>
 
-      {/* 공유하기 바텀시트 */}
+      {/* ── 프로필 설정 바텀시트 ── */}
+      {showProfileSheet && (
+        <>
+          <div onClick={() => setShowProfileSheet(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 40 }} />
+          <div style={{
+            position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 50,
+            background: 'var(--color-bg-primary)',
+            borderRadius: '20px 20px 0 0',
+            padding: '20px 16px 40px',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
+              <h3 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--color-text-primary)' }}>프로필 설정</h3>
+              <button onClick={() => setShowProfileSheet(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex' }}>
+                <X size={20} color="var(--color-text-muted)" />
+              </button>
+            </div>
+
+            {/* 프로필 이미지 */}
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '20px' }}>
+              <div
+                onClick={() => photoInputRef.current?.click()}
+                style={{ position: 'relative', cursor: 'pointer' }}
+              >
+                {editImageData ? (
+                  <img
+                    src={editImageData}
+                    alt="프로필"
+                    style={{ width: '80px', height: '80px', borderRadius: '50%', objectFit: 'cover', border: '3px solid #F59E0B' }}
+                  />
+                ) : (
+                  <div style={{
+                    width: '80px', height: '80px', borderRadius: '50%',
+                    background: '#FEF3C7', border: '3px dashed #F59E0B',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  }}>
+                    <UserCircle size={40} color="#F59E0B" />
+                  </div>
+                )}
+                <div style={{
+                  position: 'absolute', bottom: 0, right: 0,
+                  width: '26px', height: '26px', borderRadius: '50%',
+                  background: '#F59E0B', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  border: '2px solid white',
+                }}>
+                  <Camera size={13} color="white" />
+                </div>
+              </div>
+              <p style={{ fontSize: '12px', color: 'var(--color-text-muted)', marginTop: '8px' }}>
+                사진을 탭해서 변경
+              </p>
+            </div>
+
+            {/* 닉네임 */}
+            <div style={{ marginBottom: '20px' }}>
+              <label style={{ fontSize: '13px', fontWeight: 600, color: 'var(--color-text-secondary)', display: 'block', marginBottom: '8px' }}>
+                닉네임
+              </label>
+              <input
+                value={editNickname}
+                onChange={e => setEditNickname(e.target.value)}
+                placeholder="방에서 사용할 이름 (나중에 구글 이름으로 교체)"
+                maxLength={12}
+                style={{
+                  width: '100%',
+                  padding: '13px 14px',
+                  background: 'var(--color-bg-card)',
+                  border: '1px solid var(--color-border)',
+                  borderRadius: '12px',
+                  fontSize: '15px',
+                  color: 'var(--color-text-primary)',
+                  outline: 'none',
+                  boxSizing: 'border-box',
+                }}
+              />
+              <p style={{ fontSize: '11px', color: 'var(--color-text-muted)', marginTop: '4px' }}>
+                구글 로그인 후 이름이 자동으로 연결돼요
+              </p>
+            </div>
+
+            <button
+              onClick={handleSaveProfile}
+              disabled={profileSaving}
+              style={{
+                width: '100%',
+                padding: '14px',
+                background: '#F59E0B',
+                color: 'white',
+                border: 'none',
+                borderRadius: '14px',
+                fontSize: '15px',
+                fontWeight: 700,
+                cursor: 'pointer',
+              }}
+            >
+              {profileSaving ? '저장 중...' : '프로필 저장'}
+            </button>
+
+            <input
+              type="file"
+              accept="image/*"
+              ref={photoInputRef}
+              style={{ display: 'none' }}
+              onChange={handleProfileImageChange}
+            />
+          </div>
+        </>
+      )}
+
+      {/* ── 공유하기 바텀시트 ── */}
       {showShareSheet && (
         <>
-          <div
-            onClick={() => setShowShareSheet(false)}
-            style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 40 }}
-          />
+          <div onClick={() => setShowShareSheet(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 40 }} />
           <div style={{
             position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 50,
             background: 'var(--color-bg-primary)',
@@ -540,10 +818,10 @@ export default function RoomPage() {
                       onClick={() => handleSharePhrase(aff)}
                       disabled={alreadyShared || sharedIds.length >= 3}
                       style={{
-                        padding: '14px',
+                        padding: '16px',
                         background: alreadyShared ? '#F0FDF4' : 'var(--color-bg-card)',
                         border: alreadyShared ? '1px solid #6EE7B7' : '1px solid var(--color-border)',
-                        borderRadius: '12px',
+                        borderRadius: '16px',
                         textAlign: 'left',
                         cursor: alreadyShared || sharedIds.length >= 3 ? 'default' : 'pointer',
                         opacity: !alreadyShared && sharedIds.length >= 3 ? 0.5 : 1,
@@ -551,6 +829,8 @@ export default function RoomPage() {
                         alignItems: 'center',
                         justifyContent: 'space-between',
                         gap: '12px',
+                        width: '100%',
+                        boxSizing: 'border-box',
                       }}
                     >
                       <div style={{ minWidth: 0 }}>
@@ -580,6 +860,57 @@ export default function RoomPage() {
         </>
       )}
 
+      {/* ── 방 나가기 확인 모달 ── */}
+      {showLeaveConfirm && (
+        <>
+          <div onClick={() => setShowLeaveConfirm(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 40 }} />
+          <div style={{
+            position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 50,
+            background: 'var(--color-bg-primary)',
+            borderRadius: '20px 20px 0 0',
+            padding: '28px 16px 40px',
+          }}>
+            <div style={{ textAlign: 'center', marginBottom: '24px' }}>
+              <div style={{ fontSize: '36px', marginBottom: '12px' }}>🚪</div>
+              <h3 style={{ fontSize: '17px', fontWeight: 700, color: 'var(--color-text-primary)', marginBottom: '8px' }}>
+                방을 나갈까요?
+              </h3>
+              <p style={{ fontSize: '13px', color: 'var(--color-text-muted)', lineHeight: 1.6 }}>
+                나가면 이 방의 성공의 말 공유가 취소되고<br />내 방 목록에서도 사라져요.
+              </p>
+            </div>
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button
+                onClick={() => setShowLeaveConfirm(false)}
+                style={{
+                  flex: 1, padding: '14px',
+                  background: 'var(--color-bg-card)',
+                  border: '1px solid var(--color-border)',
+                  borderRadius: '14px',
+                  fontSize: '15px', fontWeight: 600,
+                  color: 'var(--color-text-muted)', cursor: 'pointer',
+                }}
+              >
+                취소
+              </button>
+              <button
+                onClick={handleLeaveRoom}
+                style={{
+                  flex: 1, padding: '14px',
+                  background: '#EF5350',
+                  border: 'none',
+                  borderRadius: '14px',
+                  fontSize: '15px', fontWeight: 700,
+                  color: 'white', cursor: 'pointer',
+                }}
+              >
+                나가기
+              </button>
+            </div>
+          </div>
+        </>
+      )}
+
       {/* Toast */}
       {toast && (
         <div style={{
@@ -593,6 +924,10 @@ export default function RoomPage() {
           {toast}
         </div>
       )}
+
+      <style>{`
+        div::-webkit-scrollbar { display: none; }
+      `}</style>
     </AppLayout>
   )
 }
