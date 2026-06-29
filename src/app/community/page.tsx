@@ -170,6 +170,7 @@ export default function CommunityPage() {
   }
 
   const filteredRooms = MOCK_ROOMS
+    .filter(r => !myRooms.includes(r.id))
     .filter(r => selectedTag === '전체' || r.tags.includes(selectedTag))
     .filter(r => {
       const q = searchQuery.trim().toLowerCase()
@@ -423,13 +424,12 @@ export default function CommunityPage() {
 
               {filteredRooms.length === 0 ? (
                 <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--color-text-muted)', fontSize: '14px' }}>
-                  {searchQuery.trim() ? `"${searchQuery}" 검색 결과가 없어요` : '방이 없어요'}
+                  {searchQuery.trim() ? `"${searchQuery}" 검색 결과가 없어요` : '모든 방에 참여 중이에요 🎉'}
                 </div>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                   {filteredRooms.map(room => {
                     const isFull = room.members >= MAX_MEMBERS
-                    const isJoined = myRooms.includes(room.id)
                     return (
                       <div
                         key={room.id}
@@ -437,20 +437,13 @@ export default function CommunityPage() {
                           background: 'var(--color-bg-card)',
                           borderRadius: '16px',
                           padding: '16px',
-                          border: isJoined ? '1.5px solid #F59E0B' : '1px solid var(--color-border)',
+                          border: '1px solid var(--color-border)',
                         }}
                       >
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
                           <div style={{ minWidth: 0, flex: 1 }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
-                              <span style={{ fontSize: '15px', fontWeight: 700, color: 'var(--color-text-primary)' }}>
-                                {room.name}
-                              </span>
-                              {isJoined && (
-                                <span style={{ fontSize: '10px', color: '#F59E0B', background: '#FFFBEB', border: '1px solid #F59E0B', padding: '1px 6px', borderRadius: '999px', fontWeight: 600, flexShrink: 0 }}>
-                                  참여 중
-                                </span>
-                              )}
+                            <div style={{ fontSize: '15px', fontWeight: 700, color: 'var(--color-text-primary)', marginBottom: '4px' }}>
+                              {room.name}
                             </div>
                             <div style={{ fontSize: '13px', color: 'var(--color-text-muted)', marginBottom: '8px' }}>
                               {room.desc}
@@ -458,53 +451,55 @@ export default function CommunityPage() {
                           </div>
                         </div>
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                          <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                          <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
                             <span style={{ fontSize: '12px', color: 'var(--color-text-muted)', display: 'flex', alignItems: 'center', gap: '4px' }}>
                               <Users size={12} /> {room.members}/{MAX_MEMBERS}명
                             </span>
                             <span style={{ fontSize: '12px', color: '#92400E', background: '#FEF3C7', padding: '2px 8px', borderRadius: '999px', fontWeight: 500 }}>
                               연속 {room.streakDays}일째 🔥
                             </span>
-                            {isFull && !isJoined && (
+                            {isFull && (
                               <span style={{ fontSize: '12px', color: '#EF5350', background: '#FFEBEE', padding: '2px 8px', borderRadius: '999px', fontWeight: 600 }}>
                                 마감
                               </span>
                             )}
                           </div>
-                          {isJoined ? (
+                          <div style={{ display: 'flex', gap: '6px', flexShrink: 0 }}>
+                            {/* 둘러보기 — 항상 표시 */}
                             <button
                               onClick={() => router.push(`/community/${room.id}`)}
                               style={{
-                                padding: '7px 16px',
-                                background: '#F59E0B',
-                                color: 'white',
-                                border: 'none',
+                                padding: '7px 13px',
+                                background: 'var(--color-bg-card)',
+                                color: 'var(--color-text-secondary)',
+                                border: '1px solid var(--color-border)',
                                 borderRadius: '10px',
                                 fontSize: '13px',
                                 fontWeight: 600,
                                 cursor: 'pointer',
                               }}
                             >
-                              입장하기
+                              둘러보기
                             </button>
-                          ) : (
-                            <button
-                              onClick={() => handleJoin(room.id)}
-                              disabled={isFull}
-                              style={{
-                                padding: '7px 16px',
-                                background: isFull ? 'var(--color-border)' : '#F59E0B',
-                                color: isFull ? 'var(--color-text-muted)' : 'white',
-                                border: 'none',
-                                borderRadius: '10px',
-                                fontSize: '13px',
-                                fontWeight: 600,
-                                cursor: isFull ? 'not-allowed' : 'pointer',
-                              }}
-                            >
-                              {isFull ? '마감' : '참여하기'}
-                            </button>
-                          )}
+                            {/* 참여하기 — 마감이 아닐 때만 */}
+                            {!isFull && (
+                              <button
+                                onClick={() => handleJoin(room.id)}
+                                style={{
+                                  padding: '7px 13px',
+                                  background: '#F59E0B',
+                                  color: 'white',
+                                  border: 'none',
+                                  borderRadius: '10px',
+                                  fontSize: '13px',
+                                  fontWeight: 600,
+                                  cursor: 'pointer',
+                                }}
+                              >
+                                참여하기
+                              </button>
+                            )}
+                          </div>
                         </div>
                       </div>
                     )
