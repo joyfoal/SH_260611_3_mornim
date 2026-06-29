@@ -19,6 +19,7 @@ export default function CreatePage() {
   const [activeTab, setActiveTab] = useState<Tab>('직접 입력')
   const [categories, setCategories] = useState<string[]>([])
   const chatBottomRef = useRef<HTMLDivElement>(null)
+  const aiResultsRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     setCategories(getCategories())
@@ -106,6 +107,12 @@ export default function CreatePage() {
       setTimeout(() => chatBottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 50)
     }
   }, [chatMessages, chatStarted])
+
+  useEffect(() => {
+    if (aiResults.length > 0) {
+      setTimeout(() => aiResultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100)
+    }
+  }, [aiResults])
 
   const handleDirectSave = async (textToSave?: string) => {
     const text = textToSave ?? directText
@@ -784,6 +791,7 @@ export default function CreatePage() {
               </div>
             )}
 
+            <div ref={aiResultsRef}>
             {aiResults.map((text, i) => (
               <div
                 key={i}
@@ -818,6 +826,7 @@ export default function CreatePage() {
                 </button>
               </div>
             ))}
+            </div>
           </div>
         )}
 
