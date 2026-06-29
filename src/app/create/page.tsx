@@ -101,6 +101,12 @@ export default function CreatePage() {
   const chatUserCount = chatMessages.filter((m) => m.role === 'user').length
   const chatLimitReached = chatUserCount >= 10
 
+  useEffect(() => {
+    if (chatStarted) {
+      setTimeout(() => chatBottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 50)
+    }
+  }, [chatMessages, chatStarted])
+
   const handleDirectSave = async (textToSave?: string) => {
     const text = textToSave ?? directText
     if (!text.trim() || !directCategory) return
