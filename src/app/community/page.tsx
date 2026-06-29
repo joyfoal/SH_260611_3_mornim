@@ -142,6 +142,7 @@ export default function CommunityPage() {
   const [roomDescBanner, setRoomDescBanner] = useState<NegBanner>(null)
   const [creating, setCreating] = useState(false)
   const [rankingPeriod, setRankingPeriod] = useState<RankingPeriod>('전체')
+  const [rankingType, setRankingType] = useState<'방' | '성공의 말'>('방')
 
   // 프로필
   const [userProfile, setUserProfile] = useState<UserProfile>({ nickname: '', profileImage: null })
@@ -762,6 +763,29 @@ export default function CommunityPage() {
           {/* 랭킹 */}
           {activeTab === '랭킹' && (
             <div>
+              {/* 랭킹 타입 선택 */}
+              <div style={{ display: 'flex', gap: '8px', marginBottom: '10px' }}>
+                {(['방', '성공의 말'] as const).map(t => (
+                  <button
+                    key={t}
+                    onClick={() => setRankingType(t)}
+                    style={{
+                      flex: 1,
+                      padding: '10px 0',
+                      borderRadius: '12px',
+                      border: rankingType === t ? '2px solid #F59E0B' : '1.5px solid var(--color-border)',
+                      background: rankingType === t ? '#F59E0B' : 'var(--color-bg-card)',
+                      color: rankingType === t ? 'white' : 'var(--color-text-muted)',
+                      fontSize: '14px',
+                      fontWeight: rankingType === t ? 700 : 400,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {t === '방' ? '🏠 방 랭킹' : '💬 성공의 말 랭킹'}
+                  </button>
+                ))}
+              </div>
+
               {/* 기간 필터 */}
               <div style={{ display: 'flex', gap: '8px', marginBottom: '20px' }}>
                 {(['전체', '연', '월', '일'] as RankingPeriod[]).map(p => (
@@ -785,15 +809,8 @@ export default function CommunityPage() {
                 ))}
               </div>
 
-              {/* 방별 랭킹 헤더 */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '12px' }}>
-                <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--color-text-secondary)' }}>🏠 방별 랭킹</span>
-                <span style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>
-                  {rankingPeriod === '전체' ? '전체 기간' : rankingPeriod === '연' ? '올해' : rankingPeriod === '월' ? '이번 달' : '오늘'} 성공 일수 합계
-                </span>
-              </div>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              {/* 방별 랭킹 */}
+              {rankingType === '방' && <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                 {MOCK_RANKING[rankingPeriod].map((entry, idx) => {
                   const room = MOCK_ROOMS.find(r => r.id === entry.roomId)
                   if (!room) return null
@@ -853,17 +870,10 @@ export default function CommunityPage() {
                     </div>
                   )
                 })}
-              </div>
+              </div>}
 
               {/* 성공의 말 별 랭킹 */}
-              <div style={{ marginTop: '28px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '12px' }}>
-                  <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--color-text-secondary)' }}>💬 성공의 말 별 랭킹</span>
-                  <span style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>
-                    {rankingPeriod === '전체' ? '전체 기간' : rankingPeriod === '연' ? '올해' : rankingPeriod === '월' ? '이번 달' : '오늘'} 총 외침 수
-                  </span>
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              {rankingType === '성공의 말' && <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                   {MOCK_PHRASE_RANKING[rankingPeriod].map((entry, idx) => {
                     const medals = ['🥇', '🥈', '🥉']
                     const medal = medals[idx] ?? `${idx + 1}`
@@ -897,8 +907,7 @@ export default function CommunityPage() {
                       </div>
                     )
                   })}
-                </div>
-              </div>
+              </div>}
             </div>
           )}
         </div>
