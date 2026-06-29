@@ -58,6 +58,37 @@ const MOCK_RANKING: Record<RankingPeriod, Array<{ roomId: string; totalDays: num
     { roomId: 'r4', totalDays: 9 },
   ],
 }
+const MOCK_PHRASE_RANKING: Record<RankingPeriod, Array<{ phrase: string; totalDays: number; userCount: number }>> = {
+  '전체': [
+    { phrase: '나는 매일 성장하고 있다',        totalDays: 3841, userCount: 142 },
+    { phrase: '나는 나를 믿는다',               totalDays: 2910, userCount: 118 },
+    { phrase: '나는 오늘도 최선을 다하고 있다',  totalDays: 2203, userCount: 97 },
+    { phrase: '나는 건강하고 활기차다',          totalDays: 1567, userCount: 73 },
+    { phrase: '나는 풍요롭고 감사하다',          totalDays: 984,  userCount: 51 },
+  ],
+  '연': [
+    { phrase: '나는 나를 믿는다',               totalDays: 1024, userCount: 58 },
+    { phrase: '나는 매일 성장하고 있다',         totalDays: 873,  userCount: 46 },
+    { phrase: '나는 오늘도 최선을 다하고 있다',  totalDays: 641,  userCount: 39 },
+    { phrase: '나는 건강하고 활기차다',          totalDays: 520,  userCount: 31 },
+    { phrase: '나는 사랑받고 있다',             totalDays: 314,  userCount: 22 },
+  ],
+  '월': [
+    { phrase: '나는 매일 성장하고 있다',         totalDays: 284, userCount: 21 },
+    { phrase: '나는 오늘도 최선을 다하고 있다',  totalDays: 231, userCount: 18 },
+    { phrase: '나는 나를 믿는다',               totalDays: 198, userCount: 16 },
+    { phrase: '나는 풍요롭고 감사하다',          totalDays: 142, userCount: 11 },
+    { phrase: '나는 건강하고 활기차다',          totalDays: 97,  userCount: 9 },
+  ],
+  '일': [
+    { phrase: '나는 오늘도 최선을 다하고 있다',  totalDays: 34, userCount: 8 },
+    { phrase: '나는 매일 성장하고 있다',         totalDays: 28, userCount: 7 },
+    { phrase: '나는 나를 믿는다',               totalDays: 21, userCount: 6 },
+    { phrase: '나는 사랑받고 있다',             totalDays: 15, userCount: 4 },
+    { phrase: '나는 건강하고 활기차다',          totalDays: 9,  userCount: 3 },
+  ],
+}
+
 type NegResult = { isNegative: boolean; alternative: string | null; suggestedDesc?: string | null }
 type NegBanner = NegResult | null
 
@@ -754,9 +785,13 @@ export default function CommunityPage() {
                 ))}
               </div>
 
-              <p style={{ fontSize: '11px', color: 'var(--color-text-muted)', marginBottom: '12px', textAlign: 'center' }}>
-                {rankingPeriod === '전체' ? '전체 기간' : rankingPeriod === '연' ? '올해' : rankingPeriod === '월' ? '이번 달' : '오늘'} 방별 성공 일수 합계
-              </p>
+              {/* 방별 랭킹 헤더 */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '12px' }}>
+                <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--color-text-secondary)' }}>🏠 방별 랭킹</span>
+                <span style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>
+                  {rankingPeriod === '전체' ? '전체 기간' : rankingPeriod === '연' ? '올해' : rankingPeriod === '월' ? '이번 달' : '오늘'} 성공 일수 합계
+                </span>
+              </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                 {MOCK_RANKING[rankingPeriod].map((entry, idx) => {
@@ -818,6 +853,51 @@ export default function CommunityPage() {
                     </div>
                   )
                 })}
+              </div>
+
+              {/* 성공의 말 별 랭킹 */}
+              <div style={{ marginTop: '28px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '12px' }}>
+                  <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--color-text-secondary)' }}>💬 성공의 말 별 랭킹</span>
+                  <span style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>
+                    {rankingPeriod === '전체' ? '전체 기간' : rankingPeriod === '연' ? '올해' : rankingPeriod === '월' ? '이번 달' : '오늘'} 총 외침 수
+                  </span>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  {MOCK_PHRASE_RANKING[rankingPeriod].map((entry, idx) => {
+                    const medals = ['🥇', '🥈', '🥉']
+                    const medal = medals[idx] ?? `${idx + 1}`
+                    return (
+                      <div
+                        key={entry.phrase}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '12px',
+                          padding: '14px 16px',
+                          background: idx === 0 ? '#FFFBEB' : 'var(--color-bg-card)',
+                          border: idx === 0 ? '1.5px solid #FCD34D' : '1px solid var(--color-border)',
+                          borderRadius: '14px',
+                        }}
+                      >
+                        <div style={{ fontSize: idx < 3 ? '24px' : '16px', fontWeight: 700, minWidth: '28px', textAlign: 'center', color: idx >= 3 ? 'var(--color-text-muted)' : undefined }}>
+                          {medal}
+                        </div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <p style={{ fontFamily: 'Georgia, serif', fontSize: '14px', fontWeight: 600, color: 'var(--color-text-primary)', marginBottom: '4px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {entry.phrase}
+                          </p>
+                          <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                            <span style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>👤 {entry.userCount}명</span>
+                            <span style={{ fontSize: '11px', color: '#92400E', background: '#FEF3C7', padding: '1px 7px', borderRadius: '999px', fontWeight: 600 }}>
+                              {entry.totalDays}일 외침
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
               </div>
             </div>
           )}
