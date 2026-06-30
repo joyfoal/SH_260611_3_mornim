@@ -707,9 +707,6 @@ export default function CreatePage() {
               </button>
             </div>
 
-            <p style={{ fontSize: '12px', color: 'var(--color-text-muted)', marginBottom: '6px' }}>
-              카테고리 선택
-            </p>
             <div className="flex flex-wrap gap-2 mb-1">
               {categories.map((cat) => (
                 <button
@@ -799,7 +796,7 @@ export default function CreatePage() {
                 </button>
               )}
             </div>
-            <p style={{ fontSize: '12px', color: 'var(--color-text-muted)', marginBottom: '12px' }}>
+            <p style={{ fontSize: '12px', color: 'var(--color-text-muted)', marginBottom: '12px', textAlign: 'center' }}>
               카테고리를 선택하지 않으면 AI가 자동으로 분류해요
             </p>
 
@@ -924,9 +921,6 @@ export default function CreatePage() {
                 </div>
                 {/* 카테고리 선택 */}
                 <div style={{ marginBottom: '12px' }}>
-                  <p style={{ fontSize: '12px', color: 'var(--color-text-muted)', marginBottom: '8px' }}>
-                    카테고리 선택
-                  </p>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                     {categories.map((cat) => (
                       <button
@@ -1016,7 +1010,7 @@ export default function CreatePage() {
                       </button>
                     )}
                   </div>
-                  <p style={{ fontSize: '12px', color: 'var(--color-text-muted)', marginTop: '8px' }}>
+                  <p style={{ fontSize: '12px', color: 'var(--color-text-muted)', marginTop: '8px', textAlign: 'center' }}>
                     카테고리를 선택하지 않으면 AI가 자동으로 분류해요
                   </p>
                 </div>
@@ -1149,7 +1143,7 @@ export default function CreatePage() {
                       ))}
                     </div>
                     {!chatCategory && (
-                      <p style={{ fontSize: '12px', color: 'var(--color-text-muted)', marginBottom: '8px' }}>
+                      <p style={{ fontSize: '12px', color: 'var(--color-text-muted)', marginBottom: '8px', textAlign: 'center' }}>
                         카테고리를 선택하지 않으면 AI가 자동으로 분류해요
                       </p>
                     )}
