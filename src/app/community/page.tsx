@@ -131,7 +131,10 @@ export default function CommunityPage() {
   const router = useRouter()
   const photoInputRef = useRef<HTMLInputElement>(null)
 
-  const [activeTab, setActiveTab] = useState<CommunityTab>('내 방')
+  const [activeTab, setActiveTab] = useState<CommunityTab>(() => {
+    if (typeof window === 'undefined') return '내 방'
+    return (sessionStorage.getItem('ealo-community-tab') as CommunityTab) ?? '내 방'
+  })
   const [selectedTag, setSelectedTag] = useState('전체')
   const [searchQuery, setSearchQuery] = useState('')
   const [myRooms, setMyRooms] = useState<string[]>(DEFAULT_MY_ROOMS)
@@ -151,6 +154,11 @@ export default function CommunityPage() {
   const [editNickname, setEditNickname] = useState('')
   const [editImageData, setEditImageData] = useState<string | null>(null)
   const [profileSaving, setProfileSaving] = useState(false)
+
+  // activeTab을 sessionStorage에 동기화 (방에서 돌아올 때 탭 복원)
+  useEffect(() => {
+    try { sessionStorage.setItem('ealo-community-tab', activeTab) } catch {}
+  }, [activeTab])
 
   // localStorage에서 내 방 목록 불러오기
   useEffect(() => {
