@@ -31,7 +31,7 @@ export function AppLayout({ children, activeTab, hideTabBar, decorativeIcons }: 
   return (
     <div
       className="flex flex-col"
-      style={{ minHeight: '100dvh', background: 'var(--color-bg-primary)', position: 'relative' }}
+      style={{ height: '100dvh', background: 'var(--color-bg-primary)', position: 'relative' }}
     >
       <main className="flex-1 overflow-y-auto">{children}</main>
       {!hideTabBar && <TabBar activeTab={activeTab} />}

@@ -22,13 +22,17 @@
   box-sizing: border-box;
 }
 
+html, body {
+  height: 100%;
+  overflow: hidden;
+}
+
 body {
   font-family: 'Pretendard', -apple-system, sans-serif;
   max-width: 430px;
   margin: 0 auto;
   background: var(--color-bg-primary);
   color: var(--color-text-primary);
-  min-height: 100dvh;
 }
 
 @keyframes slideUp {
