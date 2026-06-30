@@ -425,7 +425,7 @@ export default function RoomPage() {
                     {/* 칭찬 버튼 한 줄 + 가져오기 */}
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                       <div style={{ display: 'flex', gap: '6px', overflowX: 'auto', flex: 1, scrollbarWidth: 'none' }}>
-                        {!item.isMe && EMOJIS.map(e => {
+                        {EMOJIS.map(e => {
                           const isOn = (myFeedReactions[item.id] ?? new Set()).has(e.emoji)
                           return (
                             <button
@@ -448,9 +448,6 @@ export default function RoomPage() {
                             </button>
                           )
                         })}
-                        {item.isMe && (
-                          <span style={{ fontSize: '12px', color: 'var(--color-text-muted)', whiteSpace: 'nowrap' }}>내가 공유한 성공의 말</span>
-                        )}
                       </div>
 
                       {/* 가져오기 버튼 */}
