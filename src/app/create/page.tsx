@@ -9,6 +9,24 @@ import { Mic } from 'lucide-react'
 
 type Tab = '직접 입력' | 'AI 추천' | '질문 추천'
 
+const CLIENT_FALLBACK: Record<string, string[]> = {
+  '나 자신':    ['나는 나를 있는 그대로 사랑한다', '나는 충분히 가치 있는 사람이다', '나는 매일 더 나다운 삶을 살아가고 있다', '나는 나를 믿는다', '나는 충분하다'],
+  '일과 커리어': ['나는 내 일에서 의미와 보람을 찾는다', '나는 나의 재능과 능력을 충분히 발휘하고 있다', '나는 원하는 일을 하며 성공하고 있다', '나는 매일 성장하는 직업인이다', '나는 내 커리어를 만들어가고 있다'],
+  '돈과 풍요':  ['나는 풍요로운 삶을 누릴 자격이 있다', '돈은 내 삶에 자연스럽게 흘러들어온다', '나는 경제적 자유를 향해 나아가고 있다', '나는 풍요를 받아들일 준비가 되어 있다', '나는 나의 가치를 높여가고 있다'],
+  '관계와 사랑': ['나는 진심으로 사랑하고 사랑받는 사람이다', '나는 따뜻하고 깊은 관계를 만들어간다', '내 주변에는 나를 응원하는 사람들이 있다', '나는 좋은 관계를 끌어당긴다', '나는 사랑받을 자격이 있다'],
+  '건강과 몸':  ['나는 매일 건강하고 활기찬 에너지로 가득하다', '내 몸은 나를 위해 최선을 다하고 있다', '나는 나의 몸을 소중히 돌보고 있다', '나는 건강한 삶을 선택한다', '나는 활력이 넘친다'],
+  '용기와 도전': ['나는 두려움을 넘어 한 발씩 나아갈 수 있다', '나는 새로운 도전 앞에서 더 강해진다', '나는 실패해도 다시 일어나는 힘이 있다', '나는 용기 있는 사람이다', '나는 두려워도 앞으로 나아간다'],
+  '마음과 평온': ['나는 내면의 평화를 찾아가고 있다', '나는 지금 이 순간을 충분히 누릴 수 있다', '나는 나 자신을 친절하게 대한다', '나는 평온함을 선택한다', '나의 마음은 고요하고 강하다'],
+  '오늘 하루':  ['나는 오늘도 충분히 잘하고 있다', '오늘 하루도 나에게 좋은 일이 가득하다', '나는 오늘 최선을 다한 나를 칭찬한다', '오늘 나는 빛난다', '나는 오늘도 한 발씩 나아간다'],
+}
+const CLIENT_FALLBACK_DEFAULT = [
+  '나는 오늘도 충분히 잘하고 있다',
+  '나는 내가 하는 일에서 가치를 만든다',
+  '나는 두려워도 한 발 내딛을 수 있다',
+  '나는 나를 있는 그대로 사랑한다',
+  '나는 매일 더 나은 나로 성장하고 있다',
+]
+
 interface ChatMessage {
   role: 'user' | 'assistant'
   content: string
@@ -217,7 +235,9 @@ export default function CreatePage() {
         if (data.suggestedCategory) setAiCategory(data.suggestedCategory)
       }
     } catch {
-      setAiError('네트워크 오류가 발생했어요. 다시 시도해주세요.')
+      const fallback = CLIENT_FALLBACK[aiCategory ?? ''] ?? CLIENT_FALLBACK_DEFAULT
+      setAiResults(fallback)
+      setAiCategory(aiCategory ?? '나 자신')
     }
     setAiLoading(false)
   }
@@ -329,7 +349,10 @@ export default function CreatePage() {
         if (data.suggestedCategory) setChatCategory(data.suggestedCategory)
         setTimeout(() => chatBottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 100)
       }
-    } catch {}
+    } catch {
+      setChatAffirmations(CLIENT_FALLBACK_DEFAULT)
+      setChatMessages((prev) => [...prev, { role: 'assistant', content: '네트워크 문제로 기본 성공의 말을 준비했어요.' }])
+    }
     setChatLoading(false)
   }
 
