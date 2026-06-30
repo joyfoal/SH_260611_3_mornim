@@ -569,7 +569,7 @@ export default function CommunityPage() {
           {/* 방 만들기 바텀시트 */}
           {showCreateSheet && (
             <div
-              style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 200, display: 'flex', alignItems: 'flex-end' }}
+              style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 200, display: 'flex', alignItems: 'flex-end', padding: '0 16px' }}
               onClick={(e) => { if (e.target === e.currentTarget) setShowCreateSheet(false) }}
             >
               <div style={{ width: '100%', background: 'var(--color-bg-primary)', borderRadius: '20px 20px 0 0', padding: '20px 16px 40px', maxHeight: '90vh', overflowY: 'auto' }}>
@@ -956,7 +956,7 @@ export default function CommunityPage() {
         <>
           <div onClick={() => setShowProfileSheet(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 40 }} />
           <div style={{
-            position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 50,
+            position: 'fixed', bottom: 0, left: '16px', right: '16px', zIndex: 50,
             background: 'var(--color-bg-primary)',
             borderRadius: '20px 20px 0 0',
             padding: '20px 16px 40px',
