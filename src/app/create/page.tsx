@@ -694,6 +694,9 @@ export default function CreatePage() {
               </button>
             </div>
 
+            <p style={{ fontSize: '12px', color: 'var(--color-text-muted)', marginBottom: '6px' }}>
+              카테고리 선택 <span style={{ opacity: 0.7 }}>(선택 안 하면 나 자신으로 저장돼요)</span>
+            </p>
             <div className="flex flex-wrap gap-2 mb-3">
               {categories.map((cat) => (
                 <button
@@ -932,6 +935,70 @@ export default function CreatePage() {
                         {cat}
                       </button>
                     ))}
+                    {addCatMode ? (
+                      <div className="w-full mt-1">
+                        <div className="flex gap-2">
+                          <input
+                            autoFocus
+                            value={newCatName}
+                            onChange={(e) => { setNewCatName(e.target.value); setCatAlt(null) }}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter' && !e.nativeEvent.isComposing) handleAddCategory()
+                              if (e.key === 'Escape') { setAddCatMode(false); setNewCatName(''); setCatAlt(null) }
+                            }}
+                            placeholder="새 카테고리 이름"
+                            style={{
+                              flex: 1,
+                              padding: '8px 12px',
+                              background: 'var(--color-bg-card)',
+                              border: '1px solid var(--color-border)',
+                              borderRadius: '10px',
+                              fontSize: '13px',
+                              color: 'var(--color-text-primary)',
+                              outline: 'none',
+                            }}
+                          />
+                          <button
+                            onClick={handleAddCategory}
+                            disabled={addingCat}
+                            style={{ padding: '8px 14px', background: 'var(--color-accent-primary)', color: 'white', border: 'none', borderRadius: '10px', fontSize: '13px', fontWeight: 600, cursor: 'pointer', opacity: addingCat ? 0.6 : 1 }}
+                          >
+                            {addingCat ? '...' : '추가'}
+                          </button>
+                          <button
+                            onClick={() => { setAddCatMode(false); setNewCatName(''); setCatAlt(null) }}
+                            style={{ padding: '8px 10px', background: 'transparent', border: '1px solid var(--color-border)', borderRadius: '10px', fontSize: '13px', color: 'var(--color-text-muted)', cursor: 'pointer' }}
+                          >
+                            ✕
+                          </button>
+                        </div>
+                        {catAlt && (
+                          <div style={{ marginTop: '8px', padding: '12px', background: 'var(--color-warning-bg)', borderRadius: '10px', border: '1px solid var(--color-warning-border)' }}>
+                            <p style={{ fontSize: '12px', color: 'var(--color-warning)', marginBottom: '6px' }}>부정적인 표현이 감지됐어요. 이렇게 바꿔볼까요?</p>
+                            <p style={{ fontSize: '13px', fontWeight: 600, color: 'var(--color-warning-dark)', marginBottom: '8px' }}>{catAlt}</p>
+                            <div className="flex gap-2">
+                              <button onClick={() => doAddCategory(catAlt)} style={{ flex: 1, padding: '7px', background: 'var(--color-accent-primary)', color: 'white', border: 'none', borderRadius: '8px', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}>이 이름으로 추가</button>
+                              <button onClick={() => { setNewCatName(''); setCatAlt(null) }} style={{ flex: 1, padding: '7px', background: 'transparent', color: 'var(--color-warning)', border: '1px solid var(--color-warning-border)', borderRadius: '8px', fontSize: '12px', cursor: 'pointer' }}>다시 쓰기</button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => setAddCatMode(true)}
+                        style={{
+                          padding: '6px 12px',
+                          borderRadius: '20px',
+                          border: '1.5px dashed var(--color-border)',
+                          background: 'transparent',
+                          color: 'var(--color-text-muted)',
+                          fontSize: '12px',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        + 추가
+                      </button>
+                    )}
                   </div>
                 </div>
                 <button
