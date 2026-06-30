@@ -49,14 +49,17 @@ export async function POST(req: NextRequest) {
     const fallback = (category && CATEGORY_FALLBACKS[category]) ?? DEFAULT_FALLBACKS
 
     if (!process.env.OPENROUTER_API_KEY || process.env.OPENROUTER_API_KEY === 'your_key_here') {
-      return NextResponse.json({ affirmations: fallback })
+      return NextResponse.json({ affirmations: fallback, suggestedCategory: category ?? '나 자신' })
     }
 
     const OpenAI = (await import('openai')).default
     const openai = new OpenAI({ apiKey: process.env.OPENROUTER_API_KEY, baseURL: 'https://openrouter.ai/api/v1' })
 
+    const CATEGORIES = ['나 자신', '일과 커리어', '돈과 풍요', '관계와 사랑', '건강과 몸', '용기와 도전', '마음과 평온', '오늘 하루']
     const categoryPart = category ? ` 카테고리: ${category}.` : ''
-    const userMessage = `${prompt || ''}${categoryPart} 한국어 긍정 확언 5개를 JSON 배열로만 응답하세요. 예: ["확언1","확언2","확언3","확언4","확언5"]`
+    const userMessage = `${prompt || ''}${categoryPart}
+카테고리 목록: ${CATEGORIES.join(', ')}
+JSON 객체로만 응답하세요: {"affirmations": ["확언1","확언2","확언3","확언4","확언5"], "suggestedCategory": "카테고리명"}`
 
     const completion = await openai.chat.completions.create({
       model: 'openai/gpt-4o-mini',
@@ -64,27 +67,35 @@ export async function POST(req: NextRequest) {
         {
           role: 'system',
           content:
-            '당신은 긍정 확언 전문가입니다. 사용자의 고민이나 감정에 맞는 한국어 긍정 확언을 생성하세요. 확언은 반드시 현재형, 1인칭(\'나는...\')으로 작성하세요. JSON 배열 형식으로만 응답하세요.',
+            '당신은 긍정 확언 전문가입니다. 사용자의 고민이나 감정에 맞는 한국어 긍정 확언 5개를 생성하고, 가장 적합한 카테고리 하나를 선택하세요. 확언은 반드시 현재형, 1인칭(\'나는...\')으로 작성하세요. JSON 객체 형식으로만 응답하세요.',
         },
         { role: 'user', content: userMessage },
       ],
       temperature: 0.8,
-      max_tokens: 300,
+      max_tokens: 400,
     })
 
     const content = completion.choices[0]?.message?.content ?? ''
-    const match = content.match(/\[[\s\S]*\]/)
+    const match = content.match(/\{[\s\S]*\}/)
     if (!match) {
-      return NextResponse.json({ affirmations: fallback })
+      return NextResponse.json({ affirmations: fallback, suggestedCategory: category ?? '나 자신' })
     }
     const parsed: unknown = JSON.parse(match[0])
-    const affirmations =
-      Array.isArray(parsed) && parsed.every((v) => typeof v === 'string')
-        ? (parsed as string[])
-        : fallback
-    return NextResponse.json({ affirmations })
+    if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+      const obj = parsed as { affirmations?: unknown; suggestedCategory?: unknown }
+      const affirmations =
+        Array.isArray(obj.affirmations) && obj.affirmations.every((v) => typeof v === 'string')
+          ? (obj.affirmations as string[])
+          : fallback
+      const suggestedCategory =
+        typeof obj.suggestedCategory === 'string' && CATEGORIES.includes(obj.suggestedCategory)
+          ? obj.suggestedCategory
+          : category ?? '나 자신'
+      return NextResponse.json({ affirmations, suggestedCategory })
+    }
+    return NextResponse.json({ affirmations: fallback, suggestedCategory: category ?? '나 자신' })
   } catch {
     const fallback = (category && CATEGORY_FALLBACKS[category]) ?? DEFAULT_FALLBACKS
-    return NextResponse.json({ affirmations: fallback })
+    return NextResponse.json({ affirmations: fallback, suggestedCategory: category ?? '나 자신' })
   }
 }

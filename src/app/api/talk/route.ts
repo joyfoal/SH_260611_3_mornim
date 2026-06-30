@@ -27,6 +27,7 @@ export async function POST(req: NextRequest) {
           ? '우리의 대화를 바탕으로 당신만을 위한 성공의 말을 준비했어요 ✨ 아래에서 확인해 보세요!'
           : '이야기를 들려주셔서 감사해요. 조금 더 여쭤봐도 될까요?',
         affirmations: generateAffirmations ? FALLBACK_AFFIRMATIONS : undefined,
+        suggestedCategory: generateAffirmations ? '나 자신' : undefined,
       })
     }
 
@@ -36,12 +37,14 @@ export async function POST(req: NextRequest) {
     const ctxLine = initialContext ? `\n사용자의 고민: "${initialContext}"` : ''
 
     let systemPrompt: string
+    const CATEGORIES = ['나 자신', '일과 커리어', '돈과 풍요', '관계와 사랑', '건강과 몸', '용기와 도전', '마음과 평온', '오늘 하루']
     if (generateAffirmations) {
       systemPrompt = `당신은 따뜻한 성공 코치입니다.${ctxLine}
 
-지금까지의 대화 내용을 바탕으로, 사용자에게 딱 맞는 한국어 성공의 말(긍정 확언) 5개를 만들어주세요.
+지금까지의 대화 내용을 바탕으로, 사용자에게 딱 맞는 한국어 성공의 말(긍정 확언) 5개를 만들고, 가장 적합한 카테고리를 선택하세요.
+카테고리 목록: ${CATEGORIES.join(', ')}
 반드시 다음 JSON 형식으로만 응답하세요:
-{"reply": "우리의 대화를 바탕으로 당신만을 위한 성공의 말을 준비했어요 ✨ 아래에서 확인해 보세요!", "affirmations": ["성공의 말1","성공의 말2","성공의 말3","성공의 말4","성공의 말5"]}
+{"reply": "우리의 대화를 바탕으로 당신만을 위한 성공의 말을 준비했어요 ✨ 아래에서 확인해 보세요!", "affirmations": ["성공의 말1","성공의 말2","성공의 말3","성공의 말4","성공의 말5"], "suggestedCategory": "카테고리명"}
 성공의 말은 반드시 현재형, 1인칭('나는...' 또는 '나의...')으로 작성하고, 짧고 강력하게 써주세요.`
     } else {
       systemPrompt = `당신은 따뜻하고 용기를 주는 성공 코치입니다.${ctxLine}
@@ -71,12 +74,16 @@ export async function POST(req: NextRequest) {
     if (generateAffirmations) {
       const match = content.match(/\{[\s\S]*\}/)
       if (match) {
-        const parsed = JSON.parse(match[0]) as { reply: string; affirmations?: string[] }
-        return NextResponse.json(parsed)
+        const parsed = JSON.parse(match[0]) as { reply: string; affirmations?: string[]; suggestedCategory?: string }
+        const validCategory = parsed.suggestedCategory && CATEGORIES.includes(parsed.suggestedCategory)
+          ? parsed.suggestedCategory
+          : '나 자신'
+        return NextResponse.json({ ...parsed, suggestedCategory: validCategory })
       }
       return NextResponse.json({
         reply: '성공의 말을 만들었어요!',
         affirmations: FALLBACK_AFFIRMATIONS,
+        suggestedCategory: '나 자신',
       })
     }
 

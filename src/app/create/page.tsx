@@ -113,24 +113,29 @@ export default function CreatePage() {
 
   const handleDirectSave = async (textToSave?: string) => {
     const text = textToSave ?? directText
-    if (!text.trim() || !directCategory) return
+    if (!text.trim()) return
     setDirectSaving(true)
+    let resolvedCategory = directCategory
     try {
       const res = await fetch('/api/detect-negative', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ text, category: directCategory }),
       })
-      const data = await res.json() as { isNegative: boolean; alternative: string | null }
+      const data = await res.json() as { isNegative: boolean; alternative: string | null; suggestedCategory?: string }
       if (data.isNegative) {
         setNegativeBanner({ alternative: data.alternative ?? '' })
         setDirectSaving(false)
         return
       }
+      if (!resolvedCategory && data.suggestedCategory) {
+        resolvedCategory = data.suggestedCategory
+        setDirectCategory(data.suggestedCategory)
+      }
     } catch {
       // proceed without check
     }
-    doSave(text, directCategory)
+    doSave(text, resolvedCategory ?? '나 자신')
     setDirectSaving(false)
   }
 
@@ -204,11 +209,12 @@ export default function CreatePage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ prompt: aiPrompt, category: aiCategory }),
       })
-      const data = await res.json() as { affirmations: string[] }
+      const data = await res.json() as { affirmations: string[]; suggestedCategory?: string }
       if (!data.affirmations?.length) {
         setAiError('추천 결과를 가져오지 못했어요. 다시 시도해주세요.')
       } else {
         setAiResults(data.affirmations)
+        if (data.suggestedCategory) setAiCategory(data.suggestedCategory)
       }
     } catch {
       setAiError('네트워크 오류가 발생했어요. 다시 시도해주세요.')
@@ -292,10 +298,11 @@ export default function CreatePage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ messages: newMessages, initialContext, generateAffirmations: isLast }),
       })
-      const data = await res.json() as { reply: string; affirmations?: string[] }
+      const data = await res.json() as { reply: string; affirmations?: string[]; suggestedCategory?: string }
       setChatMessages([...newMessages, { role: 'assistant', content: data.reply }])
       if (data.affirmations) {
         setChatAffirmations(data.affirmations)
+        if (data.suggestedCategory) setChatCategory(data.suggestedCategory)
         setTimeout(() => chatBottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 100)
       }
     } catch {
@@ -313,12 +320,13 @@ export default function CreatePage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ messages: chatMessages, initialContext, generateAffirmations: true }),
       })
-      const data = await res.json() as { reply: string; affirmations?: string[] }
+      const data = await res.json() as { reply: string; affirmations?: string[]; suggestedCategory?: string }
       if (data.reply) {
         setChatMessages((prev) => [...prev, { role: 'assistant', content: data.reply }])
       }
       if (data.affirmations) {
         setChatAffirmations(data.affirmations)
+        if (data.suggestedCategory) setChatCategory(data.suggestedCategory)
         setTimeout(() => chatBottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 100)
       }
     } catch {}
@@ -621,28 +629,33 @@ export default function CreatePage() {
               )
             )}
 
-            {(!directText.trim() || !directCategory) && (
+            {!directText.trim() && (
               <p style={{ fontSize: '12px', color: 'var(--color-text-muted)', marginBottom: '8px', textAlign: 'center' }}>
-                {!directText.trim() ? '성공의 말을 입력해주세요' : '카테고리를 선택해주세요'}
+                성공의 말을 입력해주세요
+              </p>
+            )}
+            {directText.trim() && !directCategory && (
+              <p style={{ fontSize: '12px', color: 'var(--color-text-muted)', marginBottom: '8px', textAlign: 'center' }}>
+                카테고리를 선택하지 않으면 AI가 자동으로 분류해요
               </p>
             )}
             <button
               onClick={() => handleDirectSave()}
-              disabled={!directText.trim() || !directCategory || directSaving}
+              disabled={!directText.trim() || directSaving}
               style={{
                 width: '100%',
                 padding: '14px',
-                background: directText.trim() && directCategory ? 'var(--color-accent-primary)' : 'var(--color-border)',
-                color: directText.trim() && directCategory ? 'white' : 'var(--color-text-muted)',
+                background: directText.trim() ? 'var(--color-accent-primary)' : 'var(--color-border)',
+                color: directText.trim() ? 'white' : 'var(--color-text-muted)',
                 border: 'none',
                 borderRadius: '14px',
                 fontSize: '15px',
                 fontWeight: 600,
-                cursor: directText.trim() && directCategory ? 'pointer' : 'not-allowed',
-                opacity: directText.trim() && directCategory ? 1 : 0.6,
+                cursor: directText.trim() ? 'pointer' : 'not-allowed',
+                opacity: directText.trim() ? 1 : 0.6,
               }}
             >
-              {directSaving ? '확인 중...' : '저장하기'}
+              {directSaving ? '분류 중...' : '저장하기'}
             </button>
           </div>
         )}
