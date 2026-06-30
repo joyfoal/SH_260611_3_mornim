@@ -739,7 +739,7 @@ export default function RoomPage() {
         <>
           <div onClick={() => setShowLeaveConfirm(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 40 }} />
           <div style={{
-            position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 50,
+            position: 'fixed', bottom: 0, left: '16px', right: '16px', zIndex: 50,
             background: 'var(--color-bg-primary)',
             borderRadius: '20px 20px 0 0',
             padding: '28px 16px 40px',
