@@ -569,10 +569,10 @@ export default function CommunityPage() {
           {/* 방 만들기 바텀시트 */}
           {showCreateSheet && (
             <div
-              style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 200, display: 'flex', alignItems: 'flex-end', padding: '0 16px' }}
+              style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 200, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}
               onClick={(e) => { if (e.target === e.currentTarget) setShowCreateSheet(false) }}
             >
-              <div style={{ width: '100%', background: 'var(--color-bg-primary)', borderRadius: '20px 20px 0 0', padding: '20px 16px 40px', maxHeight: '90vh', overflowY: 'auto' }}>
+              <div style={{ width: '100%', maxWidth: '430px', background: 'var(--color-bg-primary)', borderRadius: '20px 20px 0 0', padding: '20px 16px 40px', maxHeight: '90vh', overflowY: 'auto' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
                   <span style={{ fontSize: '17px', fontWeight: 700, color: 'var(--color-text-primary)' }}>방 만들기</span>
                   <button onClick={() => setShowCreateSheet(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text-muted)', padding: '4px' }}>
@@ -956,7 +956,7 @@ export default function CommunityPage() {
         <>
           <div onClick={() => setShowProfileSheet(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 40 }} />
           <div style={{
-            position: 'fixed', bottom: 0, left: '16px', right: '16px', zIndex: 50,
+            position: 'fixed', bottom: 0, left: '50%', transform: 'translateX(-50%)', width: '100%', maxWidth: '430px', zIndex: 50,
             background: 'var(--color-bg-primary)',
             borderRadius: '20px 20px 0 0',
             padding: '20px 16px 40px',
