@@ -95,6 +95,7 @@ export default function CreatePage() {
   const [chatInput, setChatInput] = useState('')
   const [chatLoading, setChatLoading] = useState(false)
   const [chatAffirmations, setChatAffirmations] = useState<string[]>([])
+  const [chatCategory, setChatCategory] = useState<CategoryName | null>(null)
   const chatUserCount = chatMessages.filter((m) => m.role === 'user').length
   const chatLimitReached = chatUserCount >= 10
 
@@ -236,6 +237,31 @@ export default function CreatePage() {
     showToast('저장되었어요!', 'success')
   }
 
+  const handleChatSave = (text: string) => {
+    if (!chatCategory) {
+      showToast('카테고리를 선택해주세요', 'duplicate')
+      return
+    }
+    const existing = getAffirmations()
+    if (existing.some((a) => a.text.trim() === text.trim())) {
+      showToast('이미 같은 성공의 말이 있어요', 'duplicate')
+      return
+    }
+    const newId = `aff-${Date.now()}-${Math.random().toString(36).slice(2)}`
+    saveAffirmation({
+      id: newId,
+      text,
+      category: chatCategory as AffirmationCategory,
+      createdAt: new Date().toISOString(),
+      completedDates: [],
+    })
+    const currentIds = getTodayAffirmationIds()
+    if (!currentIds.includes(newId)) {
+      saveTodayAffirmationIds([...currentIds, newId])
+    }
+    showToast('저장되었어요!', 'success')
+  }
+
   const handleStartChat = async () => {
     if (!initialInput.trim()) return
     const ctx = initialInput.trim()
@@ -358,7 +384,7 @@ export default function CreatePage() {
               left: '50%',
               transform: 'translateX(-50%)',
               padding: '12px 24px',
-              background: msgType === 'success' ? '#2E7D32' : '#E65100',
+              background: msgType === 'success' ? 'var(--color-success)' : 'var(--color-danger-orange-dark)',
               borderRadius: '24px',
               color: 'white',
               fontSize: '14px',
@@ -404,7 +430,7 @@ export default function CreatePage() {
                   position: 'absolute',
                   top: '10px',
                   right: '10px',
-                  background: isListeningDirect ? '#E53935' : 'var(--color-bg-surface)',
+                  background: isListeningDirect ? 'var(--color-danger)' : 'var(--color-bg-surface)',
                   border: '1px solid var(--color-border)',
                   borderRadius: '8px',
                   padding: '6px',
@@ -482,12 +508,12 @@ export default function CreatePage() {
                     </button>
                   </div>
                   {catAlt && (
-                    <div style={{ marginTop: '8px', padding: '12px', background: '#FFF3CD', borderRadius: '10px', border: '1px solid #FFE082' }}>
-                      <p style={{ fontSize: '12px', color: '#795548', marginBottom: '6px' }}>부정적인 표현이 감지됐어요. 이렇게 바꿔볼까요?</p>
-                      <p style={{ fontSize: '13px', fontWeight: 600, color: '#4E342E', marginBottom: '8px' }}>{catAlt}</p>
+                    <div style={{ marginTop: '8px', padding: '12px', background: 'var(--color-warning-bg)', borderRadius: '10px', border: '1px solid #FFE082' }}>
+                      <p style={{ fontSize: '12px', color: 'var(--color-warning)', marginBottom: '6px' }}>부정적인 표현이 감지됐어요. 이렇게 바꿔볼까요?</p>
+                      <p style={{ fontSize: '13px', fontWeight: 600, color: 'var(--color-warning-dark)', marginBottom: '8px' }}>{catAlt}</p>
                       <div className="flex gap-2">
                         <button onClick={() => doAddCategory(catAlt)} style={{ flex: 1, padding: '7px', background: 'var(--color-accent-primary)', color: 'white', border: 'none', borderRadius: '8px', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}>이 이름으로 추가</button>
-                        <button onClick={() => { setNewCatName(''); setCatAlt(null) }} style={{ flex: 1, padding: '7px', background: 'transparent', color: '#795548', border: '1px solid #FFE082', borderRadius: '8px', fontSize: '12px', cursor: 'pointer' }}>다시 쓰기</button>
+                        <button onClick={() => { setNewCatName(''); setCatAlt(null) }} style={{ flex: 1, padding: '7px', background: 'transparent', color: 'var(--color-warning)', border: '1px solid #FFE082', borderRadius: '8px', fontSize: '12px', cursor: 'pointer' }}>다시 쓰기</button>
                       </div>
                     </div>
                   )}
@@ -516,16 +542,16 @@ export default function CreatePage() {
                 <div
                   style={{
                     padding: '14px',
-                    background: '#FFF3CD',
+                    background: 'var(--color-warning-bg)',
                     borderRadius: '12px',
                     marginBottom: '16px',
                     border: '1px solid #FFE082',
                   }}
                 >
-                  <p style={{ fontSize: '13px', color: '#795548', marginBottom: '8px' }}>
+                  <p style={{ fontSize: '13px', color: 'var(--color-warning)', marginBottom: '8px' }}>
                     부정적인 표현이 감지되었어요. 이 버전은 어떨까요?
                   </p>
-                  <p style={{ fontSize: '15px', color: '#4E342E', fontWeight: 500, marginBottom: '12px' }}>
+                  <p style={{ fontSize: '15px', color: 'var(--color-warning-dark)', fontWeight: 500, marginBottom: '12px' }}>
                     {negativeBanner.alternative}
                   </p>
                   <div className="flex gap-2">
@@ -552,7 +578,7 @@ export default function CreatePage() {
                         flex: 1,
                         padding: '10px',
                         background: 'transparent',
-                        color: '#795548',
+                        color: 'var(--color-warning)',
                         border: '1px solid #FFE082',
                         borderRadius: '10px',
                         fontSize: '13px',
@@ -568,16 +594,16 @@ export default function CreatePage() {
                 <div
                   style={{
                     padding: '14px',
-                    background: '#FFEBEE',
+                    background: 'var(--color-danger-bg)',
                     borderRadius: '12px',
                     marginBottom: '16px',
                     border: '1px solid #FFCDD2',
                   }}
                 >
-                  <p style={{ fontSize: '14px', color: '#C62828', fontWeight: 600, marginBottom: '4px' }}>
+                  <p style={{ fontSize: '14px', color: 'var(--color-danger-dark)', fontWeight: 600, marginBottom: '4px' }}>
                     부적절한 표현은 저장할 수 없어요.
                   </p>
-                  <p style={{ fontSize: '13px', color: '#B71C1C', marginBottom: '12px' }}>
+                  <p style={{ fontSize: '13px', color: 'var(--color-danger-dark)', marginBottom: '12px' }}>
                     긍정적인 성공의 말로 다시 작성해 주세요.
                   </p>
                   <button
@@ -586,7 +612,7 @@ export default function CreatePage() {
                       width: '100%',
                       padding: '10px',
                       background: 'transparent',
-                      color: '#C62828',
+                      color: 'var(--color-danger-dark)',
                       border: '1px solid #FFCDD2',
                       borderRadius: '10px',
                       fontSize: '13px',
@@ -656,7 +682,7 @@ export default function CreatePage() {
                   position: 'absolute',
                   top: '10px',
                   right: '10px',
-                  background: isListeningAI ? '#E53935' : 'var(--color-bg-surface)',
+                  background: isListeningAI ? 'var(--color-danger)' : 'var(--color-bg-surface)',
                   border: '1px solid var(--color-border)',
                   borderRadius: '8px',
                   padding: '6px',
@@ -734,12 +760,12 @@ export default function CreatePage() {
                     </button>
                   </div>
                   {catAlt && (
-                    <div style={{ marginTop: '8px', padding: '12px', background: '#FFF3CD', borderRadius: '10px', border: '1px solid #FFE082' }}>
-                      <p style={{ fontSize: '12px', color: '#795548', marginBottom: '6px' }}>부정적인 표현이 감지됐어요. 이렇게 바꿔볼까요?</p>
-                      <p style={{ fontSize: '13px', fontWeight: 600, color: '#4E342E', marginBottom: '8px' }}>{catAlt}</p>
+                    <div style={{ marginTop: '8px', padding: '12px', background: 'var(--color-warning-bg)', borderRadius: '10px', border: '1px solid #FFE082' }}>
+                      <p style={{ fontSize: '12px', color: 'var(--color-warning)', marginBottom: '6px' }}>부정적인 표현이 감지됐어요. 이렇게 바꿔볼까요?</p>
+                      <p style={{ fontSize: '13px', fontWeight: 600, color: 'var(--color-warning-dark)', marginBottom: '8px' }}>{catAlt}</p>
                       <div className="flex gap-2">
                         <button onClick={() => doAddCategory(catAlt)} style={{ flex: 1, padding: '7px', background: 'var(--color-accent-primary)', color: 'white', border: 'none', borderRadius: '8px', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}>이 이름으로 추가</button>
-                        <button onClick={() => { setNewCatName(''); setCatAlt(null) }} style={{ flex: 1, padding: '7px', background: 'transparent', color: '#795548', border: '1px solid #FFE082', borderRadius: '8px', fontSize: '12px', cursor: 'pointer' }}>다시 쓰기</button>
+                        <button onClick={() => { setNewCatName(''); setCatAlt(null) }} style={{ flex: 1, padding: '7px', background: 'transparent', color: 'var(--color-warning)', border: '1px solid #FFE082', borderRadius: '8px', fontSize: '12px', cursor: 'pointer' }}>다시 쓰기</button>
                       </div>
                     </div>
                   )}
@@ -866,7 +892,7 @@ export default function CreatePage() {
                       position: 'absolute',
                       top: '10px',
                       right: '10px',
-                      background: isListeningChat ? '#E53935' : 'var(--color-bg-surface)',
+                      background: isListeningChat ? 'var(--color-danger)' : 'var(--color-bg-surface)',
                       border: '1px solid var(--color-border)',
                       borderRadius: '8px',
                       padding: '6px',
@@ -983,6 +1009,37 @@ export default function CreatePage() {
                     <p style={{ fontSize: '13px', color: 'var(--color-text-secondary)', marginBottom: '8px', fontWeight: 500 }}>
                       당신을 위한 성공의 말 추천
                     </p>
+                    {/* 카테고리 선택 */}
+                    <div className="flex flex-wrap gap-2 mb-3">
+                      {categories.map((cat) => (
+                        <button
+                          key={cat}
+                          onClick={() => setChatCategory(chatCategory === cat ? null : cat)}
+                          style={{
+                            padding: '6px 12px',
+                            borderRadius: '20px',
+                            border: chatCategory === cat
+                              ? '1px solid var(--color-accent-primary)'
+                              : '1px solid var(--color-border)',
+                            background: chatCategory === cat
+                              ? 'var(--color-accent-light)'
+                              : 'transparent',
+                            color: chatCategory === cat
+                              ? 'var(--color-accent-primary)'
+                              : 'var(--color-text-muted)',
+                            fontSize: '12px',
+                            cursor: 'pointer',
+                          }}
+                        >
+                          {cat}
+                        </button>
+                      ))}
+                    </div>
+                    {!chatCategory && (
+                      <p style={{ fontSize: '12px', color: 'var(--color-text-muted)', marginBottom: '8px' }}>
+                        카테고리를 선택하면 저장할 수 있어요
+                      </p>
+                    )}
                     {chatAffirmations.map((text, i) => (
                       <div
                         key={i}
@@ -1001,15 +1058,17 @@ export default function CreatePage() {
                           {text}
                         </p>
                         <button
-                          onClick={() => handleAISave(text)}
+                          onClick={() => handleChatSave(text)}
+                          disabled={!chatCategory}
                           style={{
                             padding: '5px 12px',
-                            background: 'var(--color-accent-primary)',
+                            background: chatCategory ? 'var(--color-accent-primary)' : 'var(--color-border)',
                             color: 'white',
                             border: 'none',
                             borderRadius: '8px',
                             fontSize: '12px',
-                            cursor: 'pointer',
+                            cursor: chatCategory ? 'pointer' : 'not-allowed',
+                            flexShrink: 0,
                           }}
                         >
                           저장
@@ -1071,7 +1130,7 @@ export default function CreatePage() {
                       )}
                       style={{
                         padding: '12px',
-                        background: isListeningChat ? '#E53935' : 'var(--color-bg-card)',
+                        background: isListeningChat ? 'var(--color-danger)' : 'var(--color-bg-card)',
                         border: '1px solid var(--color-border)',
                         borderRadius: '12px',
                         cursor: 'pointer',
