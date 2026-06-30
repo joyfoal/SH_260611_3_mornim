@@ -133,7 +133,9 @@ export default function CommunityPage() {
 
   const [activeTab, setActiveTab] = useState<CommunityTab>(() => {
     if (typeof window === 'undefined') return '내 방'
-    return (sessionStorage.getItem('ealo-community-tab') as CommunityTab) ?? '내 방'
+    const saved = sessionStorage.getItem('ealo-community-tab-restore')
+    sessionStorage.removeItem('ealo-community-tab-restore')
+    return (saved as CommunityTab) ?? '내 방'
   })
   const [selectedTag, setSelectedTag] = useState('전체')
   const [searchQuery, setSearchQuery] = useState('')
@@ -154,11 +156,6 @@ export default function CommunityPage() {
   const [editNickname, setEditNickname] = useState('')
   const [editImageData, setEditImageData] = useState<string | null>(null)
   const [profileSaving, setProfileSaving] = useState(false)
-
-  // activeTab을 sessionStorage에 동기화 (방에서 돌아올 때 탭 복원)
-  useEffect(() => {
-    try { sessionStorage.setItem('ealo-community-tab', activeTab) } catch {}
-  }, [activeTab])
 
   // localStorage에서 내 방 목록 불러오기
   useEffect(() => {
@@ -221,11 +218,16 @@ export default function CommunityPage() {
 
   const myRoomData = MOCK_ROOMS.filter(r => myRooms.includes(r.id))
 
+  const goToRoom = (roomId: string) => {
+    try { sessionStorage.setItem('ealo-community-tab-restore', activeTab) } catch {}
+    router.push(`/community/${roomId}`)
+  }
+
   const handleJoin = (roomId: string) => {
     const room = MOCK_ROOMS.find(r => r.id === roomId)
     if (!room || room.members >= MAX_MEMBERS) return
     setMyRooms(prev => [...prev, roomId])
-    router.push(`/community/${roomId}`)
+    goToRoom(roomId)
   }
 
   const handleCreateRoom = async () => {
@@ -394,7 +396,7 @@ export default function CommunityPage() {
                   {myRoomData.map(room => (
                     <button
                       key={room.id}
-                      onClick={() => router.push(`/community/${room.id}`)}
+                      onClick={() => goToRoom(room.id)}
                       style={{
                         background: 'var(--color-bg-card)',
                         borderRadius: '16px',
@@ -532,7 +534,7 @@ export default function CommunityPage() {
                           <div style={{ display: 'flex', gap: '6px', flexShrink: 0 }}>
                             {/* 둘러보기 — 항상 표시 */}
                             <button
-                              onClick={() => router.push(`/community/${room.id}`)}
+                              onClick={() => goToRoom(room.id)}
                               style={{
                                 padding: '7px 13px',
                                 background: 'var(--color-bg-card)',
@@ -899,7 +901,7 @@ export default function CommunityPage() {
                       </div>
                       {isJoined ? (
                         <button
-                          onClick={() => router.push(`/community/${room.id}`)}
+                          onClick={() => goToRoom(room.id)}
                           style={{ padding: '6px 13px', background: '#F59E0B', color: 'white', border: 'none', borderRadius: '9px', fontSize: '12px', fontWeight: 600, cursor: 'pointer', flexShrink: 0 }}
                         >
                           입장
