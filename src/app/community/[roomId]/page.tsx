@@ -135,7 +135,14 @@ export default function RoomPage() {
   const room = MOCK_ROOM_INFO[roomId] ?? { name: '방' }
 
   const [activeTab, setActiveTab] = useState<RoomTab>('성공의 말 나누기')
-  const [feed, setFeed] = useState<FeedItem[]>(MOCK_FEED)
+  const [feed, setFeed] = useState<FeedItem[]>(() => {
+    try {
+      const saved = localStorage.getItem(`ealo-room-feed-${roomId}`)
+      const myItems: FeedItem[] = saved ? (JSON.parse(saved) as FeedItem[]) : []
+      const myIds = new Set(myItems.map(i => i.id))
+      return [...myItems, ...MOCK_FEED.filter(i => !myIds.has(i.id))]
+    } catch { return MOCK_FEED }
+  })
   const [challenges, setChallenges] = useState<Challenge[]>(MOCK_CHALLENGE)
   const [expandedChallenge, setExpandedChallenge] = useState<string | null>(null)
 
@@ -145,7 +152,12 @@ export default function RoomPage() {
   // 공유하기
   const [showShareSheet, setShowShareSheet] = useState(false)
   const [myPhrases, setMyPhrases] = useState<Affirmation[]>([])
-  const [sharedIds, setSharedIds] = useState<string[]>([])
+  const [sharedIds, setSharedIds] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem(`ealo-room-shared-${roomId}`)
+      return saved ? (JSON.parse(saved) as string[]) : []
+    } catch { return [] }
+  })
 
   // 가져오기
   const [importedContents, setImportedContents] = useState<Set<string>>(new Set())
@@ -194,6 +206,8 @@ export default function RoomPage() {
         const rooms = JSON.parse(saved) as string[]
         localStorage.setItem('ealo-my-rooms', JSON.stringify(rooms.filter(r => r !== roomId)))
       }
+      localStorage.removeItem(`ealo-room-feed-${roomId}`)
+      localStorage.removeItem(`ealo-room-shared-${roomId}`)
     } catch {}
     router.back()
   }
@@ -217,8 +231,16 @@ export default function RoomPage() {
       createdAt: '방금',
       isMe: true,
     }
-    setFeed(prev => [newItem, ...prev])
-    setSharedIds(prev => [...prev, aff.id])
+    setFeed(prev => {
+      const next = [newItem, ...prev]
+      try { localStorage.setItem(`ealo-room-feed-${roomId}`, JSON.stringify(next.filter(i => i.isMe))) } catch {}
+      return next
+    })
+    setSharedIds(prev => {
+      const next = [...prev, aff.id]
+      try { localStorage.setItem(`ealo-room-shared-${roomId}`, JSON.stringify(next)) } catch {}
+      return next
+    })
     setShowShareSheet(false)
     showToast('성공의 말을 방에 공유했어요 ✨')
   }
