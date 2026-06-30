@@ -708,9 +708,9 @@ export default function CreatePage() {
             </div>
 
             <p style={{ fontSize: '12px', color: 'var(--color-text-muted)', marginBottom: '6px' }}>
-              카테고리 선택 <span style={{ opacity: 0.7 }}>(선택 안 하면 나 자신으로 저장돼요)</span>
+              카테고리 선택
             </p>
-            <div className="flex flex-wrap gap-2 mb-3">
+            <div className="flex flex-wrap gap-2 mb-1">
               {categories.map((cat) => (
                 <button
                   key={cat}
@@ -799,6 +799,9 @@ export default function CreatePage() {
                 </button>
               )}
             </div>
+            <p style={{ fontSize: '12px', color: 'var(--color-text-muted)', marginBottom: '12px' }}>
+              카테고리를 선택하지 않으면 AI가 자동으로 분류해요
+            </p>
 
             <button
               onClick={handleAIRecommend}
@@ -922,7 +925,7 @@ export default function CreatePage() {
                 {/* 카테고리 선택 */}
                 <div style={{ marginBottom: '12px' }}>
                   <p style={{ fontSize: '12px', color: 'var(--color-text-muted)', marginBottom: '8px' }}>
-                    카테고리 선택 <span style={{ opacity: 0.7 }}>(선택 안 하면 나 자신으로 저장돼요)</span>
+                    카테고리 선택
                   </p>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                     {categories.map((cat) => (
@@ -1013,6 +1016,9 @@ export default function CreatePage() {
                       </button>
                     )}
                   </div>
+                  <p style={{ fontSize: '12px', color: 'var(--color-text-muted)', marginTop: '8px' }}>
+                    카테고리를 선택하지 않으면 AI가 자동으로 분류해요
+                  </p>
                 </div>
                 <button
                   onClick={handleStartChat}
@@ -1144,7 +1150,7 @@ export default function CreatePage() {
                     </div>
                     {!chatCategory && (
                       <p style={{ fontSize: '12px', color: 'var(--color-text-muted)', marginBottom: '8px' }}>
-                        선택 안 하면 나 자신으로 저장돼요
+                        카테고리를 선택하지 않으면 AI가 자동으로 분류해요
                       </p>
                     )}
                     {chatAffirmations.map((text, i) => (
