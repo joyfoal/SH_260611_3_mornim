@@ -181,7 +181,7 @@ export default function WordSortPage() {
                 style={{
                   padding: '16px 20px',
                   background: isCorrect
-                    ? '#2E7D32'
+                    ? 'var(--color-success)'
                     : dragIndex === index
                     ? 'var(--color-accent-primary)'
                     : 'var(--color-bg-surface)',

@@ -117,10 +117,10 @@ function Avatar({ nickname, initial, profileImage, size = 36, isMe = false }: {
   return (
     <div style={{
       width: size, height: size, borderRadius: '50%',
-      background: isMe ? '#F59E0B' : '#FEF3C7',
+      background: isMe ? 'var(--color-community-accent)' : 'var(--color-community-bg)',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
       fontSize: size * 0.4, fontWeight: 700,
-      color: isMe ? 'white' : '#92400E',
+      color: isMe ? 'white' : 'var(--color-community-text)',
       flexShrink: 0,
     }}>
       {initial}
@@ -296,7 +296,7 @@ export default function RoomPage() {
     background: 'none',
     border: 'none',
     borderBottom: activeTab === tab ? '2px solid #F59E0B' : '2px solid transparent',
-    color: activeTab === tab ? '#92400E' : 'var(--color-text-muted)',
+    color: activeTab === tab ? 'var(--color-community-text)' : 'var(--color-text-muted)',
     fontSize: '14px',
     fontWeight: activeTab === tab ? 700 : 400,
     cursor: 'pointer',
@@ -340,7 +340,7 @@ export default function RoomPage() {
                 style={{ width: '30px', height: '30px', borderRadius: '50%', objectFit: 'cover', border: '2px solid #F59E0B', flexShrink: 0 }}
               />
             ) : (
-              <UserCircle size={28} color={userProfile.nickname ? '#F59E0B' : 'var(--color-text-muted)'} style={{ flexShrink: 0 }} />
+              <UserCircle size={28} color={userProfile.nickname ? 'var(--color-community-accent)' : 'var(--color-text-muted)'} style={{ flexShrink: 0 }} />
             )}
           </div>
         </div>
@@ -365,7 +365,7 @@ export default function RoomPage() {
                 style={{
                   width: '100%',
                   padding: '12px',
-                  background: !isMember || sharedIds.length >= 3 || !userProfile.nickname ? 'var(--color-border)' : '#F59E0B',
+                  background: !isMember || sharedIds.length >= 3 || !userProfile.nickname ? 'var(--color-border)' : 'var(--color-community-accent)',
                   color: !isMember || sharedIds.length >= 3 || !userProfile.nickname ? 'var(--color-text-muted)' : 'white',
                   border: 'none',
                   borderRadius: '12px',
@@ -415,7 +415,7 @@ export default function RoomPage() {
                       </div>
                       <span style={{
                         marginLeft: 'auto', fontSize: '11px', fontWeight: 600,
-                        color: '#92400E', background: '#FEF3C7', padding: '3px 10px', borderRadius: '999px',
+                        color: 'var(--color-community-text)', background: 'var(--color-community-bg)', padding: '3px 10px', borderRadius: '999px',
                       }}>
                         {item.daysCount}일 외침
                       </span>
@@ -429,7 +429,7 @@ export default function RoomPage() {
                       lineHeight: 1.6,
                       marginBottom: '14px',
                       padding: '12px 14px',
-                      background: '#FFFBEB',
+                      background: 'var(--color-community-bg-deep)',
                       borderRadius: '10px',
                       borderLeft: '3px solid #F59E0B',
                     }}>
@@ -456,11 +456,11 @@ export default function RoomPage() {
                               style={{
                                 flexShrink: 0,
                                 padding: '6px 10px',
-                                background: isOn ? '#F59E0B' : '#FEF3C7',
-                                border: `1px solid ${isOn ? '#D97706' : '#FCD34D'}`,
+                                background: isOn ? 'var(--color-community-accent)' : 'var(--color-community-bg)',
+                                border: `1px solid ${isOn ? 'var(--color-community-accent-dark)' : 'var(--color-community-accent-mid)'}`,
                                 borderRadius: '999px',
                                 fontSize: '12px',
-                                color: isOn ? 'white' : '#92400E',
+                                color: isOn ? 'white' : 'var(--color-community-text)',
                                 cursor: 'pointer',
                                 fontWeight: isOn ? 700 : 500,
                                 whiteSpace: 'nowrap',
@@ -481,7 +481,7 @@ export default function RoomPage() {
                           style={{
                             flexShrink: 0,
                             padding: '6px 10px',
-                            background: importedContents.has(item.content) ? '#D1FAE5' : 'var(--color-bg-card)',
+                            background: importedContents.has(item.content) ? 'var(--color-success-bg-mint)' : 'var(--color-bg-card)',
                             border: importedContents.has(item.content) ? '1px solid #6EE7B7' : '1px solid var(--color-border)',
                             borderRadius: '10px',
                             cursor: importedContents.has(item.content) ? 'default' : 'pointer',
@@ -489,7 +489,7 @@ export default function RoomPage() {
                             alignItems: 'center',
                             gap: '4px',
                             fontSize: '12px',
-                            color: importedContents.has(item.content) ? '#059669' : 'var(--color-text-muted)',
+                            color: importedContents.has(item.content) ? 'var(--color-success-mid)' : 'var(--color-text-muted)',
                             fontWeight: 500,
                           }}
                         >
@@ -514,7 +514,7 @@ export default function RoomPage() {
                   border: '1px solid #FECACA',
                   borderRadius: '12px',
                   fontSize: '14px',
-                  color: '#EF5350',
+                  color: 'var(--color-danger)',
                   cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
@@ -558,8 +558,8 @@ export default function RoomPage() {
                       >
                         {isFirst && (
                           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px' }}>
-                            <Trophy size={14} color="#F59E0B" />
-                            <span style={{ fontSize: '12px', fontWeight: 700, color: '#F59E0B' }}>1위</span>
+                            <Trophy size={14} color="var(--color-community-accent)" />
+                            <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--color-community-accent)' }}>1위</span>
                           </div>
                         )}
                         <p style={{
@@ -576,7 +576,7 @@ export default function RoomPage() {
                           <span style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>
                             참여 {challenge.participants.length}명
                           </span>
-                          <span style={{ fontSize: '12px', color: '#92400E', fontWeight: 600 }}>
+                          <span style={{ fontSize: '12px', color: 'var(--color-community-text)', fontWeight: 600 }}>
                             총 {days}일 외침
                           </span>
                         </div>
@@ -599,8 +599,8 @@ export default function RoomPage() {
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
                                   <div style={{
                                     width: '34px', height: '34px', borderRadius: '50%',
-                                    background: '#FEF3C7', display: 'flex', alignItems: 'center',
-                                    justifyContent: 'center', fontSize: '14px', fontWeight: 700, color: '#92400E',
+                                    background: 'var(--color-community-bg)', display: 'flex', alignItems: 'center',
+                                    justifyContent: 'center', fontSize: '14px', fontWeight: 700, color: 'var(--color-community-text)',
                                   }}>
                                     {participant.initial}
                                   </div>
@@ -608,7 +608,7 @@ export default function RoomPage() {
                                     <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--color-text-primary)' }}>
                                       {participant.nickname}
                                     </div>
-                                    <div style={{ fontSize: '11px', color: '#92400E' }}>
+                                    <div style={{ fontSize: '11px', color: 'var(--color-community-text)' }}>
                                       {participant.daysCount}일째
                                     </div>
                                   </div>
@@ -632,11 +632,11 @@ export default function RoomPage() {
                                         style={{
                                           flexShrink: 0,
                                           padding: '5px 10px',
-                                          background: isOn ? '#F59E0B' : '#FEF3C7',
-                                          border: `1px solid ${isOn ? '#D97706' : '#FCD34D'}`,
+                                          background: isOn ? 'var(--color-community-accent)' : 'var(--color-community-bg)',
+                                          border: `1px solid ${isOn ? 'var(--color-community-accent-dark)' : 'var(--color-community-accent-mid)'}`,
                                           borderRadius: '999px',
                                           fontSize: '11px',
-                                          color: isOn ? 'white' : '#92400E',
+                                          color: isOn ? 'white' : 'var(--color-community-text)',
                                           cursor: 'pointer',
                                           fontWeight: isOn ? 700 : 500,
                                           whiteSpace: 'nowrap',
@@ -683,7 +683,7 @@ export default function RoomPage() {
             </div>
 
             {sharedIds.length >= 3 && (
-              <p style={{ fontSize: '13px', color: '#92400E', background: '#FEF3C7', padding: '10px 14px', borderRadius: '10px', marginBottom: '14px' }}>
+              <p style={{ fontSize: '13px', color: 'var(--color-community-text)', background: 'var(--color-community-bg)', padding: '10px 14px', borderRadius: '10px', marginBottom: '14px' }}>
                 방당 최대 3개까지 공유할 수 있어요
               </p>
             )}
@@ -696,7 +696,7 @@ export default function RoomPage() {
                 </p>
                 <button
                   onClick={() => { setShowShareSheet(false); router.push('/create') }}
-                  style={{ padding: '10px 24px', background: '#F59E0B', color: 'white', border: 'none', borderRadius: '12px', fontSize: '14px', fontWeight: 600, cursor: 'pointer' }}
+                  style={{ padding: '10px 24px', background: 'var(--color-community-accent)', color: 'white', border: 'none', borderRadius: '12px', fontSize: '14px', fontWeight: 600, cursor: 'pointer' }}
                 >
                   성공의 말 만들러 가기
                 </button>
@@ -741,8 +741,8 @@ export default function RoomPage() {
                         </span>
                       </div>
                       {alreadyShared
-                        ? <Check size={16} color="#059669" style={{ flexShrink: 0 }} />
-                        : <span style={{ fontSize: '12px', color: '#F59E0B', fontWeight: 600, flexShrink: 0 }}>공유</span>
+                        ? <Check size={16} color="var(--color-success-mid)" style={{ flexShrink: 0 }} />
+                        : <span style={{ fontSize: '12px', color: 'var(--color-community-accent)', fontWeight: 600, flexShrink: 0 }}>공유</span>
                       }
                     </button>
                   )
@@ -790,7 +790,7 @@ export default function RoomPage() {
                 onClick={handleLeaveRoom}
                 style={{
                   flex: 1, padding: '14px',
-                  background: '#EF5350',
+                  background: 'var(--color-danger)',
                   border: 'none',
                   borderRadius: '14px',
                   fontSize: '15px', fontWeight: 700,

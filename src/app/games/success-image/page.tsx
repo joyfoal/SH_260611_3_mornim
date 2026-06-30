@@ -401,7 +401,7 @@ export default function SuccessImagePage() {
               </button>
             </div>
             {photoError && (
-              <p style={{ marginTop: '8px', fontSize: '12px', color: '#E53935', textAlign: 'center' }}>
+              <p style={{ marginTop: '8px', fontSize: '12px', color: 'var(--color-danger)', textAlign: 'center' }}>
                 {photoError}
               </p>
             )}
@@ -574,7 +574,7 @@ export default function SuccessImagePage() {
           </button>
 
           {successError && (
-            <div style={{ padding: '14px', background: '#FFF3CD', borderRadius: '12px', color: '#795548', fontSize: '14px', marginBottom: '16px', textAlign: 'center' }}>
+            <div style={{ padding: '14px', background: 'var(--color-warning-bg)', borderRadius: '12px', color: 'var(--color-warning)', fontSize: '14px', marginBottom: '16px', textAlign: 'center' }}>
               {successError}
             </div>
           )}

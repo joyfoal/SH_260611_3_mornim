@@ -320,7 +320,7 @@ export default function CommunityPage() {
                   style={{ width: '32px', height: '32px', borderRadius: '50%', objectFit: 'cover', border: '2px solid #F59E0B', flexShrink: 0 }}
                 />
               ) : (
-                <UserCircle size={30} color={userProfile.nickname ? '#F59E0B' : 'var(--color-text-muted)'} style={{ flexShrink: 0 }} />
+                <UserCircle size={30} color={userProfile.nickname ? 'var(--color-community-accent)' : 'var(--color-text-muted)'} style={{ flexShrink: 0 }} />
               )}
             </button>
           </div>
@@ -352,7 +352,7 @@ export default function CommunityPage() {
                     alignItems: 'center',
                     gap: '5px',
                     padding: '7px 14px',
-                    background: '#F59E0B',
+                    background: 'var(--color-community-accent)',
                     color: 'white',
                     border: 'none',
                     borderRadius: '10px',
@@ -379,7 +379,7 @@ export default function CommunityPage() {
                     onClick={() => setActiveTab('방 둘러보기')}
                     style={{
                       padding: '10px 24px',
-                      background: '#F59E0B',
+                      background: 'var(--color-community-accent)',
                       color: 'white',
                       border: 'none',
                       borderRadius: '12px',
@@ -418,10 +418,10 @@ export default function CommunityPage() {
                           <span style={{ fontSize: '12px', color: 'var(--color-text-muted)', display: 'flex', alignItems: 'center', gap: '3px' }}>
                             <Users size={11} /> {room.members}명
                           </span>
-                          <span style={{ fontSize: '12px', color: '#92400E', background: '#FEF3C7', padding: '2px 8px', borderRadius: '999px', fontWeight: 500 }}>
+                          <span style={{ fontSize: '12px', color: 'var(--color-community-text)', background: 'var(--color-community-bg)', padding: '2px 8px', borderRadius: '999px', fontWeight: 500 }}>
                             연속 {room.streakDays}일 🔥
                           </span>
-                          <span style={{ fontSize: '11px', color: '#059669', display: 'flex', alignItems: 'center', gap: '3px' }}>
+                          <span style={{ fontSize: '11px', color: 'var(--color-success-mid)', display: 'flex', alignItems: 'center', gap: '3px' }}>
                             <CheckCircle size={11} /> 오늘 인증
                           </span>
                         </div>
@@ -477,8 +477,8 @@ export default function CommunityPage() {
                       padding: '6px 14px',
                       borderRadius: '999px',
                       border: selectedTag === tag ? '1.5px solid #F59E0B' : '1.5px solid var(--color-border)',
-                      background: selectedTag === tag ? '#FEF3C7' : 'var(--color-bg-card)',
-                      color: selectedTag === tag ? '#92400E' : 'var(--color-text-muted)',
+                      background: selectedTag === tag ? 'var(--color-community-bg)' : 'var(--color-bg-card)',
+                      color: selectedTag === tag ? 'var(--color-community-text)' : 'var(--color-text-muted)',
                       fontSize: '13px',
                       fontWeight: selectedTag === tag ? 600 : 400,
                       cursor: 'pointer',
@@ -522,11 +522,11 @@ export default function CommunityPage() {
                             <span style={{ fontSize: '12px', color: 'var(--color-text-muted)', display: 'flex', alignItems: 'center', gap: '4px' }}>
                               <Users size={12} /> {room.members}/{MAX_MEMBERS}명
                             </span>
-                            <span style={{ fontSize: '12px', color: '#92400E', background: '#FEF3C7', padding: '2px 8px', borderRadius: '999px', fontWeight: 500 }}>
+                            <span style={{ fontSize: '12px', color: 'var(--color-community-text)', background: 'var(--color-community-bg)', padding: '2px 8px', borderRadius: '999px', fontWeight: 500 }}>
                               연속 {room.streakDays}일째 🔥
                             </span>
                             {isFull && (
-                              <span style={{ fontSize: '12px', color: '#EF5350', background: '#FFEBEE', padding: '2px 8px', borderRadius: '999px', fontWeight: 600 }}>
+                              <span style={{ fontSize: '12px', color: 'var(--color-danger)', background: 'var(--color-danger-bg)', padding: '2px 8px', borderRadius: '999px', fontWeight: 600 }}>
                                 마감
                               </span>
                             )}
@@ -554,7 +554,7 @@ export default function CommunityPage() {
                                 onClick={() => handleJoin(room.id)}
                                 style={{
                                   padding: '7px 13px',
-                                  background: '#F59E0B',
+                                  background: 'var(--color-community-accent)',
                                   color: 'white',
                                   border: 'none',
                                   borderRadius: '10px',
@@ -618,9 +618,9 @@ export default function CommunityPage() {
                     marginTop: '8px',
                     padding: '12px 14px',
                     borderRadius: '10px',
-                    background: roomNameBanner.alternative ? '#FFF3CD' : '#FFEBEE',
+                    background: roomNameBanner.alternative ? 'var(--color-warning-bg)' : 'var(--color-danger-bg)',
                     fontSize: '13px',
-                    color: roomNameBanner.alternative ? '#795548' : '#C62828',
+                    color: roomNameBanner.alternative ? 'var(--color-warning)' : 'var(--color-danger-dark)',
                   }}>
                     {roomNameBanner.alternative ? (
                       <>
@@ -628,7 +628,7 @@ export default function CommunityPage() {
                           💛 이런 이름은 어때요?<br />
                           <strong>"{roomNameBanner.alternative}"</strong>
                           {roomNameBanner.suggestedDesc && (
-                            <div style={{ marginTop: '4px', fontSize: '12px', color: '#92400E', fontWeight: 400 }}>
+                            <div style={{ marginTop: '4px', fontSize: '12px', color: 'var(--color-community-text)', fontWeight: 400 }}>
                               소개: {roomNameBanner.suggestedDesc}
                             </div>
                           )}
@@ -642,13 +642,13 @@ export default function CommunityPage() {
                               }
                               setRoomNameBanner(null)
                             }}
-                            style={{ flex: 1, padding: '7px', background: '#F59E0B', color: 'white', border: 'none', borderRadius: '8px', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}
+                            style={{ flex: 1, padding: '7px', background: 'var(--color-community-accent)', color: 'white', border: 'none', borderRadius: '8px', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}
                           >
                             바꿔서 쓰기
                           </button>
                           <button
                             onClick={() => { setRoomName(''); setRoomNameBanner(null) }}
-                            style={{ flex: 1, padding: '7px', background: 'transparent', border: '1px solid #ccc', borderRadius: '8px', fontSize: '13px', color: '#795548', cursor: 'pointer' }}
+                            style={{ flex: 1, padding: '7px', background: 'transparent', border: '1px solid #ccc', borderRadius: '8px', fontSize: '13px', color: 'var(--color-warning)', cursor: 'pointer' }}
                           >
                             다시 쓰기
                           </button>
@@ -659,7 +659,7 @@ export default function CommunityPage() {
                         <div style={{ marginBottom: '8px' }}>🚫 사용할 수 없는 표현이 포함되어 있어요. 긍정적인 방 이름으로 바꿔주세요.</div>
                         <button
                           onClick={() => { setRoomName(''); setRoomNameBanner(null) }}
-                          style={{ padding: '7px 14px', background: 'transparent', border: '1px solid #EF9A9A', borderRadius: '8px', fontSize: '13px', color: '#C62828', cursor: 'pointer' }}
+                          style={{ padding: '7px 14px', background: 'transparent', border: '1px solid #EF9A9A', borderRadius: '8px', fontSize: '13px', color: 'var(--color-danger-dark)', cursor: 'pointer' }}
                         >
                           다시 쓰기
                         </button>
@@ -700,9 +700,9 @@ export default function CommunityPage() {
                     marginTop: '8px',
                     padding: '12px 14px',
                     borderRadius: '10px',
-                    background: roomDescBanner.alternative ? '#FFF3CD' : '#FFEBEE',
+                    background: roomDescBanner.alternative ? 'var(--color-warning-bg)' : 'var(--color-danger-bg)',
                     fontSize: '13px',
-                    color: roomDescBanner.alternative ? '#795548' : '#C62828',
+                    color: roomDescBanner.alternative ? 'var(--color-warning)' : 'var(--color-danger-dark)',
                   }}>
                     {roomDescBanner.alternative ? (
                       <>
@@ -710,13 +710,13 @@ export default function CommunityPage() {
                         <div style={{ display: 'flex', gap: '8px' }}>
                           <button
                             onClick={() => { setRoomDesc(roomDescBanner.alternative!); setRoomDescBanner(null) }}
-                            style={{ flex: 1, padding: '7px', background: '#F59E0B', color: 'white', border: 'none', borderRadius: '8px', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}
+                            style={{ flex: 1, padding: '7px', background: 'var(--color-community-accent)', color: 'white', border: 'none', borderRadius: '8px', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}
                           >
                             바꿔서 쓰기
                           </button>
                           <button
                             onClick={() => { setRoomDesc(''); setRoomDescBanner(null) }}
-                            style={{ flex: 1, padding: '7px', background: 'transparent', border: '1px solid #ccc', borderRadius: '8px', fontSize: '13px', color: '#795548', cursor: 'pointer' }}
+                            style={{ flex: 1, padding: '7px', background: 'transparent', border: '1px solid #ccc', borderRadius: '8px', fontSize: '13px', color: 'var(--color-warning)', cursor: 'pointer' }}
                           >
                             다시 쓰기
                           </button>
@@ -727,7 +727,7 @@ export default function CommunityPage() {
                         <div style={{ marginBottom: '8px' }}>🚫 사용할 수 없는 표현이 포함되어 있어요. 긍정적인 소개로 바꿔주세요.</div>
                         <button
                           onClick={() => { setRoomDesc(''); setRoomDescBanner(null) }}
-                          style={{ padding: '7px 14px', background: 'transparent', border: '1px solid #EF9A9A', borderRadius: '8px', fontSize: '13px', color: '#C62828', cursor: 'pointer' }}
+                          style={{ padding: '7px 14px', background: 'transparent', border: '1px solid #EF9A9A', borderRadius: '8px', fontSize: '13px', color: 'var(--color-danger-dark)', cursor: 'pointer' }}
                         >
                           다시 쓰기
                         </button>
@@ -758,8 +758,8 @@ export default function CommunityPage() {
                         padding: '7px 14px',
                         borderRadius: '999px',
                         border: roomTag === tag ? '1.5px solid #F59E0B' : '1.5px solid var(--color-border)',
-                        background: roomTag === tag ? '#FEF3C7' : 'var(--color-bg-card)',
-                        color: roomTag === tag ? '#92400E' : 'var(--color-text-muted)',
+                        background: roomTag === tag ? 'var(--color-community-bg)' : 'var(--color-bg-card)',
+                        color: roomTag === tag ? 'var(--color-community-text)' : 'var(--color-text-muted)',
                         fontSize: '13px',
                         fontWeight: roomTag === tag ? 600 : 400,
                         cursor: 'pointer',
@@ -778,7 +778,7 @@ export default function CommunityPage() {
                 style={{
                   width: '100%',
                   padding: '14px',
-                  background: roomName.trim() && !creating ? '#F59E0B' : 'var(--color-border)',
+                  background: roomName.trim() && !creating ? 'var(--color-community-accent)' : 'var(--color-border)',
                   color: roomName.trim() && !creating ? 'white' : 'var(--color-text-muted)',
                   border: 'none',
                   borderRadius: '14px',
@@ -822,7 +822,7 @@ export default function CommunityPage() {
                       padding: '10px 0',
                       borderRadius: '12px',
                       border: rankingType === t ? '2px solid #F59E0B' : '1.5px solid var(--color-border)',
-                      background: rankingType === t ? '#F59E0B' : 'var(--color-bg-card)',
+                      background: rankingType === t ? 'var(--color-community-accent)' : 'var(--color-bg-card)',
                       color: rankingType === t ? 'white' : 'var(--color-text-muted)',
                       fontSize: '14px',
                       fontWeight: rankingType === t ? 700 : 400,
@@ -845,8 +845,8 @@ export default function CommunityPage() {
                       padding: '8px 0',
                       borderRadius: '10px',
                       border: rankingPeriod === p ? '1.5px solid #F59E0B' : '1.5px solid var(--color-border)',
-                      background: rankingPeriod === p ? '#FEF3C7' : 'var(--color-bg-card)',
-                      color: rankingPeriod === p ? '#92400E' : 'var(--color-text-muted)',
+                      background: rankingPeriod === p ? 'var(--color-community-bg)' : 'var(--color-bg-card)',
+                      color: rankingPeriod === p ? 'var(--color-community-text)' : 'var(--color-text-muted)',
                       fontSize: '13px',
                       fontWeight: rankingPeriod === p ? 700 : 400,
                       cursor: 'pointer',
@@ -873,7 +873,7 @@ export default function CommunityPage() {
                         alignItems: 'center',
                         gap: '12px',
                         padding: '14px 16px',
-                        background: idx === 0 ? '#FFFBEB' : 'var(--color-bg-card)',
+                        background: idx === 0 ? 'var(--color-community-bg-deep)' : 'var(--color-bg-card)',
                         border: idx === 0 ? '1.5px solid #FCD34D' : '1px solid var(--color-border)',
                         borderRadius: '14px',
                       }}
@@ -885,7 +885,7 @@ export default function CommunityPage() {
                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
                           <span style={{ fontSize: '14px', fontWeight: 700, color: 'var(--color-text-primary)' }}>{room.name}</span>
                           {isJoined && (
-                            <span style={{ fontSize: '10px', color: '#F59E0B', background: '#FFFBEB', border: '1px solid #F59E0B', padding: '1px 6px', borderRadius: '999px', fontWeight: 600, flexShrink: 0 }}>
+                            <span style={{ fontSize: '10px', color: 'var(--color-community-accent)', background: 'var(--color-community-bg-deep)', border: '1px solid #F59E0B', padding: '1px 6px', borderRadius: '999px', fontWeight: 600, flexShrink: 0 }}>
                               참여 중
                             </span>
                           )}
@@ -894,7 +894,7 @@ export default function CommunityPage() {
                           <span style={{ fontSize: '11px', color: 'var(--color-text-muted)', display: 'flex', alignItems: 'center', gap: '3px' }}>
                             <Users size={10} /> {room.members}명
                           </span>
-                          <span style={{ fontSize: '11px', color: '#92400E', background: '#FEF3C7', padding: '1px 7px', borderRadius: '999px', fontWeight: 600 }}>
+                          <span style={{ fontSize: '11px', color: 'var(--color-community-text)', background: 'var(--color-community-bg)', padding: '1px 7px', borderRadius: '999px', fontWeight: 600 }}>
                             {entry.totalDays}일 외침
                           </span>
                         </div>
@@ -902,7 +902,7 @@ export default function CommunityPage() {
                       {isJoined ? (
                         <button
                           onClick={() => goToRoom(room.id)}
-                          style={{ padding: '6px 13px', background: '#F59E0B', color: 'white', border: 'none', borderRadius: '9px', fontSize: '12px', fontWeight: 600, cursor: 'pointer', flexShrink: 0 }}
+                          style={{ padding: '6px 13px', background: 'var(--color-community-accent)', color: 'white', border: 'none', borderRadius: '9px', fontSize: '12px', fontWeight: 600, cursor: 'pointer', flexShrink: 0 }}
                         >
                           입장
                         </button>
@@ -910,7 +910,7 @@ export default function CommunityPage() {
                         <button
                           onClick={() => handleJoin(room.id)}
                           disabled={room.members >= MAX_MEMBERS}
-                          style={{ padding: '6px 13px', background: room.members >= MAX_MEMBERS ? 'var(--color-border)' : 'var(--color-bg-card)', color: room.members >= MAX_MEMBERS ? 'var(--color-text-muted)' : '#F59E0B', border: `1px solid ${room.members >= MAX_MEMBERS ? 'transparent' : '#F59E0B'}`, borderRadius: '9px', fontSize: '12px', fontWeight: 600, cursor: room.members >= MAX_MEMBERS ? 'not-allowed' : 'pointer', flexShrink: 0 }}
+                          style={{ padding: '6px 13px', background: room.members >= MAX_MEMBERS ? 'var(--color-border)' : 'var(--color-bg-card)', color: room.members >= MAX_MEMBERS ? 'var(--color-text-muted)' : 'var(--color-community-accent)', border: `1px solid ${room.members >= MAX_MEMBERS ? 'transparent' : 'var(--color-community-accent)'}`, borderRadius: '9px', fontSize: '12px', fontWeight: 600, cursor: room.members >= MAX_MEMBERS ? 'not-allowed' : 'pointer', flexShrink: 0 }}
                         >
                           {room.members >= MAX_MEMBERS ? '마감' : '참여'}
                         </button>
@@ -933,7 +933,7 @@ export default function CommunityPage() {
                           alignItems: 'center',
                           gap: '12px',
                           padding: '14px 16px',
-                          background: idx === 0 ? '#FFFBEB' : 'var(--color-bg-card)',
+                          background: idx === 0 ? 'var(--color-community-bg-deep)' : 'var(--color-bg-card)',
                           border: idx === 0 ? '1.5px solid #FCD34D' : '1px solid var(--color-border)',
                           borderRadius: '14px',
                         }}
@@ -947,7 +947,7 @@ export default function CommunityPage() {
                           </p>
                           <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
                             <span style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>👤 {entry.userCount}명</span>
-                            <span style={{ fontSize: '11px', color: '#92400E', background: '#FEF3C7', padding: '1px 7px', borderRadius: '999px', fontWeight: 600 }}>
+                            <span style={{ fontSize: '11px', color: 'var(--color-community-text)', background: 'var(--color-community-bg)', padding: '1px 7px', borderRadius: '999px', fontWeight: 600 }}>
                               {entry.totalDays}일 외침
                             </span>
                           </div>
@@ -984,11 +984,11 @@ export default function CommunityPage() {
                 {editImageData ? (
                   <img src={editImageData} alt="프로필" style={{ width: '80px', height: '80px', borderRadius: '50%', objectFit: 'cover', border: '3px solid #F59E0B' }} />
                 ) : (
-                  <div style={{ width: '80px', height: '80px', borderRadius: '50%', background: '#FEF3C7', border: '3px dashed #F59E0B', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <UserCircle size={40} color="#F59E0B" />
+                  <div style={{ width: '80px', height: '80px', borderRadius: '50%', background: 'var(--color-community-bg)', border: '3px dashed #F59E0B', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <UserCircle size={40} color="var(--color-community-accent)" />
                   </div>
                 )}
-                <div style={{ position: 'absolute', bottom: 0, right: 0, width: '26px', height: '26px', borderRadius: '50%', background: '#F59E0B', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px solid white' }}>
+                <div style={{ position: 'absolute', bottom: 0, right: 0, width: '26px', height: '26px', borderRadius: '50%', background: 'var(--color-community-accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px solid white' }}>
                   <Camera size={13} color="white" />
                 </div>
               </div>
@@ -1018,7 +1018,7 @@ export default function CommunityPage() {
             <button
               onClick={handleSaveProfile}
               disabled={profileSaving}
-              style={{ width: '100%', padding: '14px', background: '#F59E0B', color: 'white', border: 'none', borderRadius: '14px', fontSize: '15px', fontWeight: 700, cursor: 'pointer' }}
+              style={{ width: '100%', padding: '14px', background: 'var(--color-community-accent)', color: 'white', border: 'none', borderRadius: '14px', fontSize: '15px', fontWeight: 700, cursor: 'pointer' }}
             >
               {profileSaving ? '저장 중...' : '프로필 저장'}
             </button>

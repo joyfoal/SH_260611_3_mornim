@@ -16,6 +16,36 @@
   --color-border: #D3D1C7;
   --color-tab-active: #854F0B;
   --color-tab-inactive: #888780;
+
+  /* 시맨틱 — 테마 무관 고정색 */
+  --color-danger: #E53935;
+  --color-danger-dark: #C62828;
+  --color-danger-bg: #FFEBEE;
+  --color-danger-bg-light: #FFF0EE;
+  --color-danger-border: #FFDDD9;
+  --color-danger-orange: #FF7043;
+  --color-danger-orange-dark: #E65100;
+  --color-danger-orange-bg: #FFF3E0;
+  --color-danger-orange-border: #FFCCBC;
+
+  --color-success: #2E7D32;
+  --color-success-mid: #059669;
+  --color-success-light: #4CAF50;
+  --color-success-bg: #E8F5E9;
+  --color-success-bg-mint: #D1FAE5;
+  --color-success-mint: #6EE7B7;
+
+  --color-warning: #795548;
+  --color-warning-dark: #4E342E;
+  --color-warning-bg: #FFF3CD;
+  --color-warning-border: #FFE082;
+
+  --color-community-accent: #F59E0B;
+  --color-community-accent-dark: #D97706;
+  --color-community-accent-mid: #FCD34D;
+  --color-community-bg: #FEF3C7;
+  --color-community-bg-deep: #FFFBEB;
+  --color-community-text: #92400E;
 }
 
 * {

@@ -160,8 +160,7 @@ export default function OnboardingPage() {
   const onbAudioStreamRef = useRef<MediaStream | null>(null) // audio (recording)
   const onbRecorderRef = useRef<MediaRecorder | null>(null)
   const onbAudioChunksRef = useRef<Blob[]>([])
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const onbRecognitionRef = useRef<any>(null)
+  const onbRecognitionRef = useRef<SpeechRecognition | null>(null)
   const onbShouldListenRef = useRef(false)
   const onbCumulativeRef = useRef<Set<string>>(new Set())
   const onbAutoCompleteRef = useRef(false)
@@ -222,9 +221,7 @@ export default function OnboardingPage() {
   // STT for screen 2 — must be declared before finishRec (TDZ 방지)
   const startOnbSTT = useCallback(() => {
     if (typeof window === 'undefined') return
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const w = window as any
-    const SpeechRec = w.SpeechRecognition ?? w.webkitSpeechRecognition
+    const SpeechRec = window.SpeechRecognition ?? window.webkitSpeechRecognition
     if (!SpeechRec) return
 
     if (onbRecognitionRef.current) {
@@ -232,20 +229,16 @@ export default function OnboardingPage() {
       onbRecognitionRef.current = null
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const recognition: any = new SpeechRec()
+    const recognition = new SpeechRec()
     recognition.lang = 'ko-KR'
     recognition.continuous = true
     recognition.interimResults = true
     recognition.maxAlternatives = 1
     onbRecognitionRef.current = recognition
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    recognition.onresult = (event: any) => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const transcript = Array.from(event.results as any[])
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        .map((r: any) => r[0].transcript)
+    recognition.onresult = (event: SpeechRecognitionEvent) => {
+      const transcript = Array.from(event.results)
+        .map((r) => r[0].transcript)
         .join(' ')
         .toLowerCase()
 
@@ -266,7 +259,7 @@ export default function OnboardingPage() {
       setOnbRecognizedWords(new Set(onbCumulativeRef.current))
     }
 
-    recognition.onerror = (event: { error: string }) => {
+    recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
       if (!onbShouldListenRef.current) return
       if (event.error === 'not-allowed') { setOnbIsListening(false); return }
       setTimeout(() => { if (onbShouldListenRef.current) startOnbSTT() }, 200)

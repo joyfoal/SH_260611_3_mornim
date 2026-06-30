@@ -40,17 +40,13 @@ export default function TomorrowPage() {
       setIsListening(false)
       return
     }
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const w = window as any
-    const SpeechRec = w.SpeechRecognition ?? w.webkitSpeechRecognition
+    const SpeechRec = window.SpeechRecognition ?? window.webkitSpeechRecognition
     if (!SpeechRec) return
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const rec: any = new SpeechRec()
+    const rec = new SpeechRec()
     rec.lang = 'ko-KR'
     rec.continuous = false
     rec.interimResults = false
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    rec.onresult = (e: any) => {
+    rec.onresult = (e: SpeechRecognitionEvent) => {
       if (!e.results?.[0]?.[0]) return
       const text: string = e.results[0][0].transcript
       setMessage((prev) => prev ? prev + ' ' + text : text)

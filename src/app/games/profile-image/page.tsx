@@ -428,7 +428,7 @@ export default function ProfileImagePage() {
           )}
 
           {faceError && (
-            <div style={{ marginTop: '10px', padding: '10px 12px', background: '#FFF3CD', borderRadius: '10px', color: '#795548', fontSize: '13px' }}>
+            <div style={{ marginTop: '10px', padding: '10px 12px', background: 'var(--color-warning-bg)', borderRadius: '10px', color: 'var(--color-warning)', fontSize: '13px' }}>
               {faceError}
             </div>
           )}
@@ -495,7 +495,7 @@ export default function ProfileImagePage() {
       </button>
 
       {error && (
-        <div style={{ padding: '14px', background: '#FFF3CD', borderRadius: '12px', color: '#795548', fontSize: '14px', marginBottom: '16px', textAlign: 'center' }}>
+        <div style={{ padding: '14px', background: 'var(--color-warning-bg)', borderRadius: '12px', color: 'var(--color-warning)', fontSize: '14px', marginBottom: '16px', textAlign: 'center' }}>
           {error}
         </div>
       )}
@@ -637,7 +637,7 @@ export default function ProfileImagePage() {
               </button>
             )}
             {directError && (
-              <div style={{ marginTop: '10px', padding: '10px 12px', background: '#FFF3CD', borderRadius: '10px', color: '#795548', fontSize: '13px' }}>
+              <div style={{ marginTop: '10px', padding: '10px 12px', background: 'var(--color-warning-bg)', borderRadius: '10px', color: 'var(--color-warning)', fontSize: '13px' }}>
                 {directError}
               </div>
             )}

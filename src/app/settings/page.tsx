@@ -116,7 +116,7 @@ function CategoryDeleteModal({
                   "{selected}"로 이동 후 삭제
                 </button>
               )}
-              <button onClick={() => onMove(null)} style={{ padding: '14px', background: 'transparent', color: '#E53935', border: '1px solid #E53935', borderRadius: '14px', fontSize: '14px', cursor: 'pointer' }}>
+              <button onClick={() => onMove(null)} style={{ padding: '14px', background: 'transparent', color: 'var(--color-danger)', border: '1px solid #E53935', borderRadius: '14px', fontSize: '14px', cursor: 'pointer' }}>
                 성공의 말도 함께 삭제
               </button>
               <button onClick={onCancel} style={{ padding: '12px', background: 'transparent', color: 'var(--color-text-muted)', border: '1px solid var(--color-border)', borderRadius: '14px', fontSize: '14px', cursor: 'pointer' }}>
@@ -127,7 +127,7 @@ function CategoryDeleteModal({
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
             <p style={{ fontSize: '13px', color: 'var(--color-text-muted)', marginBottom: '8px' }}>카테고리를 삭제할까요?</p>
-            <button onClick={() => onMove(null)} style={{ padding: '14px', background: '#E53935', color: 'white', border: 'none', borderRadius: '14px', fontSize: '15px', fontWeight: 600, cursor: 'pointer' }}>삭제</button>
+            <button onClick={() => onMove(null)} style={{ padding: '14px', background: 'var(--color-danger)', color: 'white', border: 'none', borderRadius: '14px', fontSize: '15px', fontWeight: 600, cursor: 'pointer' }}>삭제</button>
             <button onClick={onCancel} style={{ padding: '12px', background: 'transparent', color: 'var(--color-text-muted)', border: '1px solid var(--color-border)', borderRadius: '14px', fontSize: '14px', cursor: 'pointer' }}>취소</button>
           </div>
         )}
@@ -405,12 +405,12 @@ function AlarmPanel() {
             <p style={{ fontSize: '12px', color: 'var(--color-text-muted)', lineHeight: 1.4 }}>이 브라우저는 알림을 지원하지 않아요.<br />홈 화면에 추가 후 사용해보세요.</p>
           </div>
         ) : (
-          <div style={{ padding: '12px 14px', background: notifPerm === 'denied' ? '#FFF0EE' : 'color-mix(in srgb, var(--color-accent-light) 35%, var(--color-bg-primary))', borderRadius: '12px', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: notifPerm === 'denied' ? '#FFDDD9' : chipBg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-              {notifPerm === 'denied' ? <Ban size={16} color="#E53935" /> : <Bell size={16} color="var(--color-accent-primary)" />}
+          <div style={{ padding: '12px 14px', background: notifPerm === 'denied' ? 'var(--color-danger-bg-light)' : 'color-mix(in srgb, var(--color-accent-light) 35%, var(--color-bg-primary))', borderRadius: '12px', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: notifPerm === 'denied' ? 'var(--color-danger-border)' : chipBg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              {notifPerm === 'denied' ? <Ban size={16} color="var(--color-danger)" /> : <Bell size={16} color="var(--color-accent-primary)" />}
             </div>
             <div style={{ flex: 1 }}>
-              <p style={{ fontSize: '13px', fontWeight: 600, color: notifPerm === 'denied' ? '#E53935' : 'var(--color-accent-primary)' }}>
+              <p style={{ fontSize: '13px', fontWeight: 600, color: notifPerm === 'denied' ? 'var(--color-danger)' : 'var(--color-accent-primary)' }}>
                 {notifPerm === 'denied' ? '알림 차단됨' : '알림 권한 필요'}
               </p>
               <p style={{ fontSize: '11px', color: 'var(--color-text-muted)', marginTop: '1px' }}>
@@ -423,7 +423,7 @@ function AlarmPanel() {
               </button>
             )}
             {notifPerm === 'denied' && (
-              <button onClick={() => { if ('Notification' in window) setNotifPerm(Notification.permission) }} style={{ padding: '7px 12px', background: 'transparent', border: '1px solid #E53935', borderRadius: '10px', fontSize: '11px', fontWeight: 600, color: '#E53935', cursor: 'pointer', flexShrink: 0 }}>
+              <button onClick={() => { if ('Notification' in window) setNotifPerm(Notification.permission) }} style={{ padding: '7px 12px', background: 'transparent', border: '1px solid #E53935', borderRadius: '10px', fontSize: '11px', fontWeight: 600, color: 'var(--color-danger)', cursor: 'pointer', flexShrink: 0 }}>
                 다시 확인
               </button>
             )}
@@ -456,8 +456,8 @@ function AlarmPanel() {
                 <button onClick={() => openEdit(entry)} style={{ width: '32px', height: '32px', borderRadius: '8px', background: chipBg, border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                   <Pencil size={14} color="var(--color-accent-primary)" />
                 </button>
-                <button onClick={() => handleDelete(entry.id)} style={{ width: '32px', height: '32px', borderRadius: '8px', background: '#FFF0EE', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  <Trash2 size={14} color="#E53935" />
+                <button onClick={() => handleDelete(entry.id)} style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'var(--color-danger-bg-light)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <Trash2 size={14} color="var(--color-danger)" />
                 </button>
               </div>
             )
@@ -1015,7 +1015,7 @@ function DeletePanel() {
       <p style={{ fontSize: '15px', fontWeight: 600, color: 'var(--color-text-primary)', marginBottom: '16px' }}>지우기</p>
 
       {msg && (
-        <div style={{ padding: '10px 14px', background: '#E8F5E9', borderRadius: '10px', marginBottom: '14px', fontSize: '13px', color: '#2E7D32' }}>
+        <div style={{ padding: '10px 14px', background: 'var(--color-success-bg)', borderRadius: '10px', marginBottom: '14px', fontSize: '13px', color: 'var(--color-success)' }}>
           {msg}
         </div>
       )}
@@ -1032,7 +1032,7 @@ function DeletePanel() {
               style={{ flex: 1, minWidth: '110px', padding: '8px 10px', border: '1px solid var(--color-border)', borderRadius: '8px', fontSize: '13px', background: 'white', color: 'var(--color-text-primary)', outline: 'none' }} />
           </div>
           <button onClick={handleDeleteDateRange} disabled={!dateFrom}
-            style={{ width: '100%', padding: '9px', background: dateFrom ? '#FF7043' : 'var(--color-border)', color: 'white', border: 'none', borderRadius: '8px', fontSize: '13px', cursor: dateFrom ? 'pointer' : 'not-allowed', fontWeight: 500 }}>
+            style={{ width: '100%', padding: '9px', background: dateFrom ? 'var(--color-danger-orange)' : 'var(--color-border)', color: 'white', border: 'none', borderRadius: '8px', fontSize: '13px', cursor: dateFrom ? 'pointer' : 'not-allowed', fontWeight: 500 }}>
             삭제
           </button>
         </div>
@@ -1041,11 +1041,11 @@ function DeletePanel() {
           🎙 모든 녹음 파일 삭제
         </button>
 
-        <button onClick={handleDeleteAll} style={btnStyle('#E65100', '#FFF3E0', '1px solid #FFCCBC')}>
+        <button onClick={handleDeleteAll} style={btnStyle('var(--color-danger-orange-dark)', 'var(--color-danger-orange-bg)', '1px solid #FFCCBC')}>
           ✦ 성공의 말 전체 지우기
         </button>
 
-        <button onClick={handleReset} style={btnStyle('#C62828', 'transparent', '1px solid #E53935')}>
+        <button onClick={handleReset} style={btnStyle('var(--color-danger-dark)', 'transparent', '1px solid #E53935')}>
           <span style={{ fontWeight: 600 }}>⚠ 전체 초기화</span>
         </button>
       </div>
@@ -1096,7 +1096,7 @@ function TrashPanel() {
           <p style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>성공의 말 · 녹음 · 이미지 · {totalCount}개</p>
         </div>
         {totalCount > 0 && (
-          <button onClick={handleEmpty} style={{ padding: '7px 14px', background: 'transparent', border: '1px solid #E53935', borderRadius: '10px', color: '#E53935', fontSize: '12px', cursor: 'pointer' }}>
+          <button onClick={handleEmpty} style={{ padding: '7px 14px', background: 'transparent', border: '1px solid #E53935', borderRadius: '10px', color: 'var(--color-danger)', fontSize: '12px', cursor: 'pointer' }}>
             비우기
           </button>
         )}
@@ -1259,7 +1259,7 @@ function CategoryPanel() {
                     <span style={{ flex: 1, fontSize: '13px', fontWeight: 500, color: colors.dark }}>{cat}</span>
                     <span style={{ fontSize: '11px', color: `${colors.dark}88` }}>{affCountFor(cat)}개</span>
                     <button onClick={() => { setEditingIdx(idx); setEditValue(categories[idx]) }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: colors.dark, padding: '2px' }}><Pencil size={14} /></button>
-                    <button onClick={() => setDeleteTarget({ name: cat, idx })} disabled={categories.length <= 1} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#E53935', padding: '2px' }}><Trash2 size={14} /></button>
+                    <button onClick={() => setDeleteTarget({ name: cat, idx })} disabled={categories.length <= 1} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-danger)', padding: '2px' }}><Trash2 size={14} /></button>
                     <button onPointerDown={(e) => handleGripDown(e, idx)} onPointerMove={(e) => handleGripMove(e, idx)} onPointerUp={handleGripUp} onPointerCancel={handleGripUp} style={{ background: 'none', border: 'none', cursor: 'grab', color: `${colors.dark}88`, padding: '2px', touchAction: 'none' }}><GripVertical size={16} /></button>
                   </>
                 )}
@@ -1280,12 +1280,12 @@ function CategoryPanel() {
             <button onClick={() => { setAddMode(false); setNewCatName(''); setCatAlternative(null) }} style={{ padding: '10px', background: 'transparent', border: '1px solid var(--color-border)', borderRadius: '10px', cursor: 'pointer', color: 'var(--color-text-muted)' }}><X size={14} /></button>
           </div>
           {catAlternative && (
-            <div style={{ marginTop: '8px', padding: '12px', background: '#FFF3CD', borderRadius: '10px', border: '1px solid #FFE082' }}>
-              <p style={{ fontSize: '12px', color: '#795548', marginBottom: '6px' }}>부정적인 표현이 감지됐어요. 이렇게 바꿔볼까요?</p>
-              <p style={{ fontSize: '13px', fontWeight: 600, color: '#4E342E', marginBottom: '10px' }}>{catAlternative}</p>
+            <div style={{ marginTop: '8px', padding: '12px', background: 'var(--color-warning-bg)', borderRadius: '10px', border: '1px solid #FFE082' }}>
+              <p style={{ fontSize: '12px', color: 'var(--color-warning)', marginBottom: '6px' }}>부정적인 표현이 감지됐어요. 이렇게 바꿔볼까요?</p>
+              <p style={{ fontSize: '13px', fontWeight: 600, color: 'var(--color-warning-dark)', marginBottom: '10px' }}>{catAlternative}</p>
               <div className="flex gap-2">
                 <button onClick={() => doAddCategory(catAlternative)} style={{ flex: 1, padding: '8px', background: 'var(--color-accent-primary)', color: 'white', border: 'none', borderRadius: '8px', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}>이 이름으로 추가</button>
-                <button onClick={() => { setNewCatName(''); setCatAlternative(null) }} style={{ flex: 1, padding: '8px', background: 'transparent', color: '#795548', border: '1px solid #FFE082', borderRadius: '8px', fontSize: '12px', cursor: 'pointer' }}>다시 쓰기</button>
+                <button onClick={() => { setNewCatName(''); setCatAlternative(null) }} style={{ flex: 1, padding: '8px', background: 'transparent', color: 'var(--color-warning)', border: '1px solid #FFE082', borderRadius: '8px', fontSize: '12px', cursor: 'pointer' }}>다시 쓰기</button>
               </div>
             </div>
           )}
@@ -1354,7 +1354,7 @@ function ManualPanel() {
       items: [
         '직접 입력 탭: 원하는 문장을 직접 쓰거나 마이크로 말해서 입력해요.',
         'AI 추천 탭: 주제나 바라는 점을 입력하면 AI가 긍정적인 성공의 말을 추천해줘요.',
-        'Talk Mode 탭: AI와 대화하듯 성공의 말을 함께 만들어가요.',
+        '질문 추천 탭: AI와 대화하듯 성공의 말을 함께 만들어가요.',
         '세 탭 모두 마이크 버튼으로 음성 입력이 가능해요.',
         '부정적인 표현이 감지되면 긍정적인 대안을 제안해드려요.',
         '이미 있는 문장은 중복으로 감지되어 안내해요.',
@@ -1445,7 +1445,7 @@ function ManualPanel() {
 type LucideIcon = React.ComponentType<{ size?: number; strokeWidth?: number; color?: string }>
 const BUTTONS: { id: string; icon: LucideIcon; label: string; danger?: boolean }[] = [
   { id: 'theme',    icon: Palette,    label: '테마' },
-  { id: 'toggle',   icon: Power,      label: 'On / Off' },
+  { id: 'toggle',   icon: Power,      label: '켜기 / 끄기' },
   { id: 'alarm',    icon: Bell,       label: '알림' },
   { id: 'stats',    icon: BarChart3,  label: '통계' },
   { id: 'search',   icon: Search,     label: '찾기' },
