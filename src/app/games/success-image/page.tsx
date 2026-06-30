@@ -73,6 +73,7 @@ export default function SuccessImagePage() {
   const [successGenerating, setSuccessGenerating] = useState(false)
   const [successUrl, setSuccessUrl] = useState<string | null>(null)
   const [successError, setSuccessError] = useState<string | null>(null)
+  const [dailyCount, setDailyCount] = useState(0)
 
   const IMAGE_GEN_KEY = 'ealo-image-gen-count'
   const MAX_DAILY = 3
@@ -97,6 +98,7 @@ export default function SuccessImagePage() {
 
   useEffect(() => {
     setAffirmations(getAffirmations())
+    setDailyCount(getDailyCount(IMAGE_GEN_KEY))
     getFaceProfile().then((p) => {
       setSavedProfile(p)
     }).catch(() => {})
@@ -200,10 +202,7 @@ export default function SuccessImagePage() {
 
   const handleGenerateSuccess = async () => {
     if (!hasProfile || selectedIds.length === 0) return
-    if (getDailyCount(IMAGE_GEN_KEY) >= MAX_DAILY) {
-      setSuccessError('오늘은 성공 이미지 생성을 모두 사용했어요. 내일 다시 시도해보세요.')
-      return
-    }
+    if (dailyCount >= MAX_DAILY) return
     setSuccessGenerating(true)
     setSuccessError(null)
     setSuccessUrl(null)
@@ -232,6 +231,7 @@ export default function SuccessImagePage() {
       } else if (data.url) {
         setSuccessUrl(data.url)
         incrementDailyCount(IMAGE_GEN_KEY)
+        setDailyCount((c) => c + 1)
         saveSuccessImage(dataURLtoBlob(data.url)).catch(() => {})
       }
     } catch {
@@ -250,7 +250,8 @@ export default function SuccessImagePage() {
     document.body.removeChild(a)
   }
 
-  const canGenerateSuccess = hasProfile && selectedIds.length > 0 && !successGenerating
+  const isLimitReached = dailyCount >= MAX_DAILY
+  const canGenerateSuccess = hasProfile && selectedIds.length > 0 && !successGenerating && !isLimitReached
 
   return (
     <div style={{ minHeight: '100dvh', background: 'var(--color-bg-primary)', padding: '20px 16px 48px' }}>
@@ -547,31 +548,48 @@ export default function SuccessImagePage() {
             )}
           </div>
 
+          {/* 오늘 남은 횟수 */}
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '8px' }}>
+            <span style={{ fontSize: '12px', color: isLimitReached ? 'var(--color-danger)' : 'var(--color-text-muted)' }}>
+              오늘 {dailyCount}/{MAX_DAILY}회 사용
+            </span>
+          </div>
+
+          {/* 한도 초과 배너 */}
+          {isLimitReached && (
+            <div style={{ padding: '16px', background: 'var(--color-danger-bg)', borderRadius: '14px', textAlign: 'center', marginBottom: '16px' }}>
+              <p style={{ fontSize: '15px', fontWeight: 600, color: 'var(--color-danger)', marginBottom: '4px' }}>오늘 기회를 모두 사용했어요</p>
+              <p style={{ fontSize: '13px', color: 'var(--color-danger)', opacity: 0.8 }}>내일 다시 3번 도전할 수 있어요</p>
+            </div>
+          )}
+
           {/* 성공 이미지 생성 버튼 */}
-          <button
-            onClick={handleGenerateSuccess}
-            disabled={!canGenerateSuccess}
-            style={{
-              width: '100%',
-              padding: '16px',
-              background: canGenerateSuccess ? 'var(--color-accent-primary)' : 'var(--color-border)',
-              color: 'white',
-              border: 'none',
-              borderRadius: '16px',
-              fontSize: '16px',
-              fontWeight: 600,
-              cursor: canGenerateSuccess ? 'pointer' : 'not-allowed',
-              marginBottom: '24px',
-              opacity: canGenerateSuccess ? 1 : 0.6,
-            }}
-          >
-            {successGenerating ? (
-              <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
-                <span style={{ animation: 'spin 1s linear infinite', display: 'inline-block' }}>✨</span>
-                AI가 성공 이미지를 그리는 중...
-              </span>
-            ) : '🌟 성공 이미지 만들기'}
-          </button>
+          {!isLimitReached && (
+            <button
+              onClick={handleGenerateSuccess}
+              disabled={!canGenerateSuccess}
+              style={{
+                width: '100%',
+                padding: '16px',
+                background: canGenerateSuccess ? 'var(--color-accent-primary)' : 'var(--color-border)',
+                color: 'white',
+                border: 'none',
+                borderRadius: '16px',
+                fontSize: '16px',
+                fontWeight: 600,
+                cursor: canGenerateSuccess ? 'pointer' : 'not-allowed',
+                marginBottom: '24px',
+                opacity: canGenerateSuccess ? 1 : 0.6,
+              }}
+            >
+              {successGenerating ? (
+                <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                  <span style={{ animation: 'spin 1s linear infinite', display: 'inline-block' }}>✨</span>
+                  AI가 성공 이미지를 그리는 중...
+                </span>
+              ) : '🌟 성공 이미지 만들기'}
+            </button>
+          )}
 
           {successError && (
             <div style={{ padding: '14px', background: 'var(--color-warning-bg)', borderRadius: '12px', color: 'var(--color-warning)', fontSize: '14px', marginBottom: '16px', textAlign: 'center' }}>
@@ -606,7 +624,7 @@ export default function SuccessImagePage() {
                 >
                   📥 이미지 저장
                 </button>
-                <button
+                {!isLimitReached && <button
                   onClick={handleGenerateSuccess}
                   style={{
                     padding: '14px 18px',
@@ -619,7 +637,7 @@ export default function SuccessImagePage() {
                   }}
                 >
                   다시
-                </button>
+                </button>}
               </div>
             </div>
           )}
