@@ -254,7 +254,7 @@ export default function SuccessImagePage() {
   const canGenerateSuccess = hasProfile && selectedIds.length > 0 && !successGenerating && !isLimitReached
 
   return (
-    <div style={{ minHeight: '100dvh', background: 'var(--color-bg-primary)', padding: '20px 16px 48px' }}>
+    <div style={{ height: '100dvh', overflowY: 'auto', background: 'var(--color-bg-primary)', padding: '20px 16px 48px' }}>
       {/* 헤더 */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '24px' }}>
         <button
