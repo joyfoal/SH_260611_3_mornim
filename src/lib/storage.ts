@@ -227,7 +227,9 @@ export function setTomorrowEnabled(v: boolean): void {
 
 // Categories (dynamic)
 export function getCategories(): string[] {
-  return safeGet<string[]>(KEYS.CATEGORIES, DEFAULT_CATEGORIES)
+  const saved = safeGet<string[]>(KEYS.CATEGORIES, DEFAULT_CATEGORIES)
+  const missing = DEFAULT_CATEGORIES.filter((c) => !saved.includes(c))
+  return missing.length > 0 ? [...missing, ...saved] : saved
 }
 
 export function saveCategories(cats: string[]): void {

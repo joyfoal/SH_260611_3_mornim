@@ -238,10 +238,6 @@ export default function CreatePage() {
   }
 
   const handleChatSave = (text: string) => {
-    if (!chatCategory) {
-      showToast('카테고리를 선택해주세요', 'duplicate')
-      return
-    }
     const existing = getAffirmations()
     if (existing.some((a) => a.text.trim() === text.trim())) {
       showToast('이미 같은 성공의 말이 있어요', 'duplicate')
@@ -251,7 +247,7 @@ export default function CreatePage() {
     saveAffirmation({
       id: newId,
       text,
-      category: chatCategory as AffirmationCategory,
+      category: (chatCategory ?? '나 자신') as AffirmationCategory,
       createdAt: new Date().toISOString(),
       completedDates: [],
     })
@@ -907,6 +903,37 @@ export default function CreatePage() {
                     <Mic size={16} color={isListeningChat ? 'white' : 'var(--color-text-muted)'} />
                   </button>
                 </div>
+                {/* 카테고리 선택 */}
+                <div style={{ marginBottom: '12px' }}>
+                  <p style={{ fontSize: '12px', color: 'var(--color-text-muted)', marginBottom: '8px' }}>
+                    카테고리 선택 <span style={{ opacity: 0.7 }}>(선택 안 하면 나 자신으로 저장돼요)</span>
+                  </p>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                    {categories.map((cat) => (
+                      <button
+                        key={cat}
+                        onClick={() => setChatCategory(chatCategory === cat ? null : cat)}
+                        style={{
+                          padding: '6px 12px',
+                          borderRadius: '20px',
+                          border: chatCategory === cat
+                            ? '1px solid var(--color-accent-primary)'
+                            : '1px solid var(--color-border)',
+                          background: chatCategory === cat
+                            ? 'var(--color-accent-light)'
+                            : 'transparent',
+                          color: chatCategory === cat
+                            ? 'var(--color-accent-primary)'
+                            : 'var(--color-text-muted)',
+                          fontSize: '12px',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        {cat}
+                      </button>
+                    ))}
+                  </div>
+                </div>
                 <button
                   onClick={handleStartChat}
                   disabled={!initialInput.trim() || chatLoading}
@@ -1037,7 +1064,7 @@ export default function CreatePage() {
                     </div>
                     {!chatCategory && (
                       <p style={{ fontSize: '12px', color: 'var(--color-text-muted)', marginBottom: '8px' }}>
-                        카테고리를 선택하면 저장할 수 있어요
+                        선택 안 하면 나 자신으로 저장돼요
                       </p>
                     )}
                     {chatAffirmations.map((text, i) => (
@@ -1059,15 +1086,14 @@ export default function CreatePage() {
                         </p>
                         <button
                           onClick={() => handleChatSave(text)}
-                          disabled={!chatCategory}
                           style={{
                             padding: '5px 12px',
-                            background: chatCategory ? 'var(--color-accent-primary)' : 'var(--color-border)',
+                            background: 'var(--color-accent-primary)',
                             color: 'white',
                             border: 'none',
                             borderRadius: '8px',
                             fontSize: '12px',
-                            cursor: chatCategory ? 'pointer' : 'not-allowed',
+                            cursor: 'pointer',
                             flexShrink: 0,
                           }}
                         >
