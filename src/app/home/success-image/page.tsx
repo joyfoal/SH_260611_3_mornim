@@ -305,7 +305,7 @@ export default function SuccessImagePage() {
         ✓ 성공 이미지로 등록됐어요
       </div>
     )}
-    <AppLayout activeTab="게임">
+    <AppLayout activeTab="홈">
       <div style={{ position: 'sticky', top: 0, zIndex: 10, background: 'var(--color-bg-primary)', padding: '20px 16px', display: 'flex', alignItems: 'center', gap: '12px' }}>
         <button
           onClick={() => router.back()}

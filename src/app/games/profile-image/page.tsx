@@ -229,7 +229,7 @@ export default function ProfileImagePage() {
             ✓ 프로필 사진이 저장됐어요!
           </div>
           <button
-            onClick={() => router.push('/games/success-image')}
+            onClick={() => router.push('/home/success-image')}
             style={{ width: '100%', padding: '14px', background: 'var(--color-accent-primary)', color: 'white', border: 'none', borderRadius: '14px', fontSize: '15px', fontWeight: 600, cursor: 'pointer' }}
           >
             🌟 성공 이미지 만들러 가기

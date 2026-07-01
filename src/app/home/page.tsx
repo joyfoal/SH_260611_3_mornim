@@ -802,7 +802,7 @@ export default function HomePage() {
             성공의 말 만들기
           </button>
           <button
-            onClick={() => router.push('/games/success-image')}
+            onClick={() => router.push('/home/success-image')}
             style={{
               padding: '12px 6px',
               background: 'var(--color-bg-card)',
@@ -830,7 +830,7 @@ export default function HomePage() {
         {displaySettings.showRecentRec && <RecentRecordingPlayer />}
 
         {/* 저장된 성공 이미지 */}
-        {displaySettings.showSuccessImg && <SavedSuccessImage onTap={() => router.push('/games/success-image')} />}
+        {displaySettings.showSuccessImg && <SavedSuccessImage onTap={() => router.push('/home/success-image')} />}
       </div>
 
       {showWeeklyReport && <WeeklyReportModal onClose={handleCloseWeeklyReport} />}
