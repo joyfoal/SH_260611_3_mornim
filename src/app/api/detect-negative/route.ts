@@ -54,6 +54,6 @@ export async function POST(req: NextRequest) {
     const result = JSON.parse(match[0]) as { isNegative: boolean; alternative: string | null; suggestedDesc?: string | null; suggestedCategory?: string | null }
     return NextResponse.json(result)
   } catch {
-    return NextResponse.json({ isNegative: false, alternative: null, suggestedDesc: null, suggestedCategory: '나 자신' })
+    return NextResponse.json({ error: 'unavailable' }, { status: 503 })
   }
 }

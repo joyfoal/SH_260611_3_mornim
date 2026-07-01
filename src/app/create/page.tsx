@@ -19,6 +19,9 @@ const CLIENT_FALLBACK: Record<string, string[]> = {
   '마음과 평온': ['나는 내면의 평화를 찾아가고 있다', '나는 지금 이 순간을 충분히 누릴 수 있다', '나는 나 자신을 친절하게 대한다', '나는 평온함을 선택한다', '나의 마음은 고요하고 강하다'],
   '오늘 하루':  ['나는 오늘도 충분히 잘하고 있다', '오늘 하루도 나에게 좋은 일이 가득하다', '나는 오늘 최선을 다한 나를 칭찬한다', '오늘 나는 빛난다', '나는 오늘도 한 발씩 나아간다'],
 }
+const NEGATIVE_KEYWORDS = ['짜증', '싫', '못해', '안 돼', '안돼', '두렵', '걱정', '불안', '화나', '화가 나', '무섭', '포기', '실패', '우울', '지쳐', '지친', '괴로', '절망', '미워', '나빠', '망해', '슬프', '고통', '힘들', '모르겠', '못하겠', '그만']
+const isClientNegative = (text: string) => NEGATIVE_KEYWORDS.some(w => text.includes(w))
+
 const CLIENT_FALLBACK_DEFAULT = [
   '나는 오늘도 충분히 잘하고 있다',
   '나는 내가 하는 일에서 가치를 만든다',
@@ -140,6 +143,7 @@ export default function CreatePage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ text, category: directCategory }),
       })
+      if (!res.ok) throw new Error('api_unavailable')
       const data = await res.json() as { isNegative: boolean; alternative: string | null; suggestedCategory?: string }
       if (data.isNegative) {
         setNegativeBanner({ alternative: data.alternative ?? '' })
@@ -151,7 +155,11 @@ export default function CreatePage() {
         setDirectCategory(data.suggestedCategory)
       }
     } catch {
-      // proceed without check
+      if (isClientNegative(text)) {
+        setNegativeBanner({ alternative: '' })
+        setDirectSaving(false)
+        return
+      }
     }
     doSave(text, resolvedCategory ?? '나 자신')
     setDirectSaving(false)
