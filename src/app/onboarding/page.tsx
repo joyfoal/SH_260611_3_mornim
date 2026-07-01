@@ -7,6 +7,7 @@ import { CATEGORIES } from '@/lib/categories'
 import { saveAffirmation, setOnboarded, saveTodayAffirmationIds, saveAlarmList, saveDayRecord, todayStr, saveStreakData, saveCategories } from '@/lib/storage'
 import { saveAudioRecord } from '@/lib/audioStorage'
 import { useTheme } from '@/lib/themeContext'
+import { SwirlEmblem } from '@/components/ui/SwirlEmblem'
 
 /* ── Design tokens (warm gold) ───────────────────────────────── */
 const T = {
@@ -86,14 +87,6 @@ const btnText: React.CSSProperties = {
 }
 
 /* ── Icons ───────────────────────────────────────────────────── */
-function SeedIcon({ size = 30 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M12 21V11M12 11C12 8 10 5 5 5c0 5 3 6 7 6M12 11c0-3 2-5 7-5 0 4-3 5-7 5" />
-    </svg>
-  )
-}
-
 function BellIcon() {
   return (
     <svg width={34} height={34} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -509,23 +502,29 @@ export default function OnboardingPage() {
     switch (idx) {
       /* ── 0: Welcome ───────────────────────────────────────────── */
       case 0: return (
-        <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '0 32px', gap: 16 }}>
-            <div style={{
-              width: 60, height: 60, borderRadius: 18, marginBottom: 18,
-              background: 'linear-gradient(150deg, #d79a36, #b5750f)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-            }}>
-              <SeedIcon size={30} />
+        <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: '#FFFCF8' }}>
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '0 32px' }}>
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 44 }}>
+              <SwirlEmblem size={220} inset={26} />
             </div>
-            <div style={{ fontSize: 32, fontWeight: 800, letterSpacing: '-0.6px', color: T.ink, lineHeight: 1.28 }}>안녕하세요 :)</div>
-            <div style={{ fontSize: 32, fontWeight: 800, letterSpacing: '-0.6px', color: T.gold, lineHeight: 1.28 }}>저는 '이뤄'예요.</div>
-            <div style={{ fontSize: 16, fontWeight: 500, color: T.ink2, lineHeight: 1.55, marginTop: 4 }}>
+            <div style={{ fontSize: 32, fontWeight: 800, letterSpacing: '-0.6px', color: '#2A1801', lineHeight: 1.28 }}>안녕하세요 :)</div>
+            <div style={{ fontSize: 32, fontWeight: 800, letterSpacing: '-0.6px', color: '#BA7517', lineHeight: 1.28 }}>저는 '이뤄'예요.</div>
+            <div style={{ fontSize: 16, fontWeight: 500, color: '#8A7A62', lineHeight: 1.55, marginTop: 14 }}>
               성공의 말을 자주 하면 이루어진다.
             </div>
           </div>
-          <div style={{ padding: '12px 26px 48px' }}>
-            <button style={btnPrimary} onClick={() => goTo(1)}>좋아요, 시작할게요</button>
+          <div style={{ padding: '12px 26px 44px' }}>
+            <button
+              style={{
+                ...btnBase,
+                background: 'linear-gradient(135deg, #BA7517, #D98A1C)',
+                color: '#fff',
+                boxShadow: '0 10px 26px rgba(186,117,23,0.34)',
+              }}
+              onClick={() => goTo(1)}
+            >
+              좋아요, 시작할게요
+            </button>
           </div>
         </div>
       )

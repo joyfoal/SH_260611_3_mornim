@@ -176,3 +176,12 @@ body {
 @keyframes onbRecBlink {
   50% { opacity: .25; }
 }
+
+/* ── Swirl emblem (splash & onboarding welcome) ───────────────── */
+@keyframes swirlSpin    { to { transform: rotate(360deg); } }
+@keyframes swirlSpinRev { to { transform: rotate(-360deg); } }
+@keyframes floatY       { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .swirl-emblem, .swirl-emblem * { animation: none !important; }
+}
