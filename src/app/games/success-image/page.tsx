@@ -467,7 +467,7 @@ export default function SuccessImagePage() {
                   스타일 & 성공의 말 선택
                 </p>
                 <p style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>
-                  성공의 말 1~3개 · {selectedIds.length}/3
+                  성공의 말 3개를 선택하여 이미지에 반영할 수 있어요 · {selectedIds.length}/3
                 </p>
               </div>
             </div>
