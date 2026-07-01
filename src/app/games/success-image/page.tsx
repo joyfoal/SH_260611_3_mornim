@@ -204,10 +204,10 @@ export default function SuccessImagePage() {
   const handleRegisterPhotoAsSuccess = async () => {
     if (!savedProfile?.profileImageBlob) return
     try {
-      await saveSuccessImage(savedProfile.profileImageBlob)
-      const reader = new FileReader()
-      reader.onload = () => setSuccessUrl(reader.result as string)
-      reader.readAsDataURL(savedProfile.profileImageBlob)
+      const resized = await resizeImage(savedProfile.profileImageBlob, 1024, 'png')
+      const blob = dataURLtoBlob(resized)
+      await saveSuccessImage(blob)
+      setSuccessUrl(resized)
     } catch {}
   }
 
