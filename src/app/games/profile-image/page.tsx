@@ -119,7 +119,7 @@ export default function ProfileImagePage() {
     : 1
 
   return (
-    <div style={{ minHeight: '100dvh', background: 'var(--color-bg-primary)', padding: '20px 16px 48px' }}>
+    <div style={{ height: '100dvh', overflowY: 'auto', background: 'var(--color-bg-primary)', padding: '20px 16px 48px' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '24px' }}>
         <button
           onClick={() => router.back()}

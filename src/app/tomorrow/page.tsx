@@ -119,7 +119,8 @@ export default function TomorrowPage() {
   return (
     <div
       style={{
-        minHeight: '100dvh',
+        height: '100dvh',
+        overflowY: 'auto',
         background: 'var(--color-bg-dark)',
         padding: '0 16px 32px',
       }}
