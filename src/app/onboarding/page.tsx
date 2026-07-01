@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
+import { Sprout, Briefcase, TrendingUp, Heart, Leaf, Flame, Moon, Sun, type LucideIcon } from 'lucide-react'
 import { CATEGORIES } from '@/lib/categories'
 import { saveAffirmation, setOnboarded, saveTodayAffirmationIds, saveAlarmList, saveDayRecord, todayStr, saveStreakData, saveCategories } from '@/lib/storage'
 import { saveAudioRecord } from '@/lib/audioStorage'
@@ -23,10 +24,10 @@ const T = {
   onDark2: '#c7b48d',
 }
 
-const CAT_EMOJI: Record<string, string> = {
-  '나 자신': '🌱', '일과 커리어': '🚩', '돈과 풍요': '🌿',
-  '관계와 사랑': '💗', '건강과 몸': '🍃', '용기와 도전': '🔥',
-  '마음과 평온': '🌙', '오늘 하루': '☀️',
+const CAT_ICONS: Record<string, LucideIcon> = {
+  '나 자신': Sprout, '일과 커리어': Briefcase, '돈과 풍요': TrendingUp,
+  '관계와 사랑': Heart, '건강과 몸': Leaf, '용기와 도전': Flame,
+  '마음과 평온': Moon, '오늘 하루': Sun,
 }
 
 const SUGGESTIONS: Record<string, string[]> = {
@@ -549,7 +550,7 @@ export default function OnboardingPage() {
                         transition: 'transform .12s, border-color .15s, background .15s, color .15s',
                       }}
                     >
-                      <span style={{ marginRight: 5 }}>{CAT_EMOJI[cat]}</span>{cat}
+                      <span style={{ marginRight: 5, display: 'inline-flex', alignItems: 'center' }}>{(() => { const Icon = CAT_ICONS[cat]; return Icon && <Icon size={12} /> })()}</span>{cat}
                     </button>
                   )
                 })}
@@ -569,8 +570,8 @@ export default function OnboardingPage() {
                       border: `1.5px solid ${T.line}`,
                       borderRadius: 16, padding: '14px 16px',
                     }}>
-                      <div style={{ fontSize: 12, fontWeight: 600, color: T.gold, marginBottom: 6 }}>
-                        {CAT_EMOJI[cat]} {cat}
+                      <div style={{ fontSize: 12, fontWeight: 600, color: T.gold, marginBottom: 6, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                        {(() => { const Icon = CAT_ICONS[cat]; return Icon && <Icon size={11} /> })()} {cat}
                       </div>
                       <div style={{ fontSize: 15, fontWeight: 700, color: T.ink, lineHeight: 1.5 }}>
                         &ldquo;{suggestion}&rdquo;
