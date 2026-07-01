@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { hasOpenRouterKey, withOpenRouter } from '@/lib/openrouter'
 
 export async function POST(req: NextRequest) {
   try {
@@ -8,14 +9,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: '이미지가 없어요.' }, { status: 400 })
     }
 
-    if (!process.env.OPENROUTER_API_KEY || process.env.OPENROUTER_API_KEY === 'your_key_here') {
+    if (!hasOpenRouterKey()) {
       return NextResponse.json({ error: 'API 키가 설정되지 않았어요.' }, { status: 400 })
     }
 
-    const OpenAI = (await import('openai')).default
-    const openai = new OpenAI({ apiKey: process.env.OPENROUTER_API_KEY, baseURL: 'https://openrouter.ai/api/v1' })
-
-    const completion = await openai.chat.completions.create({
+    const completion = await withOpenRouter((openai) => openai.chat.completions.create({
       model: 'openai/gpt-4o-mini',
       messages: [
         {
@@ -60,7 +58,7 @@ Use "unknown" only if a feature is truly impossible to determine. Always attempt
       ],
       temperature: 0.2,
       max_tokens: 400,
-    })
+    }))
 
     const content = completion.choices[0]?.message?.content ?? ''
     const match = content.match(/\{[\s\S]*\}/)

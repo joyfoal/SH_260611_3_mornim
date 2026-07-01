@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { hasOpenRouterKey, withOpenRouter } from '@/lib/openrouter'
 
 interface FaceData {
   gender: string
@@ -118,15 +119,9 @@ export async function POST(req: NextRequest) {
       imageStyle?: 'cartoon' | 'realistic'
     }
 
-    if (!process.env.OPENROUTER_API_KEY || process.env.OPENROUTER_API_KEY === 'your_key_here') {
+    if (!hasOpenRouterKey()) {
       return NextResponse.json({ error: 'API 키가 설정되지 않았어요.' }, { status: 400 })
     }
-
-    const { default: OpenAI } = await import('openai')
-    const openai = new OpenAI({
-      apiKey: process.env.OPENROUTER_API_KEY,
-      baseURL: 'https://openrouter.ai/api/v1',
-    })
 
     const affText = affirmations.join(', ')
     const sceneContext = [affText, profileDescription].filter(Boolean).join('. Personal vision: ')
@@ -146,7 +141,7 @@ The person radiates genuine joy, deep fulfillment, confidence, and inner peace.
 Style: Photorealistic, warm golden light, cinematic photography quality.
 NO TEXT OR LETTERS in the image.`
 
-      const response = await openai.chat.completions.create({
+      const response = await withOpenRouter((openai) => openai.chat.completions.create({
         model: 'google/gemini-2.5-flash-image',
         messages: [{
           role: 'user',
@@ -155,7 +150,7 @@ NO TEXT OR LETTERS in the image.`
             { type: 'image_url', image_url: { url: profileImageBase64 } },
           ],
         }],
-      })
+      }))
       imageDataUrl = await extractImageDataUrl(response.choices[0]?.message?.content)
     } else if (faceImageBase64) {
       const prompt = faceData
@@ -166,7 +161,7 @@ The person radiates genuine joy, confidence, and deep fulfillment.
 The image must be deeply positive, hopeful, and inspiring.
 NO TEXT OR LETTERS. Style: warm golden light, photorealistic.`
 
-      const response = await openai.chat.completions.create({
+      const response = await withOpenRouter((openai) => openai.chat.completions.create({
         model: 'google/gemini-2.5-flash-image',
         messages: [{
           role: 'user',
@@ -175,14 +170,14 @@ NO TEXT OR LETTERS. Style: warm golden light, photorealistic.`
             { type: 'image_url', image_url: { url: faceImageBase64 } },
           ],
         }],
-      })
+      }))
       imageDataUrl = await extractImageDataUrl(response.choices[0]?.message?.content)
     } else if (faceData) {
       const prompt = buildIdentityMatrix(faceData, sceneContext)
-      const response = await openai.chat.completions.create({
+      const response = await withOpenRouter((openai) => openai.chat.completions.create({
         model: 'google/gemini-2.5-flash-image',
         messages: [{ role: 'user', content: prompt }],
-      })
+      }))
       imageDataUrl = await extractImageDataUrl(response.choices[0]?.message?.content)
     } else {
       const prompt = `A beautiful, heartwarming scene of a radiant, youthful person in their mid-20s — glowing skin, vibrant energy, peak attractiveness — whose face shines with genuine joy, fulfillment, and inner peace.
@@ -193,10 +188,10 @@ The atmosphere is deeply uplifting, encouraging, and filled with warmth and hope
 NO TEXT OR LETTERS of any kind in the image.
 Style: warm golden light, painterly, Korean aesthetic sensibility, cinematic and deeply positive.`
 
-      const response = await openai.chat.completions.create({
+      const response = await withOpenRouter((openai) => openai.chat.completions.create({
         model: 'google/gemini-2.5-flash-image',
         messages: [{ role: 'user', content: prompt }],
-      })
+      }))
       imageDataUrl = await extractImageDataUrl(response.choices[0]?.message?.content)
     }
 

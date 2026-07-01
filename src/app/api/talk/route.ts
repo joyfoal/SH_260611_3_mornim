@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { hasOpenRouterKey, withOpenRouter } from '@/lib/openrouter'
 
 const FALLBACK_AFFIRMATIONS = [
   '나는 반드시 성공한다',
@@ -21,7 +22,7 @@ export async function POST(req: NextRequest) {
       initialContext?: string
     }
 
-    if (!process.env.OPENROUTER_API_KEY || process.env.OPENROUTER_API_KEY === 'your_key_here') {
+    if (!hasOpenRouterKey()) {
       return NextResponse.json({
         reply: generateAffirmations
           ? '우리의 대화를 바탕으로 당신만을 위한 성공의 말을 준비했어요 ✨ 아래에서 확인해 보세요!'
@@ -30,9 +31,6 @@ export async function POST(req: NextRequest) {
         suggestedCategory: generateAffirmations ? '나 자신' : undefined,
       })
     }
-
-    const OpenAI = (await import('openai')).default
-    const openai = new OpenAI({ apiKey: process.env.OPENROUTER_API_KEY, baseURL: 'https://openrouter.ai/api/v1' })
 
     const ctxLine = initialContext ? `\n사용자의 고민: "${initialContext}"` : ''
 
@@ -59,7 +57,7 @@ export async function POST(req: NextRequest) {
 - 절대 성공의 말을 지금 생성하지 마세요`
     }
 
-    const completion = await openai.chat.completions.create({
+    const completion = await withOpenRouter((openai) => openai.chat.completions.create({
       model: 'openai/gpt-4o-mini',
       messages: [
         { role: 'system', content: systemPrompt },
@@ -67,7 +65,7 @@ export async function POST(req: NextRequest) {
       ],
       temperature: 0.8,
       max_tokens: 250,
-    })
+    }))
 
     const content = completion.choices[0]?.message?.content ?? ''
 

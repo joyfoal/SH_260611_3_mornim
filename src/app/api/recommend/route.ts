@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { hasOpenRouterKey, withOpenRouter } from '@/lib/openrouter'
 
 const CATEGORY_FALLBACKS: Record<string, string[]> = {
   '나 자신': [
@@ -48,12 +49,9 @@ export async function POST(req: NextRequest) {
 
     const fallback = (category && CATEGORY_FALLBACKS[category]) ?? DEFAULT_FALLBACKS
 
-    if (!process.env.OPENROUTER_API_KEY || process.env.OPENROUTER_API_KEY === 'your_key_here') {
+    if (!hasOpenRouterKey()) {
       return NextResponse.json({ affirmations: fallback, suggestedCategory: category ?? '나 자신' })
     }
-
-    const OpenAI = (await import('openai')).default
-    const openai = new OpenAI({ apiKey: process.env.OPENROUTER_API_KEY, baseURL: 'https://openrouter.ai/api/v1' })
 
     const CATEGORIES = ['나 자신', '일과 커리어', '돈과 풍요', '관계와 사랑', '건강과 몸', '용기와 도전', '마음과 평온', '오늘 하루']
     const categoryPart = category ? ` 카테고리: ${category}.` : ''
@@ -61,7 +59,7 @@ export async function POST(req: NextRequest) {
 카테고리 목록: ${CATEGORIES.join(', ')}
 JSON 객체로만 응답하세요: {"affirmations": ["확언1","확언2","확언3","확언4","확언5"], "suggestedCategory": "카테고리명"}`
 
-    const completion = await openai.chat.completions.create({
+    const completion = await withOpenRouter((openai) => openai.chat.completions.create({
       model: 'openai/gpt-4o-mini',
       messages: [
         {
@@ -73,7 +71,7 @@ JSON 객체로만 응답하세요: {"affirmations": ["확언1","확언2","확언
       ],
       temperature: 0.8,
       max_tokens: 400,
-    })
+    }))
 
     const content = completion.choices[0]?.message?.content ?? ''
     const match = content.match(/\{[\s\S]*\}/)

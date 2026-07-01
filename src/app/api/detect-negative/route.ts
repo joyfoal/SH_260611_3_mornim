@@ -1,15 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { hasOpenRouterKey, withOpenRouter } from '@/lib/openrouter'
 
 export async function POST(req: NextRequest) {
   try {
     const { text, category, context } = await req.json() as { text: string; category?: string; context?: 'roomName' | 'general' }
 
-    if (!process.env.OPENROUTER_API_KEY || process.env.OPENROUTER_API_KEY === 'your_key_here') {
+    if (!hasOpenRouterKey()) {
       return NextResponse.json({ isNegative: false, alternative: null, suggestedDesc: null, suggestedCategory: '나 자신' })
     }
-
-    const OpenAI = (await import('openai')).default
-    const openai = new OpenAI({ apiKey: process.env.OPENROUTER_API_KEY, baseURL: 'https://openrouter.ai/api/v1' })
 
     const isRoomName = context === 'roomName'
     const AFFIRMATION_CATEGORIES = ['나 자신', '일과 커리어', '돈과 풍요', '관계와 사랑', '건강과 몸', '용기와 도전', '마음과 평온', '오늘 하루']
@@ -36,7 +34,7 @@ export async function POST(req: NextRequest) {
 3. 정상적인 문장 → {"isNegative": false, "alternative": null, "suggestedDesc": null, "suggestedCategory": "카테고리명"}
    - 텍스트 내용을 바탕으로 카테고리 목록 중 가장 적합한 것을 선택할 것`
 
-    const completion = await openai.chat.completions.create({
+    const completion = await withOpenRouter((openai) => openai.chat.completions.create({
       model: 'openai/gpt-4o-mini',
       messages: [
         { role: 'system', content: systemPrompt },
@@ -44,7 +42,7 @@ export async function POST(req: NextRequest) {
       ],
       temperature: 0.3,
       max_tokens: 200,
-    })
+    }))
 
     const content = completion.choices[0]?.message?.content ?? ''
     const match = content.match(/\{[\s\S]*\}/)
