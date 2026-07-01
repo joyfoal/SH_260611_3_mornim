@@ -150,10 +150,15 @@ export default function CreatePage() {
         setDirectSaving(false)
         return
       }
+      let aiAssigned = false
       if (!resolvedCategory && data.suggestedCategory) {
         resolvedCategory = data.suggestedCategory
         setDirectCategory(data.suggestedCategory)
+        aiAssigned = true
       }
+      doSave(text, resolvedCategory ?? '나 자신', aiAssigned)
+      setDirectSaving(false)
+      return
     } catch {
       const fallback = clientNegativeCheck(text)
       if (fallback.isNegative) {
@@ -207,7 +212,7 @@ export default function CreatePage() {
     setTimeout(() => setSavedMsg(''), 2500)
   }
 
-  const doSave = (text: string, category: CategoryName) => {
+  const doSave = (text: string, category: CategoryName, aiAssigned = false) => {
     const existing = getAffirmations()
     if (existing.some((a) => a.text.trim() === text.trim())) {
       showToast('이미 같은 성공의 말이 있어요', 'duplicate')
@@ -228,7 +233,7 @@ export default function CreatePage() {
     setDirectText('')
     setDirectCategory(null)
     setNegativeBanner(null)
-    showToast('저장되었어요!', 'success')
+    showToast(aiAssigned ? `'${category}' 카테고리로 저장됐어요` : '저장되었어요!', 'success')
   }
 
   const handleAIRecommend = async () => {
