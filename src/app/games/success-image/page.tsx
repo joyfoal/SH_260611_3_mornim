@@ -64,6 +64,7 @@ export default function SuccessImagePage() {
   const [photoFile, setPhotoFile] = useState<File | null>(null)
   const [photoPreviewUrl, setPhotoPreviewUrl] = useState<string | null>(null)
   const [photoSaving, setPhotoSaving] = useState(false)
+  const [photoSaved, setPhotoSaved] = useState(false)
   const [photoError, setPhotoError] = useState<string | null>(null)
   const [isDragOver, setIsDragOver] = useState(false)
 
@@ -195,6 +196,8 @@ export default function SuccessImagePage() {
       setPhotoFile(null)
       if (photoPreviewUrl) URL.revokeObjectURL(photoPreviewUrl)
       setPhotoPreviewUrl(null)
+      setPhotoSaved(true)
+      setTimeout(() => setPhotoSaved(false), 2500)
     } catch (err) {
       setPhotoError(err instanceof Error ? err.message : '사진 저장에 실패했어요.')
     }
@@ -293,6 +296,24 @@ export default function SuccessImagePage() {
   const canGenerateSuccess = hasProfile && selectedIds.length > 0 && !successGenerating && !isLimitReached
 
   return (
+    <>
+    {photoSaved && (
+      <div style={{
+        position: 'fixed', top: '60px', left: '50%',
+        transform: 'translateX(-50%)',
+        background: 'var(--color-accent-primary)',
+        color: 'white',
+        padding: '10px 20px',
+        borderRadius: '20px',
+        fontSize: '14px',
+        fontWeight: 600,
+        zIndex: 100,
+        boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+        whiteSpace: 'nowrap',
+      }}>
+        ✓ 사진이 등록되었어요
+      </div>
+    )}
     <AppLayout activeTab="게임">
       <div style={{ position: 'sticky', top: 0, zIndex: 10, background: 'var(--color-bg-primary)', padding: '20px 16px', display: 'flex', alignItems: 'center', gap: '12px' }}>
         <button
@@ -791,5 +812,6 @@ export default function SuccessImagePage() {
       `}</style>
       </div>
     </AppLayout>
+    </>
   )
 }
