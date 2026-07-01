@@ -492,13 +492,13 @@ export default function CommunityPage() {
                         </div>
                         <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
                           <span style={{ fontSize: '12px', color: 'var(--color-text-muted)', display: 'flex', alignItems: 'center', gap: '3px' }}>
-                            <Users size={11} /> {room.members}명
+                            <Users size={13} color="#6B7280" /> {room.members}명
                           </span>
                           <span style={{ fontSize: '12px', color: 'var(--color-community-text)', background: 'var(--color-community-bg)', padding: '2px 8px', borderRadius: '999px', fontWeight: 500 }}>
-                            연속 {room.streakDays}일 <Flame size={11} color="#FF6F00" style={{ display: 'inline', verticalAlign: 'middle' }} />
+                            연속 {room.streakDays}일 <Flame size={13} color="#FF6F00" style={{ display: 'inline', verticalAlign: 'middle' }} />
                           </span>
                           <span style={{ fontSize: '11px', color: 'var(--color-success-mid)', display: 'flex', alignItems: 'center', gap: '3px' }}>
-                            <CheckCircle size={11} /> 오늘 인증
+                            <CheckCircle size={13} color="#43A047" /> 오늘 인증
                           </span>
                         </div>
                       </div>
@@ -544,7 +544,7 @@ export default function CommunityPage() {
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                           <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
                             <span style={{ fontSize: '12px', color: 'var(--color-text-muted)', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                              <Users size={12} /> {room.members}/{MAX_MEMBERS}명
+                              <Users size={13} color="#6B7280" /> {room.members}/{MAX_MEMBERS}명
                             </span>
                             <span style={{ fontSize: '12px', color: 'var(--color-community-text)', background: 'var(--color-community-bg)', padding: '2px 8px', borderRadius: '999px', fontWeight: 500 }}>
                               연속 {room.streakDays}일째 🔥
@@ -870,7 +870,7 @@ export default function CommunityPage() {
                         </div>
                         <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
                           <span style={{ fontSize: '11px', color: 'var(--color-text-muted)', display: 'flex', alignItems: 'center', gap: '3px' }}>
-                            <Users size={10} /> {room.members}명
+                            <Users size={12} color="#6B7280" /> {room.members}명
                           </span>
                           <span style={{ fontSize: '11px', color: 'var(--color-community-text)', background: 'var(--color-community-bg)', padding: '1px 7px', borderRadius: '999px', fontWeight: 600 }}>
                             {entry.totalDays}일 외침
@@ -924,7 +924,7 @@ export default function CommunityPage() {
                             {entry.phrase}
                           </p>
                           <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-                            <span style={{ fontSize: '11px', color: 'var(--color-text-muted)', display: 'flex', alignItems: 'center', gap: '3px' }}><User size={10} /> {entry.userCount}명</span>
+                            <span style={{ fontSize: '11px', color: 'var(--color-text-muted)', display: 'flex', alignItems: 'center', gap: '3px' }}><User size={12} color="#6B7280" /> {entry.userCount}명</span>
                             <span style={{ fontSize: '11px', color: 'var(--color-community-text)', background: 'var(--color-community-bg)', padding: '1px 7px', borderRadius: '999px', fontWeight: 600 }}>
                               {entry.totalDays}일 외침
                             </span>

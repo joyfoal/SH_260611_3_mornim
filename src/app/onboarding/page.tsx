@@ -30,6 +30,12 @@ const CAT_ICONS: Record<string, LucideIcon> = {
   '마음과 평온': Moon, '오늘 하루': Sun,
 }
 
+const CAT_COLORS: Record<string, string> = {
+  '나 자신': '#4CAF50', '일과 커리어': '#1E88E5', '돈과 풍요': '#F59E0B',
+  '관계와 사랑': '#E53935', '건강과 몸': '#2E7D32', '용기와 도전': '#FF6F00',
+  '마음과 평온': '#7B1FA2', '오늘 하루': '#F59E0B',
+}
+
 const SUGGESTIONS: Record<string, string[]> = {
   '나 자신': ['나는 나를 있는 그대로 존중한다.', '나는 매일 조금씩 성장한다.'],
   '일과 커리어': ['나는 내 일에서 가치를 만든다.', '나는 기회를 끌어당긴다.'],
@@ -550,7 +556,7 @@ export default function OnboardingPage() {
                         transition: 'transform .12s, border-color .15s, background .15s, color .15s',
                       }}
                     >
-                      <span style={{ marginRight: 5, display: 'inline-flex', alignItems: 'center' }}>{(() => { const Icon = CAT_ICONS[cat]; return Icon && <Icon size={12} /> })()}</span>{cat}
+                      <span style={{ marginRight: 5, display: 'inline-flex', alignItems: 'center' }}>{(() => { const Icon = CAT_ICONS[cat]; return Icon && <Icon size={14} color={on ? '#fff' : CAT_COLORS[cat]} /> })()}</span>{cat}
                     </button>
                   )
                 })}
@@ -571,7 +577,7 @@ export default function OnboardingPage() {
                       borderRadius: 16, padding: '14px 16px',
                     }}>
                       <div style={{ fontSize: 12, fontWeight: 600, color: T.gold, marginBottom: 6, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                        {(() => { const Icon = CAT_ICONS[cat]; return Icon && <Icon size={11} /> })()} {cat}
+                        {(() => { const Icon = CAT_ICONS[cat]; return Icon && <Icon size={13} /> })()} {cat}
                       </div>
                       <div style={{ fontSize: 15, fontWeight: 700, color: T.ink, lineHeight: 1.5 }}>
                         &ldquo;{suggestion}&rdquo;

@@ -460,7 +460,7 @@ export default function RoomPage() {
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', fontSize: '12px', color: 'var(--color-text-muted)', marginBottom: '10px' }}>
                       {EMOJIS.filter(e => item.reactions[e.emoji] > 0).map(e => (
                         <span key={e.emoji} style={{ display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
-                          <ReactionIcon emoji={e.emoji} size={12} />{item.reactions[e.emoji]}
+                          <ReactionIcon emoji={e.emoji} size={14} />{item.reactions[e.emoji]}
                         </span>
                       ))}
                       {totalReactions(item.reactions) === 0 && '아직 응원이 없어요'}
@@ -491,7 +491,7 @@ export default function RoomPage() {
                                 gap: '5px',
                               }}
                             >
-                              <ReactionIcon emoji={e.emoji} size={13} active={isOn} /> {e.label}
+                              <ReactionIcon emoji={e.emoji} size={15} active={isOn} /> {e.label}
                             </button>
                           )
                         })}
@@ -642,7 +642,7 @@ export default function RoomPage() {
                                       ? <span style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>아직 칭찬이 없어요</span>
                                       : EMOJIS.filter(e => participant.reactions[e.emoji] > 0).map(e => (
                                           <span key={e.emoji} style={{ display: 'inline-flex', alignItems: 'center', gap: '2px', fontSize: '11px', color: 'var(--color-text-muted)' }}>
-                                            <ReactionIcon emoji={e.emoji} size={11} />{participant.reactions[e.emoji]}
+                                            <ReactionIcon emoji={e.emoji} size={13} />{participant.reactions[e.emoji]}
                                           </span>
                                         ))
                                     }
@@ -673,7 +673,7 @@ export default function RoomPage() {
                                           gap: '5px',
                                         }}
                                       >
-                                        <ReactionIcon emoji={e.emoji} size={12} active={isOn} /> {e.label}
+                                        <ReactionIcon emoji={e.emoji} size={14} active={isOn} /> {e.label}
                                       </button>
                                     )
                                   })}

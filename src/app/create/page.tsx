@@ -556,7 +556,7 @@ export default function CreatePage() {
                   </div>
                   {catBlocked && (
                     <div style={{ marginTop: '8px', padding: '12px', background: '#FFEBEE', borderRadius: '10px', border: '1px solid #FFCDD2' }}>
-                      <p style={{ fontSize: '12px', color: '#B71C1C', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '5px' }}><Ban size={12} /> 부적절한 표현은 사용할 수 없어요.</p>
+                      <p style={{ fontSize: '12px', color: '#B71C1C', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '5px' }}><Ban size={14} /> 부적절한 표현은 사용할 수 없어요.</p>
                       <button onClick={() => { setNewCatName(''); setCatBlocked(false) }} style={{ width: '100%', padding: '7px', background: 'transparent', color: '#B71C1C', border: '1px solid #FFCDD2', borderRadius: '8px', fontSize: '12px', cursor: 'pointer' }}>다시 쓰기</button>
                     </div>
                   )}
@@ -819,7 +819,7 @@ export default function CreatePage() {
                   </div>
                   {catBlocked && (
                     <div style={{ marginTop: '8px', padding: '12px', background: '#FFEBEE', borderRadius: '10px', border: '1px solid #FFCDD2' }}>
-                      <p style={{ fontSize: '12px', color: '#B71C1C', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '5px' }}><Ban size={12} /> 부적절한 표현은 사용할 수 없어요.</p>
+                      <p style={{ fontSize: '12px', color: '#B71C1C', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '5px' }}><Ban size={14} /> 부적절한 표현은 사용할 수 없어요.</p>
                       <button onClick={() => { setNewCatName(''); setCatBlocked(false) }} style={{ width: '100%', padding: '7px', background: 'transparent', color: '#B71C1C', border: '1px solid #FFCDD2', borderRadius: '8px', fontSize: '12px', cursor: 'pointer' }}>다시 쓰기</button>
                     </div>
                   )}

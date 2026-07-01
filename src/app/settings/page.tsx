@@ -663,7 +663,7 @@ function StatsPanel() {
             주간 리포트
           </button>
           <button onClick={handleExport} style={{ padding: '6px 12px', background: 'transparent', border: '1px solid var(--color-border)', borderRadius: '8px', fontSize: '12px', color: 'var(--color-text-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}>
-            <Download size={11} />텍스트
+            <Download size={14} />텍스트
           </button>
         </div>
       </div>
@@ -782,7 +782,7 @@ function SearchPanel() {
           />
           {textResults.length > 0 && (
             <button onClick={handleExportText} style={{ padding: '10px 12px', background: 'transparent', border: '1px solid var(--color-border)', borderRadius: '10px', cursor: 'pointer', color: 'var(--color-text-muted)', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px' }}>
-              <Download size={12} />텍스트
+              <Download size={14} />텍스트
             </button>
           )}
         </div>
@@ -856,7 +856,7 @@ function SearchPanel() {
                     </p>
                     {dateRangeResults.length > 0 && (
                       <button onClick={handleExportRange} style={{ padding: '5px 10px', background: 'transparent', border: '1px solid var(--color-border)', borderRadius: '8px', cursor: 'pointer', color: 'var(--color-text-muted)', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px' }}>
-                        <Download size={11} />텍스트
+                        <Download size={14} />텍스트
                       </button>
                     )}
                   </div>
@@ -1111,7 +1111,7 @@ function TrashPanel() {
           {affirmations.map((item) => (
             <div key={item.id} style={itemStyle}>
               <div style={{ flex: 1 }}>
-                {label(<Star size={9} />, '성공의 말')}
+                {label(<Star size={12} color="var(--color-accent-primary)" />, '성공의 말')}
                 <p style={{ fontSize: '13px', color: 'var(--color-text-onDark)', lineHeight: 1.4, marginBottom: '2px' }}>{item.text}</p>
                 <span style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>{item.category}</span>
               </div>
@@ -1121,7 +1121,7 @@ function TrashPanel() {
           {audios.map((rec) => (
             <div key={rec.id} style={itemStyle}>
               <div style={{ flex: 1 }}>
-                {label(<Mic size={9} />, '녹음 파일')}
+                {label(<Mic size={12} color="#1E88E5" />, '녹음 파일')}
                 <p style={{ fontSize: '13px', color: 'var(--color-text-onDark)', lineHeight: 1.4, marginBottom: '2px' }}>{rec.affirmationText}</p>
                 <span style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>{new Date(rec.createdAt).toLocaleDateString('ko-KR')}</span>
               </div>
@@ -1131,7 +1131,7 @@ function TrashPanel() {
           {faceProfile && (
             <div style={itemStyle}>
               <div style={{ flex: 1 }}>
-                {label(<User size={9} />, '프로필 이미지')}
+                {label(<User size={12} color="#7B6F5E" />, '프로필 이미지')}
                 <p style={{ fontSize: '13px', color: 'var(--color-text-onDark)', lineHeight: 1.4 }}>{new Date(faceProfile.createdAt).toLocaleDateString('ko-KR')} 생성</p>
               </div>
               <button onClick={handleRestoreFace} style={restoreBtn}>복원</button>
@@ -1140,7 +1140,7 @@ function TrashPanel() {
           {successImage && (
             <div style={itemStyle}>
               <div style={{ flex: 1 }}>
-                {label(<ImageIcon size={9} />, '성공 이미지')}
+                {label(<ImageIcon size={12} color="#7B1FA2" />, '성공 이미지')}
                 <p style={{ fontSize: '13px', color: 'var(--color-text-onDark)', lineHeight: 1.4 }}>{new Date(successImage.createdAt).toLocaleDateString('ko-KR')} 생성</p>
               </div>
               <button onClick={handleRestoreSuccess} style={restoreBtn}>복원</button>
@@ -1285,7 +1285,7 @@ function CategoryPanel() {
           </div>
           {catBlocked && (
             <div style={{ marginTop: '8px', padding: '12px', background: '#FFEBEE', borderRadius: '10px', border: '1px solid #FFCDD2' }}>
-              <p style={{ fontSize: '12px', color: '#B71C1C', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '5px' }}><Ban size={12} /> 부적절한 표현은 사용할 수 없어요.</p>
+              <p style={{ fontSize: '12px', color: '#B71C1C', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '5px' }}><Ban size={14} /> 부적절한 표현은 사용할 수 없어요.</p>
               <button onClick={() => { setNewCatName(''); setCatBlocked(false) }} style={{ width: '100%', padding: '8px', background: 'transparent', color: '#B71C1C', border: '1px solid #FFCDD2', borderRadius: '8px', fontSize: '12px', cursor: 'pointer' }}>다시 쓰기</button>
             </div>
           )}

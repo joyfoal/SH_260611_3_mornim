@@ -348,7 +348,7 @@ function CalendarView() {
                       lineHeight: 1.4,
                     }}
                   >
-                    <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><Check size={11} /> {a.text}</span>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><Check size={13} color="#43A047" /> {a.text}</span>
                   </div>
                 )) : (
                   <div style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>
@@ -737,7 +737,7 @@ export default function HomePage() {
             </div>
             {streakData.shields > 0 && (
               <div style={{ fontSize: '12px', color: 'var(--color-text-muted)', display: 'flex', alignItems: 'center', gap: '3px', marginTop: '1px' }}>
-                <Shield size={12} strokeWidth={1.75} />
+                <Shield size={14} color="#1E88E5" strokeWidth={1.75} />
                 연속 기록 보호막 {streakData.shields}개
               </div>
             )}
