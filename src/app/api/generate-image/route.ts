@@ -71,39 +71,41 @@ The facial features, eye shape, nose structure, and skin tone must remain identi
 NO TEXT OR LETTERS of any kind in the image.`
 }
 
-async function extractImageDataUrl(content: unknown): Promise<string | null> {
-  console.log('[generate-image] raw content type:', typeof content, Array.isArray(content) ? 'array' : '')
-  if (typeof content === 'string') console.log('[generate-image] content preview:', content.slice(0, 200))
-  if (Array.isArray(content)) console.log('[generate-image] content parts:', JSON.stringify(content).slice(0, 400))
-  // string 형태 (data: URL 또는 https: URL)
-  if (typeof content === 'string') {
-    if (content.startsWith('data:image/')) return content
-    if (content.startsWith('https://')) {
-      const res = await fetch(content)
-      const buf = await res.arrayBuffer()
-      const b64 = Buffer.from(buf).toString('base64')
-      const mime = res.headers.get('content-type') ?? 'image/png'
-      return `data:${mime};base64,${b64}`
+type ImagePart = { type?: string; image_url?: { url?: string }; text?: string }
+
+async function resolveUrl(url: string): Promise<string> {
+  if (url.startsWith('data:image/')) return url
+  if (url.startsWith('https://')) {
+    const res = await fetch(url)
+    const buf = await res.arrayBuffer()
+    const b64 = Buffer.from(buf).toString('base64')
+    const mime = res.headers.get('content-type') ?? 'image/png'
+    return `data:${mime};base64,${b64}`
+  }
+  return url
+}
+
+async function extractImageDataUrl(message: Record<string, unknown>): Promise<string | null> {
+  const content = message?.content
+  const images = message?.images as ImagePart[] | undefined
+
+  // OpenRouter Gemini: 이미지가 message.images 배열에 반환됨
+  if (Array.isArray(images)) {
+    for (const part of images) {
+      if (part?.type === 'image_url' && part.image_url?.url) return resolveUrl(part.image_url.url)
     }
   }
 
-  // 배열 형태 (content parts)
+  // content가 문자열인 경우
+  if (typeof content === 'string') {
+    if (content.startsWith('data:image/') || content.startsWith('https://')) return resolveUrl(content)
+  }
+
+  // content가 배열인 경우
   if (Array.isArray(content)) {
-    for (const part of content as Array<{ type?: string; image_url?: { url?: string }; text?: string }>) {
-      if (part?.type === 'image_url' && part.image_url?.url) {
-        const url = part.image_url.url
-        if (url.startsWith('data:image/')) return url
-        if (url.startsWith('https://')) {
-          const res = await fetch(url)
-          const buf = await res.arrayBuffer()
-          const b64 = Buffer.from(buf).toString('base64')
-          const mime = res.headers.get('content-type') ?? 'image/png'
-          return `data:${mime};base64,${b64}`
-        }
-      }
-      if (part?.type === 'text' && part.text?.startsWith('data:image/')) {
-        return part.text
-      }
+    for (const part of content as ImagePart[]) {
+      if (part?.type === 'image_url' && part.image_url?.url) return resolveUrl(part.image_url.url)
+      if (part?.type === 'text' && part.text?.startsWith('data:image/')) return part.text
     }
   }
 
@@ -154,7 +156,7 @@ NO TEXT OR LETTERS in the image.`
           ],
         }],
       }))
-      imageDataUrl = await extractImageDataUrl(response.choices[0]?.message?.content)
+      imageDataUrl = await extractImageDataUrl(response.choices[0]?.message as unknown as Record<string, unknown>)
     } else if (faceImageBase64) {
       const prompt = faceData
         ? buildIdentityMatrix(faceData, sceneContext)
@@ -174,14 +176,14 @@ NO TEXT OR LETTERS. Style: warm golden light, photorealistic.`
           ],
         }],
       }))
-      imageDataUrl = await extractImageDataUrl(response.choices[0]?.message?.content)
+      imageDataUrl = await extractImageDataUrl(response.choices[0]?.message as unknown as Record<string, unknown>)
     } else if (faceData) {
       const prompt = buildIdentityMatrix(faceData, sceneContext)
       const response = await withOpenRouter((openai) => openai.chat.completions.create({
         model: 'google/gemini-2.5-flash-image',
         messages: [{ role: 'user', content: prompt }],
       }))
-      imageDataUrl = await extractImageDataUrl(response.choices[0]?.message?.content)
+      imageDataUrl = await extractImageDataUrl(response.choices[0]?.message as unknown as Record<string, unknown>)
     } else {
       const prompt = `A beautiful, heartwarming scene of a radiant, youthful person in their mid-20s — glowing skin, vibrant energy, peak attractiveness — whose face shines with genuine joy, fulfillment, and inner peace.
 The scene visually embodies these positive themes: ${sceneContext}
@@ -195,18 +197,16 @@ Style: warm golden light, painterly, Korean aesthetic sensibility, cinematic and
         model: 'google/gemini-2.5-flash-image',
         messages: [{ role: 'user', content: prompt }],
       }))
-      imageDataUrl = await extractImageDataUrl(response.choices[0]?.message?.content)
+      imageDataUrl = await extractImageDataUrl(response.choices[0]?.message as unknown as Record<string, unknown>)
     }
 
     if (!imageDataUrl) {
-      console.error('[generate-image] imageDataUrl is null — API response did not contain an image')
       return NextResponse.json({ error: '이미지 생성에 실패했어요.' }, { status: 500 })
     }
 
     return NextResponse.json({ url: imageDataUrl })
   } catch (err) {
     const msg = err instanceof Error ? err.message : '알 수 없는 오류'
-    console.error('[generate-image] catch error:', msg)
     return NextResponse.json({ error: msg }, { status: 500 })
   }
 }
