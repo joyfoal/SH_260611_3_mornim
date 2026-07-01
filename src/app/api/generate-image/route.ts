@@ -149,16 +149,23 @@ These two rules override all other instructions. Apply them first before anythin
 
 `
       const prompt = imageStyle === 'cartoon'
-        ? `${rules}Transform this person into a warm anime/illustration style character, preserving their facial features, hair color, and identity.
-Make the character look beautiful and radiant — smooth glowing skin, vibrant energy. This is their ideal future self.
-Place them in a beautiful, magical success scene that visually embodies: ${sceneContext}
-Art style: Studio Ghibli anime — soft colors, warm golden light, painterly and heartwarming.
-The character radiates genuine joy, confidence, and deep fulfillment.
+        ? `${rules}Transform this person into a warm anime/illustration style character (Studio Ghibli style), preserving their facial features, hair color, and identity.
+
+The affirmations of this person's success are: ${sceneContext}
+Create a scene where this person is ACTIVELY LIVING these successes — a specific meaningful moment, not just standing in a pretty background.
+Interpret the affirmations visually with symbolic elements in the scene (e.g. health → running joyfully in sunlight, abundance → beautiful flourishing environment, career → a moment of achievement and recognition).
+The scene should feel like their dream life has actually come true.
+
+Art style: Studio Ghibli anime — warm golden light, painterly, deeply emotional and heartwarming.
 NO TEXT OR LETTERS in the image.`
-        : `${rules}Render this person as a more beautiful and youthful version of themselves. Smooth flawless skin, radiant glow, peak attractiveness. This is their ideal successful future self. Preserve their facial bone structure, identity, hair color, and distinctive features.
-Place them in a beautiful, inspiring success scene that visually embodies: ${sceneContext}
-The person radiates genuine joy, deep fulfillment, confidence, and inner peace.
-Style: Photorealistic, warm golden light, cinematic photography quality.
+        : `${rules}Preserve this person's facial bone structure, identity, hair color, and distinctive features.
+
+The affirmations of this person's success are: ${sceneContext}
+Create a powerful cinematic image showing this person IN their moment of success — actively experiencing what life looks like when these affirmations all come true.
+The scene, environment, and visual details should tell a story of achievement: where they are, what they have accomplished, what surrounds them.
+
+Style: Photorealistic, warm golden cinematic light.
+The person's expression radiates genuine triumph and deep fulfillment.
 NO TEXT OR LETTERS in the image.`
 
       const response = await withOpenRouter((openai) => openai.chat.completions.create({
