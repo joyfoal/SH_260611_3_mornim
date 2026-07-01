@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
+import { Camera, Sparkles } from 'lucide-react'
 import { getFaceProfile, saveFaceProfile, type FaceProfile } from '@/lib/faceStorage'
 
 function dataURLtoBlob(dataURL: string): Blob {
@@ -217,7 +218,7 @@ export default function ProfileImagePage() {
           onClick={() => { setSaved(false); fileInputRef.current?.click() }}
           style={{ width: '100%', padding: '16px', background: 'var(--color-bg-card)', border: '1.5px dashed var(--color-border)', borderRadius: '16px', fontSize: '15px', color: 'var(--color-text-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', marginBottom: '16px' }}
         >
-          <span style={{ fontSize: '24px' }}>📷</span>
+          <Camera size={24} color="var(--color-text-muted)" />
           {existingUrl ? '사진 변경하기' : '사진 선택하기'}
         </button>
       )}
@@ -232,7 +233,7 @@ export default function ProfileImagePage() {
             onClick={() => router.push('/home/success-image')}
             style={{ width: '100%', padding: '14px', background: 'var(--color-accent-primary)', color: 'white', border: 'none', borderRadius: '14px', fontSize: '15px', fontWeight: 600, cursor: 'pointer' }}
           >
-            🌟 성공 이미지 만들러 가기
+            <span style={{ display: 'flex', alignItems: 'center', gap: '7px', justifyContent: 'center' }}><Sparkles size={16} /> 성공 이미지 만들러 가기</span>
           </button>
         </div>
       )}

@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { AppLayout } from '@/components/ui/AppLayout'
 import type { CategoryName } from '@/lib/categories'
 import { saveAffirmation, getAffirmations, getCategories, saveCategories, getTodayAffirmationIds, saveTodayAffirmationIds, type AffirmationCategory } from '@/lib/storage'
-import { Mic } from 'lucide-react'
+import { Mic, Ban, Sparkles } from 'lucide-react'
 import { clientNegativeCheck } from '@/lib/clientNegativeCheck'
 
 type Tab = '직접 입력' | 'AI 추천' | '질문 추천'
@@ -556,7 +556,7 @@ export default function CreatePage() {
                   </div>
                   {catBlocked && (
                     <div style={{ marginTop: '8px', padding: '12px', background: '#FFEBEE', borderRadius: '10px', border: '1px solid #FFCDD2' }}>
-                      <p style={{ fontSize: '12px', color: '#B71C1C', marginBottom: '6px' }}>🚫 부적절한 표현은 사용할 수 없어요.</p>
+                      <p style={{ fontSize: '12px', color: '#B71C1C', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '5px' }}><Ban size={12} /> 부적절한 표현은 사용할 수 없어요.</p>
                       <button onClick={() => { setNewCatName(''); setCatBlocked(false) }} style={{ width: '100%', padding: '7px', background: 'transparent', color: '#B71C1C', border: '1px solid #FFCDD2', borderRadius: '8px', fontSize: '12px', cursor: 'pointer' }}>다시 쓰기</button>
                     </div>
                   )}
@@ -819,7 +819,7 @@ export default function CreatePage() {
                   </div>
                   {catBlocked && (
                     <div style={{ marginTop: '8px', padding: '12px', background: '#FFEBEE', borderRadius: '10px', border: '1px solid #FFCDD2' }}>
-                      <p style={{ fontSize: '12px', color: '#B71C1C', marginBottom: '6px' }}>🚫 부적절한 표현은 사용할 수 없어요.</p>
+                      <p style={{ fontSize: '12px', color: '#B71C1C', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '5px' }}><Ban size={12} /> 부적절한 표현은 사용할 수 없어요.</p>
                       <button onClick={() => { setNewCatName(''); setCatBlocked(false) }} style={{ width: '100%', padding: '7px', background: 'transparent', color: '#B71C1C', border: '1px solid #FFCDD2', borderRadius: '8px', fontSize: '12px', cursor: 'pointer' }}>다시 쓰기</button>
                     </div>
                   )}
@@ -927,7 +927,7 @@ export default function CreatePage() {
               <div>
                 <p style={{ fontSize: '14px', color: 'var(--color-text-muted)', marginBottom: '12px', lineHeight: 1.6 }}>
                   요즘 어떤 점이 힘드신가요? 고민을 편하게 이야기해 주세요.<br />
-                  AI가 10가지 질문을 통해 딱 맞는 성공의 말을 추천해 드려요 🌿
+                  AI가 10가지 질문을 통해 딱 맞는 성공의 말을 추천해 드려요
                 </p>
                 <div style={{ position: 'relative', marginBottom: '12px' }}>
                   <textarea
@@ -1258,7 +1258,7 @@ export default function CreatePage() {
                       opacity: chatLoading ? 0.7 : 1,
                     }}
                   >
-                    ✨ 성공의 말 생성하기
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '6px', justifyContent: 'center' }}><Sparkles size={15} /> 성공의 말 생성하기</span>
                   </button>
                 )}
 

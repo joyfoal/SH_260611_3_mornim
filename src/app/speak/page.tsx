@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Suspense } from 'react'
+import { Check, Mic } from 'lucide-react'
 import { DynamicText } from '@/components/ui/DynamicText'
 import { CelebrationScreen, type CelebrationVariant } from '@/components/ui/CelebrationScreen'
 import {
@@ -649,7 +650,7 @@ function SpeakPageInner() {
             border: 'none', borderRadius: '16px', color: 'white', fontSize: '16px', fontWeight: 600, cursor: 'pointer',
           }}
         >
-          완료 ✓
+          <span style={{ display: 'flex', alignItems: 'center', gap: '6px', justifyContent: 'center' }}><Check size={16} /> 완료</span>
         </button>
 
         {hasExistingRecording && reRecordState === 'idle' && (
@@ -661,7 +662,7 @@ function SpeakPageInner() {
               color: 'var(--color-text-muted)', fontSize: '14px', cursor: 'pointer',
             }}
           >
-            🎙 다시 녹음
+            <span style={{ display: 'flex', alignItems: 'center', gap: '6px', justifyContent: 'center' }}><Mic size={14} /> 다시 녹음</span>
           </button>
         )}
 

@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { getAffirmations, saveTomorrowNote, saveDayNote, todayStr, setNaegeSeenDate, type Affirmation } from '@/lib/storage'
-import { ChevronLeft, Mic } from 'lucide-react'
+import { ChevronLeft, Mic, Ban } from 'lucide-react'
 
 function getTimePlaceholder(): string {
   const hour = new Date().getHours()
@@ -228,7 +228,7 @@ export default function TomorrowPage() {
       <div className="flex flex-col gap-3">
         {negativeBlocked && (
           <div style={{ padding: '14px', background: '#FFEBEE', borderRadius: '12px', border: '1px solid #FFCDD2' }}>
-            <p style={{ fontSize: '13px', color: '#B71C1C', marginBottom: '8px' }}>🚫 부적절한 표현은 저장할 수 없어요.</p>
+            <p style={{ fontSize: '13px', color: '#B71C1C', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '5px' }}><Ban size={13} /> 부적절한 표현은 저장할 수 없어요.</p>
             <button
               onClick={() => { setNegativeBlocked(false); setMessage('') }}
               style={{ width: '100%', padding: '10px', background: 'transparent', color: '#B71C1C', border: '1px solid #FFCDD2', borderRadius: '10px', fontSize: '13px', cursor: 'pointer' }}

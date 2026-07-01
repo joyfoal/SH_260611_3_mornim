@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, type ReactNode } from 'react'
 import { AppLayout } from '@/components/ui/AppLayout'
 import { useTheme } from '@/lib/themeContext'
 import { getCategoryColor } from '@/lib/categories'
@@ -23,7 +23,7 @@ import {
 } from '@/lib/audioStorage'
 import { clearFaceStorage, getFaceProfileFromTrash, restoreFaceProfileFromTrash, type FaceProfile } from '@/lib/faceStorage'
 import { clearSuccessImages, getSuccessImageFromTrash, restoreSuccessImageFromTrash, type SuccessImageRecord } from '@/lib/successImageStorage'
-import { Pencil, Trash2, Check, X, Plus, Bell, Download, GripVertical, Palette, Power, BarChart3, Search, UploadCloud, RotateCcw, Folder, BookOpen, ChevronDown, Ban } from 'lucide-react'
+import { Pencil, Trash2, Check, X, Plus, Bell, Download, GripVertical, Palette, Power, BarChart3, Search, UploadCloud, RotateCcw, Folder, BookOpen, ChevronDown, Ban, Mic, User, ImageIcon, Star, AlertTriangle } from 'lucide-react'
 import { WeeklyReportModal } from '@/components/ui/WeeklyReportModal'
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
@@ -1037,16 +1037,16 @@ function DeletePanel() {
           </button>
         </div>
 
-        <button onClick={handleDeleteAudio} style={btnStyle('var(--color-text-primary)', 'var(--color-bg-primary)', '1px solid var(--color-border)')}>
-          🎙 모든 녹음 파일 삭제
+        <button onClick={handleDeleteAudio} style={{ ...btnStyle('var(--color-text-primary)', 'var(--color-bg-primary)', '1px solid var(--color-border)'), display: 'flex', alignItems: 'center', gap: '7px', justifyContent: 'center' }}>
+          <Mic size={15} /> 모든 녹음 파일 삭제
         </button>
 
-        <button onClick={handleDeleteAll} style={btnStyle('var(--color-danger-orange-dark)', 'var(--color-danger-orange-bg)', '1px solid #FFCCBC')}>
-          ✦ 성공의 말 전체 지우기
+        <button onClick={handleDeleteAll} style={{ ...btnStyle('var(--color-danger-orange-dark)', 'var(--color-danger-orange-bg)', '1px solid #FFCCBC'), display: 'flex', alignItems: 'center', gap: '7px', justifyContent: 'center' }}>
+          <Star size={15} /> 성공의 말 전체 지우기
         </button>
 
-        <button onClick={handleReset} style={btnStyle('var(--color-danger-dark)', 'transparent', '1px solid #E53935')}>
-          <span style={{ fontWeight: 600 }}>⚠ 전체 초기화</span>
+        <button onClick={handleReset} style={{ ...btnStyle('var(--color-danger-dark)', 'transparent', '1px solid #E53935'), display: 'flex', alignItems: 'center', gap: '7px', justifyContent: 'center' }}>
+          <AlertTriangle size={15} /><span style={{ fontWeight: 600 }}>전체 초기화</span>
         </button>
       </div>
     </Panel>
@@ -1084,8 +1084,8 @@ function TrashPanel() {
 
   const itemStyle: React.CSSProperties = { padding: '10px 12px', background: 'var(--color-bg-surface)', border: '1px solid var(--color-border)', borderRadius: '10px', display: 'flex', alignItems: 'center', gap: '10px' }
   const restoreBtn: React.CSSProperties = { padding: '5px 10px', border: '1px solid var(--color-accent-primary)', borderRadius: '8px', background: 'transparent', cursor: 'pointer', fontSize: '12px', color: 'var(--color-accent-primary)', flexShrink: 0 }
-  const label = (icon: string, text: string) => (
-    <span style={{ fontSize: '10px', color: 'var(--color-text-muted)', background: 'var(--color-bg-primary)', borderRadius: '6px', padding: '2px 6px', marginBottom: '2px', display: 'inline-block' }}>{icon} {text}</span>
+  const label = (icon: ReactNode, text: string) => (
+    <span style={{ fontSize: '10px', color: 'var(--color-text-muted)', background: 'var(--color-bg-primary)', borderRadius: '6px', padding: '2px 6px', marginBottom: '2px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>{icon}{text}</span>
   )
 
   return (
@@ -1111,7 +1111,7 @@ function TrashPanel() {
           {affirmations.map((item) => (
             <div key={item.id} style={itemStyle}>
               <div style={{ flex: 1 }}>
-                {label('✦', '성공의 말')}
+                {label(<Star size={9} />, '성공의 말')}
                 <p style={{ fontSize: '13px', color: 'var(--color-text-onDark)', lineHeight: 1.4, marginBottom: '2px' }}>{item.text}</p>
                 <span style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>{item.category}</span>
               </div>
@@ -1121,7 +1121,7 @@ function TrashPanel() {
           {audios.map((rec) => (
             <div key={rec.id} style={itemStyle}>
               <div style={{ flex: 1 }}>
-                {label('🎙', '녹음 파일')}
+                {label(<Mic size={9} />, '녹음 파일')}
                 <p style={{ fontSize: '13px', color: 'var(--color-text-onDark)', lineHeight: 1.4, marginBottom: '2px' }}>{rec.affirmationText}</p>
                 <span style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>{new Date(rec.createdAt).toLocaleDateString('ko-KR')}</span>
               </div>
@@ -1131,7 +1131,7 @@ function TrashPanel() {
           {faceProfile && (
             <div style={itemStyle}>
               <div style={{ flex: 1 }}>
-                {label('👤', '프로필 이미지')}
+                {label(<User size={9} />, '프로필 이미지')}
                 <p style={{ fontSize: '13px', color: 'var(--color-text-onDark)', lineHeight: 1.4 }}>{new Date(faceProfile.createdAt).toLocaleDateString('ko-KR')} 생성</p>
               </div>
               <button onClick={handleRestoreFace} style={restoreBtn}>복원</button>
@@ -1140,7 +1140,7 @@ function TrashPanel() {
           {successImage && (
             <div style={itemStyle}>
               <div style={{ flex: 1 }}>
-                {label('🖼', '성공 이미지')}
+                {label(<ImageIcon size={9} />, '성공 이미지')}
                 <p style={{ fontSize: '13px', color: 'var(--color-text-onDark)', lineHeight: 1.4 }}>{new Date(successImage.createdAt).toLocaleDateString('ko-KR')} 생성</p>
               </div>
               <button onClick={handleRestoreSuccess} style={restoreBtn}>복원</button>
@@ -1285,7 +1285,7 @@ function CategoryPanel() {
           </div>
           {catBlocked && (
             <div style={{ marginTop: '8px', padding: '12px', background: '#FFEBEE', borderRadius: '10px', border: '1px solid #FFCDD2' }}>
-              <p style={{ fontSize: '12px', color: '#B71C1C', marginBottom: '6px' }}>🚫 부적절한 표현은 사용할 수 없어요.</p>
+              <p style={{ fontSize: '12px', color: '#B71C1C', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '5px' }}><Ban size={12} /> 부적절한 표현은 사용할 수 없어요.</p>
               <button onClick={() => { setNewCatName(''); setCatBlocked(false) }} style={{ width: '100%', padding: '8px', background: 'transparent', color: '#B71C1C', border: '1px solid #FFCDD2', borderRadius: '8px', fontSize: '12px', cursor: 'pointer' }}>다시 쓰기</button>
             </div>
           )}
@@ -1323,7 +1323,7 @@ function CategoryPanel() {
 function ManualPanel() {
   const sections = [
     {
-      title: '🏠 홈',
+      title: '홈',
       items: [
         '오늘의 성공의 말이 카드에 표시돼요. "성공의 말하기" 버튼을 눌러 말하기를 시작해요.',
         '연속 기록과 오늘 완료한 성공의 말 개수를 확인할 수 있어요.',
@@ -1337,7 +1337,7 @@ function ManualPanel() {
       ],
     },
     {
-      title: '🎙 말하기',
+      title: '말하기',
       items: [
         '텍스트 화면을 탭하거나 위로 스와이프하면 말하기 화면으로 전환돼요.',
         '카메라로 나 자신을 보면서 자신감 있게 말해요.',
@@ -1349,7 +1349,7 @@ function ManualPanel() {
       ],
     },
     {
-      title: '📋 나의 성공의 말',
+      title: '나의 성공의 말',
       items: [
         '저장된 모든 성공의 말을 카테고리별로 볼 수 있어요.',
         '상단 카테고리 탭을 눌러 원하는 카테고리만 필터링해요.',
@@ -1360,7 +1360,7 @@ function ManualPanel() {
       ],
     },
     {
-      title: '✏️ 성공의 말 만들기',
+      title: '성공의 말 만들기',
       items: [
         '직접 입력 탭: 원하는 문장을 직접 쓰거나 마이크로 말해서 입력해요.',
         'AI 추천 탭: 주제나 바라는 점을 입력하면 AI가 긍정적인 성공의 말을 추천해줘요.',
@@ -1372,7 +1372,7 @@ function ManualPanel() {
       ],
     },
     {
-      title: '🎮 게임',
+      title: '게임',
       items: [
         '벽돌 깨기: 성공의 말 단어들이 벽돌 뒤에 숨어 있어요. 모두 깨면 완성!',
         '단어 정렬: 뒤섞인 단어를 올바른 순서로 맞춰요.',
@@ -1381,7 +1381,7 @@ function ManualPanel() {
       ],
     },
     {
-      title: '💌 나에게',
+      title: '나에게',
       items: [
         '말하기를 완료하면 "나에게" 화면으로 이동해요.',
         '내일의 나에게 응원 메시지를 남길 수 있어요 (마이크 입력도 가능).',
@@ -1391,7 +1391,7 @@ function ManualPanel() {
       ],
     },
     {
-      title: '🤝 함께',
+      title: '함께',
       items: [
         '같은 목표를 가진 사람들과 성공의 말을 나누는 공간이에요.',
         '내 방: 참여 중인 방 목록이 보여요. 탭하면 방 안으로 이동해요.',
@@ -1403,14 +1403,14 @@ function ManualPanel() {
         '랭킹: 방 랭킹과 성공의 말 랭킹을 전체·연·월·일 기간별로 확인해요.',
         '우측 상단 프로필 버튼으로 닉네임과 프로필 사진을 설정해요. 닉네임을 설정해야 공유가 활성화돼요.',
         '방 안 — 성공의 말 나누기: 내 성공의 말을 최대 3개까지 방에 공유해요. 방 재진입 후에도 유지돼요.',
-        '방 안 — 칭찬하기: 😍👏🔥💪✨🌟💛🙌💯💫🌿🌈 12가지 이모지로 칭찬해요. 내 공유 항목도 칭찬 가능해요.',
+        '방 안 — 칭찬하기: 12가지 아이콘으로 칭찬해요. 내 공유 항목도 칭찬 가능해요.',
         '방 안 — 가져오기: 다른 사람의 성공의 말을 내 목록에 추가할 수 있어요.',
         '방 안 — 함께 도전: 같은 성공의 말에 도전하는 사람들을 확인하고 칭찬해요.',
         '방 지우기: 방에서 나가면 공유한 성공의 말도 함께 삭제돼요.',
       ],
     },
     {
-      title: '⚙️ 설정',
+      title: '설정',
       items: [
         '테마: 따뜻한 황금 · 딥 퍼플 · 내추럴 그린 3가지 색상 테마를 선택해요.',
         'On/Off: 홈 화면의 최근 녹음 · 성공 이미지 · 달력 표시 여부와 "나에게" 기능을 켜고 꺼요.',

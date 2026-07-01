@@ -1,5 +1,6 @@
 'use client'
 
+import { BarChart2 } from 'lucide-react'
 import { getCalendar, getAffirmations, todayStr } from '@/lib/storage'
 
 export function WeeklyReportModal({ onClose }: { onClose: () => void }) {
@@ -33,7 +34,7 @@ export function WeeklyReportModal({ onClose }: { onClose: () => void }) {
         onClick={(e) => e.stopPropagation()}
       >
         <div style={{ width: '36px', height: '4px', background: 'var(--color-border)', borderRadius: '2px', margin: '0 auto 20px' }} />
-        <h2 style={{ fontSize: '18px', fontWeight: 600, color: 'var(--color-text-primary)', marginBottom: '20px' }}>이번 주 리포트 📊</h2>
+        <h2 style={{ fontSize: '18px', fontWeight: 600, color: 'var(--color-text-primary)', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '7px' }}><BarChart2 size={18} /> 이번 주 리포트</h2>
         <div className="grid grid-cols-2 gap-3 mb-6">
           {[{ label: '완료한 날', value: daysCompleted }, { label: '총 완료 횟수', value: totalCompleted }].map(({ label, value }) => (
             <div key={label} style={{ padding: '16px', background: 'var(--color-bg-card)', borderRadius: '14px', textAlign: 'center' }}>

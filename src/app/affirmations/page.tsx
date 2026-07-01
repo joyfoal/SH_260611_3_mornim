@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { AppLayout } from '@/components/ui/AppLayout'
-import { Plus, Trash2, Play, Pause, Download, FolderOpen } from 'lucide-react'
+import { Plus, Trash2, Play, Pause, Download, FolderOpen, Sparkles } from 'lucide-react'
 import { getAffirmations, moveToTrash, updateAffirmation, getCategories, type Affirmation } from '@/lib/storage'
 import { getCategoryColor } from '@/lib/categories'
 import { getAudioRecords, moveAudioToTrash, type AudioRecord } from '@/lib/audioStorage'
@@ -202,7 +202,7 @@ export default function AffirmationsPage() {
       <div style={{ padding: '0 16px 16px' }}>
         {affirmations.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '60px 20px', color: 'var(--color-text-muted)' }}>
-            <div style={{ fontSize: '40px', marginBottom: '16px' }}>✨</div>
+            <Sparkles size={44} color="var(--color-accent-primary)" style={{ marginBottom: '16px' }} />
             <p style={{ fontSize: '15px', marginBottom: '20px' }}>
               아직 성공의 말이 없어요.<br />첫 성공의 말을 만들어보세요!
             </p>

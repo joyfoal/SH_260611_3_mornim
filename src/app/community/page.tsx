@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { AppLayout } from '@/components/ui/AppLayout'
-import { Users, Plus, ChevronRight, CheckCircle, Search, X, UserCircle, Camera } from 'lucide-react'
+import { Users, Plus, ChevronRight, CheckCircle, Search, X, UserCircle, Camera, Home, MessageCircle, Lightbulb, Ban, Loader2, User, Flame } from 'lucide-react'
 
 interface UserProfile {
   nickname: string
@@ -397,7 +397,9 @@ export default function CommunityPage() {
             <div style={{ display: 'flex', gap: '8px', marginBottom: '10px' }}>
               {(['방', '성공의 말'] as const).map(t => (
                 <button key={t} onClick={() => setRankingType(t)} style={{ flex: 1, padding: '10px 0', borderRadius: '12px', border: rankingType === t ? '2px solid #F59E0B' : '1.5px solid var(--color-border)', background: rankingType === t ? 'var(--color-community-accent)' : 'var(--color-bg-card)', color: rankingType === t ? 'white' : 'var(--color-text-muted)', fontSize: '14px', fontWeight: rankingType === t ? 700 : 400, cursor: 'pointer' }}>
-                  {t === '방' ? '🏠 방 랭킹' : '💬 성공의 말 랭킹'}
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '5px', justifyContent: 'center' }}>
+                    {t === '방' ? <><Home size={14} /> 방 랭킹</> : <><MessageCircle size={14} /> 성공의 말 랭킹</>}
+                  </span>
                 </button>
               ))}
             </div>
@@ -442,7 +444,7 @@ export default function CommunityPage() {
 
               {myRoomData.length === 0 ? (
                 <div style={{ textAlign: 'center', padding: '60px 0' }}>
-                  <div style={{ fontSize: '40px', marginBottom: '12px' }}>🏠</div>
+                  <Home size={44} color="var(--color-text-muted)" style={{ marginBottom: '12px' }} />
                   <div style={{ fontSize: '15px', fontWeight: 600, color: 'var(--color-text-primary)', marginBottom: '8px' }}>
                     아직 함께하는 방이 없어요
                   </div>
@@ -493,7 +495,7 @@ export default function CommunityPage() {
                             <Users size={11} /> {room.members}명
                           </span>
                           <span style={{ fontSize: '12px', color: 'var(--color-community-text)', background: 'var(--color-community-bg)', padding: '2px 8px', borderRadius: '999px', fontWeight: 500 }}>
-                            연속 {room.streakDays}일 🔥
+                            연속 {room.streakDays}일 <Flame size={11} color="#FF6F00" style={{ display: 'inline', verticalAlign: 'middle' }} />
                           </span>
                           <span style={{ fontSize: '11px', color: 'var(--color-success-mid)', display: 'flex', alignItems: 'center', gap: '3px' }}>
                             <CheckCircle size={11} /> 오늘 인증
@@ -647,7 +649,7 @@ export default function CommunityPage() {
                     {roomNameBanner.alternative ? (
                       <>
                         <div style={{ marginBottom: '8px' }}>
-                          💛 이런 이름은 어때요?<br />
+                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}><Lightbulb size={13} /> 이런 이름은 어때요?</span><br />
                           <strong>"{roomNameBanner.alternative}"</strong>
                           {roomNameBanner.suggestedDesc && (
                             <div style={{ marginTop: '4px', fontSize: '12px', color: 'var(--color-community-text)', fontWeight: 400 }}>
@@ -678,7 +680,7 @@ export default function CommunityPage() {
                       </>
                     ) : (
                       <>
-                        <div style={{ marginBottom: '8px' }}>🚫 사용할 수 없는 표현이 포함되어 있어요. 긍정적인 방 이름으로 바꿔주세요.</div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px' }}><Ban size={13} /> 사용할 수 없는 표현이 포함되어 있어요. 긍정적인 방 이름으로 바꿔주세요.</div>
                         <button
                           onClick={() => { setRoomName(''); setRoomNameBanner(null) }}
                           style={{ padding: '7px 14px', background: 'transparent', border: '1px solid #EF9A9A', borderRadius: '8px', fontSize: '13px', color: 'var(--color-danger-dark)', cursor: 'pointer' }}
@@ -728,7 +730,7 @@ export default function CommunityPage() {
                   }}>
                     {roomDescBanner.alternative ? (
                       <>
-                        <div style={{ marginBottom: '8px' }}>💛 이런 소개는 어때요?<br /><strong>"{roomDescBanner.alternative}"</strong></div>
+                        <div style={{ marginBottom: '8px' }}><span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}><Lightbulb size={13} /> 이런 소개는 어때요?</span><br /><strong>"{roomDescBanner.alternative}"</strong></div>
                         <div style={{ display: 'flex', gap: '8px' }}>
                           <button
                             onClick={() => { setRoomDesc(roomDescBanner.alternative!); setRoomDescBanner(null) }}
@@ -746,7 +748,7 @@ export default function CommunityPage() {
                       </>
                     ) : (
                       <>
-                        <div style={{ marginBottom: '8px' }}>🚫 사용할 수 없는 표현이 포함되어 있어요. 긍정적인 소개로 바꿔주세요.</div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px' }}><Ban size={13} /> 사용할 수 없는 표현이 포함되어 있어요. 긍정적인 소개로 바꿔주세요.</div>
                         <button
                           onClick={() => { setRoomDesc(''); setRoomDescBanner(null) }}
                           style={{ padding: '7px 14px', background: 'transparent', border: '1px solid #EF9A9A', borderRadius: '8px', fontSize: '13px', color: 'var(--color-danger-dark)', cursor: 'pointer' }}
@@ -815,7 +817,7 @@ export default function CommunityPage() {
               >
                 {creating ? (
                   <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <span style={{ animation: 'spin 1s linear infinite', display: 'inline-block' }}>✨</span>
+                    <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} />
                     확인 중...
                   </span>
                 ) : (
@@ -922,7 +924,7 @@ export default function CommunityPage() {
                             {entry.phrase}
                           </p>
                           <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-                            <span style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>👤 {entry.userCount}명</span>
+                            <span style={{ fontSize: '11px', color: 'var(--color-text-muted)', display: 'flex', alignItems: 'center', gap: '3px' }}><User size={10} /> {entry.userCount}명</span>
                             <span style={{ fontSize: '11px', color: 'var(--color-community-text)', background: 'var(--color-community-bg)', padding: '1px 7px', borderRadius: '999px', fontWeight: 600 }}>
                               {entry.totalDays}일 외침
                             </span>

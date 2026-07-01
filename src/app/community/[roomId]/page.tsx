@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { AppLayout } from '@/components/ui/AppLayout'
-import { ChevronLeft, Trophy, BookmarkPlus, Share2, X, Check, UserCircle, LogOut } from 'lucide-react'
+import { ChevronLeft, Trophy, BookmarkPlus, Share2, X, Check, UserCircle, LogOut, Heart, ThumbsUp, Flame, Dumbbell, Sparkles, Star, HeartHandshake, PartyPopper, CheckCircle2, Zap, Leaf, Rainbow, MessageCircle, Trash2, type LucideIcon } from 'lucide-react'
 import { getAffirmations, saveAffirmation, type Affirmation } from '@/lib/storage'
 
 type RoomTab = '성공의 말 나누기' | '함께 도전'
@@ -92,6 +92,26 @@ const EMOJIS: Array<{ emoji: EmojiKey; label: string }> = [
   { emoji: '🌿', label: '성장해요' },
   { emoji: '🌈', label: '희망이에요' },
 ]
+
+const REACTION_ICONS: Record<EmojiKey, { Icon: LucideIcon; color: string }> = {
+  '😍': { Icon: Heart,          color: '#E53935' },
+  '👏': { Icon: ThumbsUp,       color: '#1E88E5' },
+  '🔥': { Icon: Flame,          color: '#FF6F00' },
+  '💪': { Icon: Dumbbell,       color: '#7B1FA2' },
+  '✨': { Icon: Sparkles,       color: '#F9A825' },
+  '🌟': { Icon: Star,           color: '#FDD835' },
+  '💛': { Icon: HeartHandshake, color: '#FFB300' },
+  '🙌': { Icon: PartyPopper,    color: '#00897B' },
+  '💯': { Icon: CheckCircle2,   color: '#43A047' },
+  '💫': { Icon: Zap,            color: '#FB8C00' },
+  '🌿': { Icon: Leaf,           color: '#2E7D32' },
+  '🌈': { Icon: Rainbow,        color: '#039BE5' },
+}
+
+function ReactionIcon({ emoji, size = 14, active = false }: { emoji: EmojiKey; size?: number; active?: boolean }) {
+  const { Icon, color } = REACTION_ICONS[emoji]
+  return <Icon size={size} color={active ? 'white' : color} />
+}
 
 function totalReactions(r: Reactions) {
   return Object.values(r).reduce((s, v) => s + v, 0)
@@ -242,7 +262,7 @@ export default function RoomPage() {
       return next
     })
     setShowShareSheet(false)
-    showToast('성공의 말을 방에 공유했어요 ✨')
+    showToast('성공의 말을 방에 공유했어요')
   }
 
   const handleImport = (content: string) => {
@@ -254,7 +274,7 @@ export default function RoomPage() {
     const now = new Date().toISOString()
     saveAffirmation({ id: `imported-${Date.now()}`, text: content, category: '나 자신', createdAt: now, completedDates: [] })
     setImportedContents(prev => new Set(prev).add(content))
-    showToast('내 성공의 말에 추가됐어요 ✨')
+    showToast('내 성공의 말에 추가됐어요')
   }
 
   const handleFeedReaction = (feedId: string, emoji: EmojiKey) => {
@@ -437,9 +457,11 @@ export default function RoomPage() {
                     </p>
 
                     {/* 칭찬 집계 */}
-                    <div style={{ fontSize: '12px', color: 'var(--color-text-muted)', marginBottom: '10px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', fontSize: '12px', color: 'var(--color-text-muted)', marginBottom: '10px' }}>
                       {EMOJIS.filter(e => item.reactions[e.emoji] > 0).map(e => (
-                        <span key={e.emoji} style={{ marginRight: '8px' }}>{e.emoji}{item.reactions[e.emoji]}</span>
+                        <span key={e.emoji} style={{ display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                          <ReactionIcon emoji={e.emoji} size={12} />{item.reactions[e.emoji]}
+                        </span>
                       ))}
                       {totalReactions(item.reactions) === 0 && '아직 응원이 없어요'}
                     </div>
@@ -464,9 +486,12 @@ export default function RoomPage() {
                                 cursor: 'pointer',
                                 fontWeight: isOn ? 700 : 500,
                                 whiteSpace: 'nowrap',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '5px',
                               }}
                             >
-                              {e.emoji} {e.label}
+                              <ReactionIcon emoji={e.emoji} size={13} active={isOn} /> {e.label}
                             </button>
                           )
                         })}
@@ -612,11 +637,14 @@ export default function RoomPage() {
                                       {participant.daysCount}일째
                                     </div>
                                   </div>
-                                  <div style={{ marginLeft: 'auto', fontSize: '12px', color: 'var(--color-text-muted)' }}>
+                                  <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '5px', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
                                     {totalReactions(participant.reactions) === 0
-                                      ? '아직 칭찬이 없어요'
-                                      : EMOJIS.filter(e => participant.reactions[e.emoji] > 0)
-                                          .map(e => `${e.emoji}${participant.reactions[e.emoji]}`).join(' ')
+                                      ? <span style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>아직 칭찬이 없어요</span>
+                                      : EMOJIS.filter(e => participant.reactions[e.emoji] > 0).map(e => (
+                                          <span key={e.emoji} style={{ display: 'inline-flex', alignItems: 'center', gap: '2px', fontSize: '11px', color: 'var(--color-text-muted)' }}>
+                                            <ReactionIcon emoji={e.emoji} size={11} />{participant.reactions[e.emoji]}
+                                          </span>
+                                        ))
                                     }
                                   </div>
                                 </div>
@@ -640,9 +668,12 @@ export default function RoomPage() {
                                           cursor: 'pointer',
                                           fontWeight: isOn ? 700 : 500,
                                           whiteSpace: 'nowrap',
+                                          display: 'flex',
+                                          alignItems: 'center',
+                                          gap: '5px',
                                         }}
                                       >
-                                        {e.emoji} {e.label}
+                                        <ReactionIcon emoji={e.emoji} size={12} active={isOn} /> {e.label}
                                       </button>
                                     )
                                   })}
@@ -690,7 +721,7 @@ export default function RoomPage() {
 
             {myPhrases.length === 0 ? (
               <div style={{ textAlign: 'center', padding: '32px 0' }}>
-                <div style={{ fontSize: '32px', marginBottom: '10px' }}>💬</div>
+                <MessageCircle size={40} color="var(--color-text-muted)" style={{ marginBottom: '10px' }} />
                 <p style={{ fontSize: '14px', color: 'var(--color-text-muted)', marginBottom: '16px' }}>
                   아직 저장한 성공의 말이 없어요
                 </p>
@@ -764,7 +795,7 @@ export default function RoomPage() {
             padding: '28px 16px 40px',
           }}>
             <div style={{ textAlign: 'center', marginBottom: '24px' }}>
-              <div style={{ fontSize: '36px', marginBottom: '12px' }}>🗑️</div>
+              <Trash2 size={40} color="var(--color-danger)" style={{ marginBottom: '12px' }} />
               <h3 style={{ fontSize: '17px', fontWeight: 700, color: 'var(--color-text-primary)', marginBottom: '8px' }}>
                 방을 지울까요?
               </h3>

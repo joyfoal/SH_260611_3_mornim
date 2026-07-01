@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { AppLayout } from '@/components/ui/AppLayout'
+import { Camera, ImageIcon, Loader2, Download, Sparkles, ZoomIn, Film } from 'lucide-react'
 import { getAffirmations, type Affirmation } from '@/lib/storage'
 import {
   getFaceProfile,
@@ -487,7 +488,7 @@ export default function SuccessImagePage() {
             </div>
             {/* 줌 슬라이더 */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
-              <span style={{ fontSize: '14px' }}>🔍</span>
+              <ZoomIn size={16} color="var(--color-text-muted)" />
               <input
                 type="range"
                 min={cropImgRef.current
@@ -577,7 +578,7 @@ export default function SuccessImagePage() {
               boxSizing: 'border-box',
             }}
           >
-            <span style={{ fontSize: '32px' }}>{isDragOver ? '🖼️' : '📷'}</span>
+            {isDragOver ? <ImageIcon size={36} color="var(--color-accent-primary)" /> : <Camera size={36} color="var(--color-text-muted)" />}
             <span style={{ fontWeight: isDragOver ? 600 : 400 }}>
               {isDragOver ? '여기에 놓으세요' : '사진을 드래그하거나 탭해서 추가'}
             </span>
@@ -629,8 +630,8 @@ export default function SuccessImagePage() {
               }}
             >
               {([
-                { id: 'cartoon', label: '✨ 만화 느낌' },
-                { id: 'realistic', label: '📸 사진 느낌' },
+                { id: 'cartoon', label: '만화 느낌', Icon: Sparkles },
+                { id: 'realistic', label: '사진 느낌', Icon: Film },
               ] as const).map((s) => (
                 <button
                   key={s.id}
@@ -648,7 +649,9 @@ export default function SuccessImagePage() {
                     transition: 'all 0.15s ease',
                   }}
                 >
-                  {s.label}
+                  <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px' }}>
+                    <s.Icon size={14} /> {s.label}
+                  </span>
                 </button>
               ))}
             </div>
@@ -730,10 +733,10 @@ export default function SuccessImagePage() {
             >
               {successGenerating ? (
                 <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
-                  <span style={{ animation: 'spin 1s linear infinite', display: 'inline-block' }}>✨</span>
+                  <Loader2 size={18} style={{ animation: 'spin 1s linear infinite' }} />
                   AI가 성공 이미지를 그리는 중...
                 </span>
-              ) : '🌟 성공 이미지 만들기'}
+              ) : <span style={{ display: 'flex', alignItems: 'center', gap: '7px', justifyContent: 'center' }}><Sparkles size={18} /> 성공 이미지 만들기</span>}
             </button>
           )}
 
@@ -746,7 +749,7 @@ export default function SuccessImagePage() {
           {successUrl && (
             <div style={{ textAlign: 'center' }}>
               <p style={{ fontSize: '14px', color: 'var(--color-text-muted)', marginBottom: '12px' }}>
-                나의 성공한 미래예요 ✨
+                나의 성공한 미래예요
               </p>
               <img
                 src={successUrl}
@@ -768,7 +771,7 @@ export default function SuccessImagePage() {
                     cursor: 'pointer',
                   }}
                 >
-                  📥 이미지 저장
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '6px', justifyContent: 'center' }}><Download size={16} /> 이미지 저장</span>
                 </button>
                 {!isLimitReached && <button
                   onClick={handleGenerateSuccess}
