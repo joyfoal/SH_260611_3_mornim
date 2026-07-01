@@ -61,6 +61,7 @@ export default function SuccessImagePage() {
   const [photoPreviewUrl, setPhotoPreviewUrl] = useState<string | null>(null)
   const [photoSaving, setPhotoSaving] = useState(false)
   const [photoSaved, setPhotoSaved] = useState(false)
+  const [photoRegistered, setPhotoRegistered] = useState(false)
   const [photoError, setPhotoError] = useState<string | null>(null)
   const [isDragOver, setIsDragOver] = useState(false)
 
@@ -220,6 +221,8 @@ export default function SuccessImagePage() {
       const blob = dataURLtoBlob(resized)
       await saveSuccessImage(blob)
       setSuccessUrl(resized)
+      setPhotoRegistered(true)
+      setTimeout(() => setPhotoRegistered(false), 2500)
     } catch {}
   }
 
@@ -283,16 +286,23 @@ export default function SuccessImagePage() {
         position: 'fixed', top: '60px', left: '50%',
         transform: 'translateX(-50%)',
         background: 'var(--color-accent-primary)',
-        color: 'white',
-        padding: '10px 20px',
-        borderRadius: '20px',
-        fontSize: '14px',
-        fontWeight: 600,
-        zIndex: 100,
-        boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-        whiteSpace: 'nowrap',
+        color: 'white', padding: '10px 20px', borderRadius: '20px',
+        fontSize: '14px', fontWeight: 600, zIndex: 100,
+        boxShadow: '0 4px 12px rgba(0,0,0,0.15)', whiteSpace: 'nowrap',
       }}>
         ✓ 사진이 등록되었어요
+      </div>
+    )}
+    {photoRegistered && (
+      <div style={{
+        position: 'fixed', top: '60px', left: '50%',
+        transform: 'translateX(-50%)',
+        background: 'var(--color-accent-primary)',
+        color: 'white', padding: '10px 20px', borderRadius: '20px',
+        fontSize: '14px', fontWeight: 600, zIndex: 100,
+        boxShadow: '0 4px 12px rgba(0,0,0,0.15)', whiteSpace: 'nowrap',
+      }}>
+        ✓ 성공 이미지로 등록됐어요
       </div>
     )}
     <AppLayout activeTab="게임">
