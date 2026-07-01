@@ -201,6 +201,16 @@ export default function SuccessImagePage() {
 
   const hasProfile = !!savedProfile?.profileImageBlob
 
+  const handleRegisterPhotoAsSuccess = async () => {
+    if (!savedProfile?.profileImageBlob) return
+    try {
+      await saveSuccessImage(savedProfile.profileImageBlob)
+      const reader = new FileReader()
+      reader.onload = () => setSuccessUrl(reader.result as string)
+      reader.readAsDataURL(savedProfile.profileImageBlob)
+    } catch {}
+  }
+
   const handleGenerateSuccess = async () => {
     if (!hasProfile || selectedIds.length === 0) return
     if (dailyCount >= MAX_DAILY) return
@@ -331,6 +341,23 @@ export default function SuccessImagePage() {
             >
               ✓ 사진이 준비됐어요 · 아래에서 성공의 말을 선택해요
             </div>
+            <button
+              onClick={handleRegisterPhotoAsSuccess}
+              style={{
+                width: '100%',
+                padding: '11px',
+                background: 'transparent',
+                border: '1.5px solid var(--color-accent-primary)',
+                borderRadius: '12px',
+                fontSize: '14px',
+                fontWeight: 600,
+                color: 'var(--color-accent-primary)',
+                cursor: 'pointer',
+                marginBottom: '8px',
+              }}
+            >
+              이 사진을 성공 이미지로 등록
+            </button>
             <button
               onClick={handleResetPhoto}
               style={{
