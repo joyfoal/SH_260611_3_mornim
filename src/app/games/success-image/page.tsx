@@ -67,6 +67,13 @@ export default function SuccessImagePage() {
   const [photoError, setPhotoError] = useState<string | null>(null)
   const [isDragOver, setIsDragOver] = useState(false)
 
+  // 크롭
+  const CROP_PX = 280
+  const [cropOffset, setCropOffset] = useState({ x: 0, y: 0 })
+  const [cropZoom, setCropZoom] = useState(1)
+  const cropImgRef = useRef<HTMLImageElement>(null)
+  const dragRef = useRef<{ startX: number; startY: number; ox: number; oy: number } | null>(null)
+
   // 성공 이미지 스타일
   const [imageStyle, setImageStyle] = useState<'cartoon' | 'realistic'>('cartoon')
 
@@ -119,6 +126,15 @@ export default function SuccessImagePage() {
     return () => { if (photoPreviewUrl) URL.revokeObjectURL(photoPreviewUrl) }
   }, [photoPreviewUrl])
 
+  const clampOffset = (ox: number, oy: number, zoom: number, imgNW: number, imgNH: number) => {
+    const minX = CROP_PX * (1 - zoom)
+    const minY = CROP_PX * (1 - (imgNH / imgNW) * zoom)
+    return {
+      x: Math.max(minX, Math.min(0, ox)),
+      y: Math.max(minY, Math.min(0, oy)),
+    }
+  }
+
   const applyPhotoFile = (file: File) => {
     if (!file.type.startsWith('image/')) return
     if (photoPreviewUrl) URL.revokeObjectURL(photoPreviewUrl)
@@ -126,6 +142,8 @@ export default function SuccessImagePage() {
     setPhotoPreviewUrl(URL.createObjectURL(file))
     setPhotoError(null)
     setSuccessUrl(null)
+    setCropOffset({ x: 0, y: 0 })
+    setCropZoom(1)
   }
 
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -150,12 +168,22 @@ export default function SuccessImagePage() {
   }
 
   const handleSavePhoto = async () => {
-    if (!photoFile) return
+    if (!photoFile || !cropImgRef.current) return
     setPhotoSaving(true)
     setPhotoError(null)
     try {
-      const resizedDataUrl = await resizeImage(photoFile, 800)
-      const profileBlob = dataURLtoBlob(resizedDataUrl)
+      const img = cropImgRef.current
+      const displayToNatural = img.naturalWidth / CROP_PX
+      const srcX = (-cropOffset.x / cropZoom) * displayToNatural
+      const srcY = (-cropOffset.y / cropZoom) * displayToNatural
+      const srcW = (CROP_PX / cropZoom) * displayToNatural
+      const OUTPUT = 1024
+      const canvas = document.createElement('canvas')
+      canvas.width = OUTPUT
+      canvas.height = OUTPUT
+      canvas.getContext('2d')!.drawImage(img, srcX, srcY, srcW, srcW, 0, 0, OUTPUT, OUTPUT)
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.85)
+      const profileBlob = dataURLtoBlob(dataUrl)
       const toSave: FaceProfile = {
         id: 'default',
         createdAt: Date.now(),
@@ -375,20 +403,98 @@ export default function SuccessImagePage() {
             </button>
           </div>
         ) : photoPreviewUrl ? (
-          /* 새 사진 선택 후 미리보기 */
+          /* 새 사진 선택 후 크롭 조정 */
           <div>
-            <img
-              src={photoPreviewUrl}
-              alt="선택한 사진"
+            <p style={{ fontSize: '12px', color: 'var(--color-text-muted)', marginBottom: '8px', textAlign: 'center' }}>
+              드래그로 위치 조정 · 슬라이더로 확대/축소
+            </p>
+            {/* 크롭 뷰파인더 */}
+            <div
               style={{
-                width: '100%',
-                borderRadius: '12px',
+                width: `${CROP_PX}px`,
+                height: `${CROP_PX}px`,
+                overflow: 'hidden',
+                borderRadius: '14px',
                 marginBottom: '10px',
-                display: 'block',
-                maxHeight: '260px',
-                objectFit: 'cover',
+                position: 'relative',
+                cursor: 'grab',
+                touchAction: 'none',
+                userSelect: 'none',
+                border: '2px solid var(--color-accent-primary)',
+                marginLeft: 'auto',
+                marginRight: 'auto',
               }}
-            />
+              onPointerDown={(e) => {
+                e.currentTarget.setPointerCapture(e.pointerId)
+                dragRef.current = { startX: e.clientX, startY: e.clientY, ox: cropOffset.x, oy: cropOffset.y }
+              }}
+              onPointerMove={(e) => {
+                if (!dragRef.current || !cropImgRef.current) return
+                const dx = e.clientX - dragRef.current.startX
+                const dy = e.clientY - dragRef.current.startY
+                const img = cropImgRef.current
+                const clamped = clampOffset(
+                  dragRef.current.ox + dx,
+                  dragRef.current.oy + dy,
+                  cropZoom,
+                  img.naturalWidth,
+                  img.naturalHeight,
+                )
+                setCropOffset(clamped)
+              }}
+              onPointerUp={() => { dragRef.current = null }}
+              onPointerCancel={() => { dragRef.current = null }}
+            >
+              <img
+                ref={cropImgRef}
+                src={photoPreviewUrl}
+                alt="크롭 미리보기"
+                draggable={false}
+                onLoad={() => {
+                  const img = cropImgRef.current
+                  if (!img) return
+                  const ratio = img.naturalHeight / img.naturalWidth
+                  const minZ = ratio < 1 ? 1 / ratio : 1
+                  const dispH = CROP_PX * ratio * minZ
+                  const initY = dispH > CROP_PX ? -(dispH - CROP_PX) / 2 : 0
+                  setCropZoom(minZ)
+                  setCropOffset(clampOffset(0, initY, minZ, img.naturalWidth, img.naturalHeight))
+                }}
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  width: `${CROP_PX}px`,
+                  height: 'auto',
+                  transform: `translate(${cropOffset.x}px, ${cropOffset.y}px) scale(${cropZoom})`,
+                  transformOrigin: '0 0',
+                  pointerEvents: 'none',
+                  userSelect: 'none',
+                }}
+              />
+            </div>
+            {/* 줌 슬라이더 */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
+              <span style={{ fontSize: '14px' }}>🔍</span>
+              <input
+                type="range"
+                min={cropImgRef.current
+                  ? Math.max(1, cropImgRef.current.naturalWidth / cropImgRef.current.naturalHeight)
+                  : 1}
+                max={4}
+                step={0.01}
+                value={cropZoom}
+                onChange={(e) => {
+                  const zoom = Number(e.target.value)
+                  const img = cropImgRef.current
+                  if (!img) return
+                  const clamped = clampOffset(cropOffset.x, cropOffset.y, zoom, img.naturalWidth, img.naturalHeight)
+                  setCropZoom(zoom)
+                  setCropOffset(clamped)
+                }}
+                style={{ flex: 1, accentColor: 'var(--color-accent-primary)' }}
+              />
+            </div>
             <div style={{ display: 'flex', gap: '8px' }}>
               <button
                 onClick={handleSavePhoto}
@@ -411,7 +517,7 @@ export default function SuccessImagePage() {
                     <span style={{ animation: 'spin 1s linear infinite', display: 'inline-block' }}>⏳</span>
                     저장 중...
                   </span>
-                ) : '이 사진 사용하기'}
+                ) : '이 위치로 사용하기'}
               </button>
               <button
                 onClick={() => photoInputRef.current?.click()}
