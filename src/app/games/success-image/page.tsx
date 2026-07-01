@@ -7,13 +7,10 @@ import { getAffirmations, type Affirmation } from '@/lib/storage'
 import {
   getFaceProfile,
   saveFaceProfile,
-  deleteFaceProfile,
   clearFaceStorage,
   type FaceProfile,
 } from '@/lib/faceStorage'
-import { saveSuccessImage, clearSuccessImages } from '@/lib/successImageStorage'
-import { clearAllAudioRecords } from '@/lib/audioStorage'
-import { clearAllData } from '@/lib/storage'
+import { saveSuccessImage } from '@/lib/successImageStorage'
 
 function resizeImage(file: File | Blob, maxPx = 900, format: 'jpeg' | 'png' = 'jpeg'): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -61,7 +58,6 @@ export default function SuccessImagePage() {
   const [savedProfileUrl, setSavedProfileUrl] = useState<string | null>(null)
 
   // 사진 업로드
-  const [photoFile, setPhotoFile] = useState<File | null>(null)
   const [photoPreviewUrl, setPhotoPreviewUrl] = useState<string | null>(null)
   const [photoSaving, setPhotoSaving] = useState(false)
   const [photoSaved, setPhotoSaved] = useState(false)
@@ -139,7 +135,6 @@ export default function SuccessImagePage() {
   const applyPhotoFile = (file: File) => {
     if (!file.type.startsWith('image/')) return
     if (photoPreviewUrl) URL.revokeObjectURL(photoPreviewUrl)
-    setPhotoFile(file)
     setPhotoPreviewUrl(URL.createObjectURL(file))
     setPhotoError(null)
     setSuccessUrl(null)
@@ -169,7 +164,7 @@ export default function SuccessImagePage() {
   }
 
   const handleSavePhoto = async () => {
-    if (!photoFile || !cropImgRef.current) return
+    if (!cropImgRef.current) return
     setPhotoSaving(true)
     setPhotoError(null)
     try {
@@ -185,15 +180,9 @@ export default function SuccessImagePage() {
       canvas.getContext('2d')!.drawImage(img, srcX, srcY, srcW, srcW, 0, 0, OUTPUT, OUTPUT)
       const dataUrl = canvas.toDataURL('image/jpeg', 0.85)
       const profileBlob = dataURLtoBlob(dataUrl)
-      const toSave: FaceProfile = {
-        id: 'default',
-        createdAt: Date.now(),
-        profileImageBlob: profileBlob,
-        imageBlob: photoFile,
-      }
+      const toSave: FaceProfile = { id: 'default', createdAt: Date.now(), profileImageBlob: profileBlob }
       await saveFaceProfile(toSave)
       setSavedProfile(toSave)
-      setPhotoFile(null)
       if (photoPreviewUrl) URL.revokeObjectURL(photoPreviewUrl)
       setPhotoPreviewUrl(null)
       setPhotoSaved(true)
@@ -205,19 +194,11 @@ export default function SuccessImagePage() {
   }
 
   const handleResetPhoto = async () => {
-    clearAllData()
-    await Promise.all([
-      deleteFaceProfile().catch(() => {}),
-      clearFaceStorage().catch(() => {}),
-      clearSuccessImages().catch(() => {}),
-      clearAllAudioRecords().catch(() => {}),
-    ])
+    await clearFaceStorage().catch(() => {})
     setSavedProfile(null)
     setSavedProfileUrl(null)
-    setPhotoFile(null)
     if (photoPreviewUrl) URL.revokeObjectURL(photoPreviewUrl)
     setPhotoPreviewUrl(null)
-    setSelectedIds([])
     setSuccessUrl(null)
     setSuccessError(null)
   }
