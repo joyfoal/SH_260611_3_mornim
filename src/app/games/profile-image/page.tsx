@@ -2,35 +2,11 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import {
-  getFaceProfile,
-  saveFaceProfile,
-  type FaceProfile,
-  type FaceData,
-} from '@/lib/faceStorage'
-
-type Mode = 'face+text' | 'face' | 'text'
-
-function resizeImage(file: File | Blob, maxPx = 800): Promise<string> {
-  return new Promise((resolve) => {
-    const img = new Image()
-    const objectUrl = URL.createObjectURL(file)
-    img.onload = () => {
-      URL.revokeObjectURL(objectUrl)
-      const scale = Math.min(maxPx / img.naturalWidth, maxPx / img.naturalHeight, 1)
-      const canvas = document.createElement('canvas')
-      canvas.width = Math.round(img.naturalWidth * scale)
-      canvas.height = Math.round(img.naturalHeight * scale)
-      canvas.getContext('2d')!.drawImage(img, 0, 0, canvas.width, canvas.height)
-      resolve(canvas.toDataURL('image/jpeg', 0.85))
-    }
-    img.src = objectUrl
-  })
-}
+import { getFaceProfile, saveFaceProfile, type FaceProfile } from '@/lib/faceStorage'
 
 function dataURLtoBlob(dataURL: string): Blob {
   const arr = dataURL.split(',')
-  const mime = arr[0].match(/:(.*?);/)?.[1] ?? 'image/png'
+  const mime = arr[0].match(/:(.*?);/)?.[1] ?? 'image/jpeg'
   const bstr = atob(arr[1])
   let n = bstr.length
   const u8arr = new Uint8Array(n)
@@ -38,262 +14,99 @@ function dataURLtoBlob(dataURL: string): Blob {
   return new Blob([u8arr], { type: mime })
 }
 
-const MODES: { id: Mode; label: string; desc: string; btnLabel: string }[] = [
-  {
-    id: 'face+text',
-    label: '얼굴+글',
-    desc: '얼굴 사진과 원하는 느낌으로 나만의 긍정 이미지를 만들어요',
-    btnLabel: '✨ 내 얼굴로 긍정 이미지 만들기',
-  },
-  {
-    id: 'face',
-    label: '얼굴만',
-    desc: '얼굴 사진으로 지브리 스타일 캐릭터를 만들어요',
-    btnLabel: '✨ 지브리 스타일 캐릭터 만들기',
-  },
-  {
-    id: 'text',
-    label: '글만',
-    desc: '원하는 느낌이나 긍정의 말로 이미지를 만들어요',
-    btnLabel: '✨ 긍정 이미지 만들기',
-  },
-]
+const CROP_PX = 280
 
 export default function ProfileImagePage() {
   const router = useRouter()
   const fileInputRef = useRef<HTMLInputElement>(null)
-  const directFileInputRef = useRef<HTMLInputElement>(null)
+  const cropImgRef = useRef<HTMLImageElement>(null)
+  const dragRef = useRef<{ startX: number; startY: number; ox: number; oy: number } | null>(null)
 
-  const [mode, setMode] = useState<Mode>('face+text')
-  const [faceFile, setFaceFile] = useState<File | null>(null)
-  const [faceThumbnail, setFaceThumbnail] = useState<string | null>(null)
-  const [faceData, setFaceData] = useState<FaceData | null>(null)
-  const [faceAnalyzing, setFaceAnalyzing] = useState(false)
-  const [faceError, setFaceError] = useState<string | null>(null)
-  const [text, setText] = useState('')
-  const [generating, setGenerating] = useState(false)
-  const [generatedUrl, setGeneratedUrl] = useState<string | null>(null)
-  const [error, setError] = useState<string | null>(null)
+  const [existingProfile, setExistingProfile] = useState<FaceProfile | null>(null)
+  const [existingUrl, setExistingUrl] = useState<string | null>(null)
+
+  const [photoPreviewUrl, setPhotoPreviewUrl] = useState<string | null>(null)
+  const [cropOffset, setCropOffset] = useState({ x: 0, y: 0 })
+  const [cropZoom, setCropZoom] = useState(1)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
-  const [existingProfile, setExistingProfile] = useState<FaceProfile | null>(null)
-
-  const [directFile, setDirectFile] = useState<File | null>(null)
-  const [directPreviewUrl, setDirectPreviewUrl] = useState<string | null>(null)
-  const [directSaving, setDirectSaving] = useState(false)
-  const [directSaved, setDirectSaved] = useState(false)
-  const [directError, setDirectError] = useState<string | null>(null)
-
-  const PROFILE_GEN_KEY = 'ealo-profile-gen-count'
-  const PROFILE_FIRST_COOKIE = 'ealo-profile-first'
-
-  function getFirstGenDate(): string | null {
-    const match = document.cookie.split(';').find((c) => c.trim().startsWith(PROFILE_FIRST_COOKIE + '='))
-    return match ? match.trim().slice(PROFILE_FIRST_COOKIE.length + 1) : null
-  }
-
-  function setFirstGenDate(date: string): void {
-    const expires = new Date()
-    expires.setFullYear(expires.getFullYear() + 1)
-    document.cookie = `${PROFILE_FIRST_COOKIE}=${date}; expires=${expires.toUTCString()}; path=/`
-  }
-
-  function getMaxDaily(): number {
-    const today = new Date().toISOString().split('T')[0]
-    const firstDate = getFirstGenDate()
-    // 첫날(쿠키 없거나 오늘이 첫날)이면 3회, 이후 방문은 1회
-    return (!firstDate || firstDate === today) ? 3 : 1
-  }
-
-  function getDailyCount(): number {
-    try {
-      const raw = localStorage.getItem(PROFILE_GEN_KEY)
-      if (!raw) return 0
-      const data = JSON.parse(raw) as { date: string; count: number }
-      const today = new Date().toISOString().split('T')[0]
-      return data.date === today ? data.count : 0
-    } catch { return 0 }
-  }
-
-  function incrementDailyCount(): void {
-    try {
-      const today = new Date().toISOString().split('T')[0]
-      const current = getDailyCount()
-      localStorage.setItem(PROFILE_GEN_KEY, JSON.stringify({ date: today, count: current + 1 }))
-      if (!getFirstGenDate()) setFirstGenDate(today)
-    } catch {}
-  }
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    getFaceProfile().then(setExistingProfile).catch(() => {})
+    getFaceProfile().then((p) => {
+      setExistingProfile(p)
+    }).catch(() => {})
   }, [])
 
   useEffect(() => {
-    return () => {
-      if (faceThumbnail) URL.revokeObjectURL(faceThumbnail)
-    }
-  }, [faceThumbnail])
+    if (!existingProfile?.profileImageBlob) { setExistingUrl(null); return }
+    const url = URL.createObjectURL(existingProfile.profileImageBlob)
+    setExistingUrl(url)
+    return () => URL.revokeObjectURL(url)
+  }, [existingProfile])
 
   useEffect(() => {
-    return () => {
-      if (directPreviewUrl) URL.revokeObjectURL(directPreviewUrl)
-    }
-  }, [directPreviewUrl])
+    return () => { if (photoPreviewUrl) URL.revokeObjectURL(photoPreviewUrl) }
+  }, [photoPreviewUrl])
 
-  const handleDirectFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const clampOffset = (ox: number, oy: number, zoom: number, imgNW: number, imgNH: number) => {
+    const minX = CROP_PX * (1 - zoom)
+    const minY = CROP_PX * (1 - (imgNH / imgNW) * zoom)
+    return { x: Math.max(minX, Math.min(0, ox)), y: Math.max(minY, Math.min(0, oy)) }
+  }
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
-    if (!file) return
+    if (!file || !file.type.startsWith('image/')) return
     e.target.value = ''
-    if (directPreviewUrl) URL.revokeObjectURL(directPreviewUrl)
-    setDirectFile(file)
-    setDirectPreviewUrl(URL.createObjectURL(file))
-    setDirectSaved(false)
-    setDirectError(null)
-  }
-
-  const handleSaveDirectly = async () => {
-    if (!directFile) return
-    setDirectSaving(true)
-    setDirectError(null)
-    try {
-      const resizedDataUrl = await resizeImage(directFile, 800)
-      const profileBlob = dataURLtoBlob(resizedDataUrl)
-      const profileToSave: FaceProfile = {
-        id: 'default',
-        createdAt: Date.now(),
-        profileImageBlob: profileBlob,
-        imageBlob: directFile,
-      }
-      if (existingProfile?.faceData) profileToSave.faceData = existingProfile.faceData
-      await saveFaceProfile(profileToSave)
-      setExistingProfile(profileToSave)
-      setDirectSaved(true)
-    } catch {
-      setDirectError('저장 중 오류가 발생했어요.')
-    }
-    setDirectSaving(false)
-  }
-
-  const handleModeChange = (newMode: Mode) => {
-    setMode(newMode)
-    setGeneratedUrl(null)
+    if (photoPreviewUrl) URL.revokeObjectURL(photoPreviewUrl)
+    setPhotoPreviewUrl(URL.createObjectURL(file))
+    setCropOffset({ x: 0, y: 0 })
+    setCropZoom(1)
     setSaved(false)
     setError(null)
   }
 
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-    e.target.value = ''
-
-    if (faceThumbnail) URL.revokeObjectURL(faceThumbnail)
-    setFaceThumbnail(URL.createObjectURL(file))
-    setFaceFile(file)
-    setFaceData(null)
-    setFaceError(null)
-    setGeneratedUrl(null)
-    setSaved(false)
-
-    setFaceAnalyzing(true)
-    try {
-      const imageBase64 = await resizeImage(file)
-      const res = await fetch('/api/analyze-face', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ imageBase64 }),
-      })
-      const data = await res.json() as { faceData?: FaceData; error?: string }
-      if (!res.ok || !data.faceData) {
-        setFaceError(data.error ?? '얼굴 분석에 실패했어요. 얼굴이 잘 보이는 사진을 사용해 주세요.')
-      } else {
-        setFaceData(data.faceData)
-      }
-    } catch {
-      setFaceError('얼굴 분석 중 오류가 발생했어요.')
-    }
-    setFaceAnalyzing(false)
+  const handlePointerDown = (e: React.PointerEvent) => {
+    e.currentTarget.setPointerCapture(e.pointerId)
+    dragRef.current = { startX: e.clientX, startY: e.clientY, ox: cropOffset.x, oy: cropOffset.y }
   }
 
-  const canGenerate = () => {
-    if (generating || faceAnalyzing) return false
-    if (mode === 'text') return text.trim().length > 0
-    if (mode === 'face') return faceFile !== null && faceData !== null
-    // face+text
-    return faceFile !== null && faceData !== null && text.trim().length > 0
+  const handlePointerMove = (e: React.PointerEvent) => {
+    if (!dragRef.current || !cropImgRef.current) return
+    const dx = e.clientX - dragRef.current.startX
+    const dy = e.clientY - dragRef.current.startY
+    const img = cropImgRef.current
+    const { x, y } = clampOffset(dragRef.current.ox + dx, dragRef.current.oy + dy, cropZoom, img.naturalWidth, img.naturalHeight)
+    setCropOffset({ x, y })
   }
 
-  const handleGenerate = async () => {
-    if (!canGenerate()) return
-    const maxDaily = getMaxDaily()
-    if (getDailyCount() >= maxDaily) {
-      setError(
-        maxDaily === 1
-          ? '오늘의 프로필 이미지 생성 1회를 사용했어요. 내일 다시 시도해보세요.'
-          : '오늘의 프로필 이미지 생성을 모두 사용했어요. 내일 다시 시도해보세요.'
-      )
-      return
-    }
-    setGenerating(true)
-    setError(null)
-    setGeneratedUrl(null)
-    setSaved(false)
+  const handlePointerUp = () => { dragRef.current = null }
 
-    try {
-      let faceImageBase64: string | undefined
-      if (faceFile) faceImageBase64 = await resizeImage(faceFile)
-
-      const res = await fetch('/api/generate-profile-image', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          mode,
-          faceImageBase64,
-          faceData: faceData ?? undefined,
-          text: text.trim() || undefined,
-        }),
-      })
-      const data = await res.json() as { url?: string; error?: string }
-      if (data.error) {
-        setError(data.error)
-      } else if (data.url) {
-        setGeneratedUrl(data.url)
-        incrementDailyCount()
-      }
-    } catch {
-      setError('이미지 생성 중 오류가 발생했어요.')
-    }
-    setGenerating(false)
-  }
-
-  const handleSaveAsProfile = async () => {
-    if (!generatedUrl) return
+  const handleSave = async () => {
+    if (!cropImgRef.current || !photoPreviewUrl) return
     setSaving(true)
     setError(null)
     try {
-      const profileBlob = dataURLtoBlob(generatedUrl)
-
+      const img = cropImgRef.current
+      const displayToNatural = img.naturalWidth / CROP_PX
+      const srcX = (-cropOffset.x / cropZoom) * displayToNatural
+      const srcY = (-cropOffset.y / cropZoom) * displayToNatural
+      const srcW = (CROP_PX / cropZoom) * displayToNatural
+      const canvas = document.createElement('canvas')
+      canvas.width = 1024
+      canvas.height = 1024
+      canvas.getContext('2d')!.drawImage(img, srcX, srcY, srcW, srcW, 0, 0, 1024, 1024)
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.85)
+      const blob = dataURLtoBlob(dataUrl)
       const profileToSave: FaceProfile = {
         id: 'default',
         createdAt: Date.now(),
-        profileImageBlob: profileBlob,
-        profileDescription: text.trim() || undefined,
+        profileImageBlob: blob,
       }
-
-      // 얼굴 데이터 보존
-      if (faceData) {
-        profileToSave.faceData = faceData
-      } else if (existingProfile?.faceData) {
-        profileToSave.faceData = existingProfile.faceData
-      }
-
-      if (faceFile) {
-        profileToSave.imageBlob = faceFile
-      } else if (existingProfile?.imageBlob) {
-        profileToSave.imageBlob = existingProfile.imageBlob
-      }
-
       await saveFaceProfile(profileToSave)
       setExistingProfile(profileToSave)
+      setPhotoPreviewUrl(null)
       setSaved(true)
     } catch {
       setError('저장 중 오류가 발생했어요.')
@@ -301,13 +114,12 @@ export default function ProfileImagePage() {
     setSaving(false)
   }
 
-  const needsFace = mode === 'face' || mode === 'face+text'
-  const needsText = mode === 'text' || mode === 'face+text'
-  const currentMode = MODES.find((m) => m.id === mode)!
+  const minZoom = cropImgRef.current
+    ? Math.max(1, (cropImgRef.current.naturalHeight / cropImgRef.current.naturalWidth))
+    : 1
 
   return (
     <div style={{ minHeight: '100dvh', background: 'var(--color-bg-primary)', padding: '20px 16px 48px' }}>
-      {/* 헤더 */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '24px' }}>
         <button
           onClick={() => router.back()}
@@ -316,363 +128,122 @@ export default function ProfileImagePage() {
           ←
         </button>
         <h1 style={{ fontSize: '20px', fontWeight: 600, color: 'var(--color-text-primary)' }}>
-          프로필 이미지 만들기
+          프로필 사진 등록
         </h1>
       </div>
 
-      {/* 모드 탭 */}
-      <div style={{ display: 'flex', gap: '6px', marginBottom: '16px', background: 'var(--color-bg-card)', borderRadius: '14px', padding: '4px' }}>
-        {MODES.map((tab) => (
-          <button
-            key={tab.id}
-            onClick={() => handleModeChange(tab.id)}
-            style={{
-              flex: 1,
-              padding: '10px 4px',
-              borderRadius: '10px',
-              background: mode === tab.id ? 'var(--color-accent-primary)' : 'transparent',
-              color: mode === tab.id ? 'white' : 'var(--color-text-muted)',
-              border: 'none',
-              fontSize: '13px',
-              fontWeight: mode === tab.id ? 600 : 400,
-              cursor: 'pointer',
-              transition: 'all 0.15s ease',
-            }}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </div>
-
-      {/* 모드 설명 */}
-      <div
-        style={{
-          padding: '12px 14px',
-          background: 'var(--color-accent-light)',
-          borderRadius: '12px',
-          marginBottom: '20px',
-          fontSize: '13px',
-          color: 'var(--color-accent-primary)',
-          lineHeight: 1.5,
-        }}
-      >
-        {currentMode.desc}
-      </div>
-
-      {/* 얼굴 사진 섹션 */}
-      {needsFace && (
-        <div
-          style={{
-            marginBottom: '16px',
-            padding: '16px',
-            background: 'var(--color-bg-card)',
-            borderRadius: '16px',
-          }}
-        >
-          <p style={{ fontSize: '14px', fontWeight: 600, color: 'var(--color-text-primary)', marginBottom: '12px' }}>
-            얼굴 사진
-          </p>
-
-          {faceAnalyzing ? (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 0' }}>
-              <span style={{ animation: 'spin 1s linear infinite', display: 'inline-block', fontSize: '18px' }}>✨</span>
-              <span style={{ fontSize: '14px', color: 'var(--color-text-muted)' }}>AI가 얼굴을 분석하는 중...</span>
-            </div>
-          ) : faceThumbnail ? (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-              <img
-                src={faceThumbnail}
-                alt="얼굴 사진"
-                style={{
-                  width: '60px',
-                  height: '60px',
-                  borderRadius: '50%',
-                  objectFit: 'cover',
-                  flexShrink: 0,
-                  border: faceData ? '2.5px solid var(--color-accent-primary)' : '2px solid var(--color-border)',
-                }}
-              />
-              <div>
-                <p style={{ fontSize: '13px', color: faceData ? 'var(--color-accent-primary)' : 'var(--color-text-muted)', marginBottom: '6px', fontWeight: 500 }}>
-                  {faceData ? '✓ 얼굴 분석 완료' : '분석 중 오류 발생'}
-                </p>
-                <button
-                  onClick={() => fileInputRef.current?.click()}
-                  style={{ fontSize: '12px', color: 'var(--color-accent-primary)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
-                >
-                  사진 변경
-                </button>
-              </div>
-            </div>
-          ) : (
-            <button
-              onClick={() => fileInputRef.current?.click()}
-              style={{
-                width: '100%',
-                padding: '16px',
-                background: 'var(--color-bg-surface)',
-                border: '1.5px dashed var(--color-border)',
-                borderRadius: '12px',
-                fontSize: '14px',
-                color: 'var(--color-text-muted)',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '8px',
-              }}
-            >
-              <span style={{ fontSize: '22px' }}>📷</span>
-              얼굴 사진 선택하기
-            </button>
-          )}
-
-          {faceError && (
-            <div style={{ marginTop: '10px', padding: '10px 12px', background: 'var(--color-warning-bg)', borderRadius: '10px', color: 'var(--color-warning)', fontSize: '13px' }}>
-              {faceError}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* 글 입력 섹션 */}
-      {needsText && (
-        <div style={{ marginBottom: '20px' }}>
-          <p style={{ fontSize: '14px', fontWeight: 600, color: 'var(--color-text-primary)', marginBottom: '10px' }}>
-            {mode === 'face+text' ? '원하는 분위기나 느낌' : '원하는 느낌이나 긍정의 말'}
-          </p>
-          <textarea
-            value={text}
-            onChange={(e) => { setText(e.target.value); setGeneratedUrl(null); setSaved(false) }}
-            placeholder={
-              mode === 'face+text'
-                ? '예: 따뜻한 햇살 아래 자유롭고 행복한 느낌'
-                : '예: 자유롭고 행복하게, 꿈을 이루는 나'
-            }
-            rows={3}
-            style={{
-              width: '100%',
-              padding: '13px 14px',
-              background: 'var(--color-bg-card)',
-              border: '1.5px solid var(--color-border)',
-              borderRadius: '12px',
-              fontSize: '14px',
-              color: 'var(--color-text-primary)',
-              resize: 'none',
-              outline: 'none',
-              lineHeight: 1.6,
-              boxSizing: 'border-box',
-            }}
+      {/* 등록된 사진 */}
+      {existingUrl && !photoPreviewUrl && (
+        <div style={{ marginBottom: '24px', padding: '16px', background: 'var(--color-bg-card)', borderRadius: '16px' }}>
+          <p style={{ fontSize: '13px', color: 'var(--color-text-muted)', marginBottom: '12px' }}>현재 등록된 사진</p>
+          <img
+            src={existingUrl}
+            alt="등록된 프로필"
+            style={{ width: '100px', height: '100px', borderRadius: '50%', objectFit: 'cover', display: 'block', border: '2.5px solid var(--color-accent-primary)' }}
           />
         </div>
       )}
 
-      {/* 생성 버튼 */}
-      <button
-        onClick={handleGenerate}
-        disabled={!canGenerate()}
-        style={{
-          width: '100%',
-          padding: '16px',
-          background: canGenerate() ? 'var(--color-accent-primary)' : 'var(--color-border)',
-          color: 'white',
-          border: 'none',
-          borderRadius: '16px',
-          fontSize: '16px',
-          fontWeight: 600,
-          cursor: canGenerate() ? 'pointer' : 'not-allowed',
-          marginBottom: '24px',
-          opacity: canGenerate() ? 1 : 0.6,
-          transition: 'opacity 0.2s ease',
-        }}
-      >
-        {generating ? (
-          <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
-            <span style={{ animation: 'spin 1s linear infinite', display: 'inline-block' }}>✨</span>
-            AI가 이미지를 그리는 중...
-          </span>
-        ) : currentMode.btnLabel}
-      </button>
+      {/* 크롭 UI */}
+      {photoPreviewUrl ? (
+        <div style={{ marginBottom: '24px' }}>
+          <p style={{ fontSize: '14px', fontWeight: 600, color: 'var(--color-text-primary)', marginBottom: '12px' }}>
+            위치와 크기를 조절해 주세요
+          </p>
+          <div
+            style={{ width: `${CROP_PX}px`, height: `${CROP_PX}px`, overflow: 'hidden', borderRadius: '50%', border: '2.5px solid var(--color-accent-primary)', cursor: 'grab', margin: '0 auto 16px', touchAction: 'none' }}
+            onPointerDown={handlePointerDown}
+            onPointerMove={handlePointerMove}
+            onPointerUp={handlePointerUp}
+          >
+            <img
+              ref={cropImgRef}
+              src={photoPreviewUrl}
+              alt="크롭 미리보기"
+              draggable={false}
+              style={{
+                width: `${CROP_PX * cropZoom}px`,
+                transformOrigin: '0 0',
+                transform: `translate(${cropOffset.x}px, ${cropOffset.y}px) scale(${cropZoom})`,
+                display: 'block',
+                userSelect: 'none',
+              }}
+              onLoad={(e) => {
+                const img = e.currentTarget
+                const ratio = img.naturalHeight / img.naturalWidth
+                const initZoom = Math.max(1, ratio)
+                setCropZoom(initZoom)
+                setCropOffset(clampOffset(0, (CROP_PX - CROP_PX * ratio * initZoom) / 2, initZoom, img.naturalWidth, img.naturalHeight))
+              }}
+            />
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' }}>
+            <span style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>축소</span>
+            <input
+              type="range"
+              min={minZoom}
+              max={4}
+              step={0.01}
+              value={cropZoom}
+              onChange={(e) => {
+                const z = parseFloat(e.target.value)
+                if (!cropImgRef.current) return
+                const img = cropImgRef.current
+                setCropZoom(z)
+                setCropOffset((prev) => clampOffset(prev.x, prev.y, z, img.naturalWidth, img.naturalHeight))
+              }}
+              style={{ flex: 1 }}
+            />
+            <span style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>확대</span>
+          </div>
+
+          <button
+            onClick={handleSave}
+            disabled={saving}
+            style={{ width: '100%', padding: '15px', background: 'var(--color-accent-primary)', color: 'white', border: 'none', borderRadius: '14px', fontSize: '15px', fontWeight: 600, cursor: saving ? 'not-allowed' : 'pointer', marginBottom: '8px' }}
+          >
+            {saving ? '저장 중...' : '이 위치로 저장하기'}
+          </button>
+          <button
+            onClick={() => { setPhotoPreviewUrl(null); setSaved(false) }}
+            style={{ width: '100%', padding: '13px', background: 'transparent', border: '1.5px solid var(--color-border)', borderRadius: '14px', fontSize: '14px', color: 'var(--color-text-muted)', cursor: 'pointer' }}
+          >
+            취소
+          </button>
+        </div>
+      ) : (
+        <button
+          onClick={() => { setSaved(false); fileInputRef.current?.click() }}
+          style={{ width: '100%', padding: '16px', background: 'var(--color-bg-card)', border: '1.5px dashed var(--color-border)', borderRadius: '16px', fontSize: '15px', color: 'var(--color-text-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', marginBottom: '16px' }}
+        >
+          <span style={{ fontSize: '24px' }}>📷</span>
+          {existingUrl ? '사진 변경하기' : '사진 선택하기'}
+        </button>
+      )}
+
+      {/* 저장 완료 */}
+      {saved && (
+        <div>
+          <div style={{ padding: '14px', background: 'var(--color-accent-light)', borderRadius: '12px', color: 'var(--color-accent-primary)', fontSize: '14px', fontWeight: 600, textAlign: 'center', marginBottom: '12px' }}>
+            ✓ 프로필 사진이 저장됐어요!
+          </div>
+          <button
+            onClick={() => router.push('/games/success-image')}
+            style={{ width: '100%', padding: '14px', background: 'var(--color-accent-primary)', color: 'white', border: 'none', borderRadius: '14px', fontSize: '15px', fontWeight: 600, cursor: 'pointer' }}
+          >
+            🌟 성공 이미지 만들러 가기
+          </button>
+        </div>
+      )}
 
       {error && (
-        <div style={{ padding: '14px', background: 'var(--color-warning-bg)', borderRadius: '12px', color: 'var(--color-warning)', fontSize: '14px', marginBottom: '16px', textAlign: 'center' }}>
+        <div style={{ padding: '12px 14px', background: 'var(--color-warning-bg)', borderRadius: '12px', color: 'var(--color-warning)', fontSize: '13px' }}>
           {error}
         </div>
       )}
 
-      {/* 생성 결과 */}
-      {generatedUrl && (
-        <div>
-          <p style={{ fontSize: '14px', color: 'var(--color-text-muted)', marginBottom: '12px', textAlign: 'center' }}>
-            생성된 프로필 이미지예요 ✨
-          </p>
-          <img
-            src={generatedUrl}
-            alt="생성된 프로필 이미지"
-            style={{ width: '100%', borderRadius: '20px', marginBottom: '16px', display: 'block' }}
-          />
-
-          {saved ? (
-            <div
-              style={{
-                padding: '16px',
-                background: 'var(--color-accent-light)',
-                borderRadius: '14px',
-                color: 'var(--color-accent-primary)',
-                fontSize: '15px',
-                fontWeight: 600,
-                textAlign: 'center',
-                marginBottom: '12px',
-              }}
-            >
-              ✓ 프로필로 저장됐어요!
-            </div>
-          ) : (
-            <button
-              onClick={handleSaveAsProfile}
-              disabled={saving}
-              style={{
-                width: '100%',
-                padding: '15px',
-                background: 'var(--color-accent-primary)',
-                color: 'white',
-                border: 'none',
-                borderRadius: '14px',
-                fontSize: '15px',
-                fontWeight: 600,
-                cursor: saving ? 'not-allowed' : 'pointer',
-                marginBottom: '12px',
-              }}
-            >
-              {saving ? '저장 중...' : '🌟 프로필로 저장하기'}
-            </button>
-          )}
-
-          {saved && (
-            <button
-              onClick={() => router.push('/games/success-image')}
-              style={{
-                width: '100%',
-                padding: '14px',
-                background: 'var(--color-accent-primary)',
-                color: 'white',
-                border: 'none',
-                borderRadius: '14px',
-                fontSize: '15px',
-                fontWeight: 600,
-                cursor: 'pointer',
-                marginBottom: '12px',
-              }}
-            >
-              🌟 성공 이미지 만들러 가기
-            </button>
-          )}
-
-          <button
-            onClick={handleGenerate}
-            style={{
-              width: '100%',
-              padding: '13px',
-              background: 'transparent',
-              border: '1.5px solid var(--color-border)',
-              borderRadius: '14px',
-              fontSize: '14px',
-              color: 'var(--color-text-muted)',
-              cursor: 'pointer',
-            }}
-          >
-            다시 만들기
-          </button>
-        </div>
-      )}
-
-      {/* 구분선 */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', margin: '8px 0 20px' }}>
-        <div style={{ flex: 1, height: '1px', background: 'var(--color-border)' }} />
-        <span style={{ fontSize: '12px', color: 'var(--color-text-muted)', flexShrink: 0 }}>또는</span>
-        <div style={{ flex: 1, height: '1px', background: 'var(--color-border)' }} />
-      </div>
-
-      {/* 원본 사진 바로 사용 */}
-      <div style={{ padding: '16px', background: 'var(--color-bg-card)', borderRadius: '16px', marginBottom: '32px' }}>
-        <p style={{ fontSize: '14px', fontWeight: 600, color: 'var(--color-text-primary)', marginBottom: '4px' }}>
-          내 사진 그대로 프로필로 사용하기
-        </p>
-        <p style={{ fontSize: '12px', color: 'var(--color-text-muted)', marginBottom: '14px' }}>
-          AI 변환 없이 원본 사진을 바로 프로필로 저장해요
-        </p>
-
-        {directPreviewUrl ? (
-          <div>
-            <img
-              src={directPreviewUrl}
-              alt="원본 사진 미리보기"
-              style={{ width: '100%', borderRadius: '14px', marginBottom: '12px', display: 'block', maxHeight: '300px', objectFit: 'cover' }}
-            />
-            <button
-              onClick={() => directFileInputRef.current?.click()}
-              style={{ fontSize: '12px', color: 'var(--color-accent-primary)', background: 'none', border: 'none', cursor: 'pointer', padding: '0 0 12px', display: 'block' }}
-            >
-              사진 변경
-            </button>
-            {directSaved ? (
-              <div style={{ padding: '14px', background: 'var(--color-accent-light)', borderRadius: '12px', color: 'var(--color-accent-primary)', fontSize: '14px', fontWeight: 600, textAlign: 'center', marginBottom: '10px' }}>
-                ✓ 프로필로 저장됐어요!
-              </div>
-            ) : (
-              <button
-                onClick={handleSaveDirectly}
-                disabled={directSaving}
-                style={{ width: '100%', padding: '14px', background: 'var(--color-accent-primary)', color: 'white', border: 'none', borderRadius: '12px', fontSize: '15px', fontWeight: 600, cursor: directSaving ? 'not-allowed' : 'pointer', marginBottom: '8px' }}
-              >
-                {directSaving ? '저장 중...' : '📷 이 사진으로 프로필 저장하기'}
-              </button>
-            )}
-            {directSaved && (
-              <button
-                onClick={() => router.push('/games/success-image')}
-                style={{ width: '100%', padding: '13px', background: 'var(--color-accent-primary)', color: 'white', border: 'none', borderRadius: '12px', fontSize: '14px', fontWeight: 600, cursor: 'pointer' }}
-              >
-                🌟 성공 이미지 만들러 가기
-              </button>
-            )}
-            {directError && (
-              <div style={{ marginTop: '10px', padding: '10px 12px', background: 'var(--color-warning-bg)', borderRadius: '10px', color: 'var(--color-warning)', fontSize: '13px' }}>
-                {directError}
-              </div>
-            )}
-          </div>
-        ) : (
-          <button
-            onClick={() => directFileInputRef.current?.click()}
-            style={{ width: '100%', padding: '16px', background: 'var(--color-bg-surface)', border: '1.5px dashed var(--color-border)', borderRadius: '12px', fontSize: '14px', color: 'var(--color-text-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
-          >
-            <span style={{ fontSize: '22px' }}>📷</span>
-            사진 선택하기
-          </button>
-        )}
-      </div>
-
-      <input
-        type="file"
-        accept="image/*"
-        capture="user"
-        ref={fileInputRef}
-        style={{ display: 'none' }}
-        onChange={handleFileChange}
-      />
-      <input
-        type="file"
-        accept="image/*"
-        ref={directFileInputRef}
-        style={{ display: 'none' }}
-        onChange={handleDirectFileChange}
-      />
-
-      <style>{`
-        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-        textarea:focus { border-color: var(--color-accent-primary) !important; }
-      `}</style>
+      <input type="file" accept="image/*" ref={fileInputRef} style={{ display: 'none' }} onChange={handleFileChange} />
     </div>
   )
 }

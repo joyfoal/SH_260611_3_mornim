@@ -133,14 +133,29 @@ export async function POST(req: NextRequest) {
     let imageDataUrl: string | null = null
 
     if (profileImageBase64) {
+      const rules = `CRITICAL RULES — DO NOT IGNORE:
+
+1. GENDER: Look at the person in the photo. Determine if they are male or female.
+   Render them as the EXACT SAME gender. Do not change gender under any circumstances.
+   Female in photo → generate female. Male in photo → generate male.
+
+2. AGE: Estimate the person's apparent age from the photo, then apply these rules:
+   - Appears 40 or older → render as approximately 28 years old
+   - Appears 30–39 → render as approximately 25 years old
+   - Appears 20–29 → render as approximately 20 years old
+   - Appears 19 or younger → keep their actual apparent age (do NOT make them look older)
+
+These two rules override all other instructions. Apply them first before anything else.
+
+`
       const prompt = imageStyle === 'cartoon'
-        ? `Transform this person into a warm anime/illustration style character, preserving their facial features, hair color, and identity.
-IMPORTANT — Youth & Beauty: Make the character look significantly younger and more beautiful than in the original photo. Target age: 20–25 years old. Smooth, glowing skin, vibrant youthful energy, peak attractiveness. This is their ideal future self.
+        ? `${rules}Transform this person into a warm anime/illustration style character, preserving their facial features, hair color, and identity.
+Make the character look beautiful and radiant — smooth glowing skin, vibrant energy. This is their ideal future self.
 Place them in a beautiful, magical success scene that visually embodies: ${sceneContext}
 Art style: Studio Ghibli anime — soft colors, warm golden light, painterly and heartwarming.
 The character radiates genuine joy, confidence, and deep fulfillment.
 NO TEXT OR LETTERS in the image.`
-        : `Render this person as a significantly younger and more beautiful version of themselves — target appearance age: 20–28 years old maximum. Smooth flawless skin, youthful facial volume, radiant glow, and peak attractiveness. This is their ideal successful future self. Preserve their facial bone structure, identity, hair color, and distinctive features — only make them look younger and more beautiful.
+        : `${rules}Render this person as a more beautiful and youthful version of themselves. Smooth flawless skin, radiant glow, peak attractiveness. This is their ideal successful future self. Preserve their facial bone structure, identity, hair color, and distinctive features.
 Place them in a beautiful, inspiring success scene that visually embodies: ${sceneContext}
 The person radiates genuine joy, deep fulfillment, confidence, and inner peace.
 Style: Photorealistic, warm golden light, cinematic photography quality.
