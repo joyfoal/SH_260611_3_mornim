@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { AppLayout } from '@/components/ui/AppLayout'
 import { Users, Plus, ChevronRight, CheckCircle, Search, X, UserCircle, Camera } from 'lucide-react'
@@ -108,6 +108,8 @@ const MOCK_ROOMS = [
   { id: 'r4', name: '다이어트 확언단', desc: '건강한 몸을 향한 긍정 확언 모임', tags: ['다이어트'], members: 15, streakDays: 5 },
 ]
 
+type Room = typeof MOCK_ROOMS[number]
+const CUSTOM_ROOMS_KEY = 'ealo-custom-rooms'
 const DEFAULT_MY_ROOMS = ['r1', 'r3']
 
 async function checkField(
@@ -140,6 +142,7 @@ export default function CommunityPage() {
   const [selectedTag, setSelectedTag] = useState('전체')
   const [searchQuery, setSearchQuery] = useState('')
   const [myRooms, setMyRooms] = useState<string[]>(DEFAULT_MY_ROOMS)
+  const [customRooms, setCustomRooms] = useState<Room[]>([])
   const [roomName, setRoomName] = useState('')
   const [roomDesc, setRoomDesc] = useState('')
   const [roomTag, setRoomTag] = useState<string>('')
@@ -157,11 +160,15 @@ export default function CommunityPage() {
   const [editImageData, setEditImageData] = useState<string | null>(null)
   const [profileSaving, setProfileSaving] = useState(false)
 
-  // localStorage에서 내 방 목록 불러오기
+  // localStorage에서 내 방 목록 + 커스텀 방 불러오기
   useEffect(() => {
     try {
       const saved = localStorage.getItem('ealo-my-rooms')
       setMyRooms(saved ? (JSON.parse(saved) as string[]) : DEFAULT_MY_ROOMS)
+    } catch {}
+    try {
+      const saved = localStorage.getItem(CUSTOM_ROOMS_KEY)
+      if (saved) setCustomRooms(JSON.parse(saved) as Room[])
     } catch {}
   }, [])
 
@@ -207,7 +214,9 @@ export default function CommunityPage() {
     setShowProfileSheet(false)
   }
 
-  const filteredRooms = MOCK_ROOMS
+  const allRooms = useMemo(() => [...MOCK_ROOMS, ...customRooms], [customRooms])
+
+  const filteredRooms = allRooms
     .filter(r => !myRooms.includes(r.id))
     .filter(r => selectedTag === '전체' || r.tags.includes(selectedTag))
     .filter(r => {
@@ -216,7 +225,7 @@ export default function CommunityPage() {
       return r.name.toLowerCase().includes(q) || r.desc.toLowerCase().includes(q)
     })
 
-  const myRoomData = MOCK_ROOMS.filter(r => myRooms.includes(r.id))
+  const myRoomData = allRooms.filter(r => myRooms.includes(r.id))
 
   const goToRoom = (roomId: string) => {
     try { sessionStorage.setItem('ealo-community-tab-restore', activeTab) } catch {}
@@ -224,7 +233,7 @@ export default function CommunityPage() {
   }
 
   const handleJoin = (roomId: string) => {
-    const room = MOCK_ROOMS.find(r => r.id === roomId)
+    const room = allRooms.find(r => r.id === roomId)
     if (!room || room.members >= MAX_MEMBERS) return
     setMyRooms(prev => [...prev, roomId])
     goToRoom(roomId)
@@ -262,7 +271,22 @@ export default function CommunityPage() {
       return
     }
 
-    alert('방이 만들어졌어요! (실제 저장은 추후 연동 예정)')
+    const newRoom: Room = {
+      id: `custom-${Date.now()}`,
+      name: roomName.trim(),
+      desc: roomDesc.trim() || roomName.trim(),
+      tags: roomTag ? [roomTag] : [],
+      members: 1,
+      streakDays: 0,
+    }
+    const updatedCustom = [...customRooms, newRoom]
+    setCustomRooms(updatedCustom)
+    try { localStorage.setItem(CUSTOM_ROOMS_KEY, JSON.stringify(updatedCustom)) } catch {}
+    setMyRooms(prev => {
+      const next = [...prev, newRoom.id]
+      try { localStorage.setItem('ealo-my-rooms', JSON.stringify(next)) } catch {}
+      return next
+    })
     setRoomName('')
     setRoomDesc('')
     setRoomTag('')
@@ -270,6 +294,7 @@ export default function CommunityPage() {
     setRoomDescBanner(null)
     setShowCreateSheet(false)
     setCreating(false)
+    setActiveTab('내 방')
   }
 
   const tabStyle = (tab: CommunityTab) => ({
