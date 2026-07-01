@@ -1,9 +1,9 @@
 'use client'
 
-import { useEffect, useState, useCallback, useRef } from 'react'
+import { useEffect, useState, useCallback, useRef, type ReactElement } from 'react'
 import { useRouter } from 'next/navigation'
 import { AppLayout } from '@/components/ui/AppLayout'
-import { Play, Pause, Flame, Shield, Mic, ChevronLeft, ChevronRight, ChevronDown, ChevronUp } from 'lucide-react'
+import { Play, Pause, Flame, Shield, Mic, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Sun, CloudSun, Moon, Check, Sprout } from 'lucide-react'
 import {
   getAffirmations,
   getTodayAffirmationIds,
@@ -35,11 +35,11 @@ import { getRecentAudioRecord, deleteExpiredAudioRecords, getAudioRecordsByAffir
 import { getSuccessImage } from '@/lib/successImageStorage'
 import { WeeklyReportModal } from '@/components/ui/WeeklyReportModal'
 
-function getGreeting(): string {
+function getGreeting(): ReactElement {
   const h = new Date().getHours()
-  if (h < 12) return '좋은 아침이에요 ☀'
-  if (h < 18) return '좋은 오후예요 🌤'
-  return '좋은 저녁이에요 🌙'
+  if (h < 12) return <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>좋은 아침이에요 <Sun size={20} color="#F59E0B" /></span>
+  if (h < 18) return <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>좋은 오후예요 <CloudSun size={20} color="#F59E0B" /></span>
+  return <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>좋은 저녁이에요 <Moon size={20} color="#8B5CF6" /></span>
 }
 
 // ── 문장 끝 1/3 어절을 골드로 강조 ───────────────────────────────────────────
@@ -348,7 +348,7 @@ function CalendarView() {
                       lineHeight: 1.4,
                     }}
                   >
-                    ✓ {a.text}
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><Check size={11} /> {a.text}</span>
                   </div>
                 )) : (
                   <div style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>
@@ -445,7 +445,7 @@ export default function HomePage() {
   const [tomorrowNote, setTomorrowNote] = useState<string | null>(null)
   const [tomorrowEnabled, setTomorrowEnabled] = useState(false)
   const [naegeSavedToday, setNaegeSavedToday] = useState(false)
-  const [greeting, setGreeting] = useState('')
+  const [greeting, setGreeting] = useState<ReactElement | null>(null)
   const [tomorrowFallback, setTomorrowFallback] = useState('오늘도 잘 할 수 있어!')
   const [showWeeklyReport, setShowWeeklyReport] = useState(false)
   const [displaySettings, setDisplaySettings] = useState({ showRecentRec: true, showSuccessImg: true, showCalendar: true })
@@ -691,7 +691,7 @@ export default function HomePage() {
               textAlign: 'center',
             }}
           >
-            <div style={{ fontSize: '32px', marginBottom: '10px' }}>🌱</div>
+            <Sprout size={36} color="var(--color-accent-primary)" style={{ marginBottom: '10px' }} />
             <div style={{ fontSize: '15px', fontWeight: 600, color: 'var(--color-text-primary)', marginBottom: '6px' }}>
               아직 성공의 말이 없어요
             </div>

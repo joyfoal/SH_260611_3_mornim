@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { PartyPopper, Star, Sparkles, Zap, Circle, Dumbbell } from 'lucide-react'
 
 export type CelebrationVariant =
   | 'progress'           // 큐 중간 — 자동 다음으로
@@ -84,13 +85,15 @@ export function CelebrationScreen({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [variant])
 
-  const mainEmoji =
-    variant === 'repeat_done' ? '🎉' :
-    isBig ? '🎊' : '🌟'
+  const iconColor = '#F59E0B'
+  const mainIcon =
+    variant === 'repeat_done' ? <PartyPopper size={isBig ? 72 : 56} color={iconColor} /> :
+    isBig ? <PartyPopper size={72} color={iconColor} /> :
+    <Star size={56} color={iconColor} />
 
   const mainMessage =
     variant === 'all_done' ? '오늘 나의 성공의 말을\n다하셨어요!' :
-    variant === 'repeat_done' ? '모든 성공의 말을\n반복했어요! 🎉' :
+    variant === 'repeat_done' ? '모든 성공의 말을\n반복했어요!' :
     variant === 'repeat_batch_done' ? '잘 하고 있어요!\n계속 반복할까요?' :
     phrase
 
@@ -106,14 +109,19 @@ export function CelebrationScreen({
               key={i}
               style={{
                 position: 'absolute',
-                fontSize: `${12 + (i % 3) * 8}px`,
                 left: `${(i * 37) % 90}%`,
                 top: `${(i * 23 + 10) % 80}%`,
                 opacity: 0,
                 animation: `starFade 1.2s ease-out ${i * 0.1}s forwards`,
               }}
             >
-              {['✨', '⭐', '🌟', '💫'][i % 4]}
+              {(() => {
+                const size = 12 + (i % 3) * 8
+                const colors = ['#F9A825', '#FDD835', '#FB8C00', '#F59E0B']
+                const Icons = [Sparkles, Star, Zap, Circle]
+                const Icon = Icons[i % 4]
+                return <Icon size={size} color={colors[i % 4]} />
+              })()}
             </span>
           ))}
         </div>
@@ -134,8 +142,8 @@ export function CelebrationScreen({
           maxWidth: '320px',
         }}
       >
-        <div style={{ fontSize: isBig ? '72px' : '56px', marginBottom: '16px', lineHeight: 1 }}>
-          {mainEmoji}
+        <div style={{ marginBottom: '16px', lineHeight: 1 }}>
+          {mainIcon}
         </div>
 
         <div
@@ -190,7 +198,7 @@ export function CelebrationScreen({
                 cursor: 'pointer',
               }}
             >
-              오늘 더 말하고 싶어요 💪
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}><Dumbbell size={16} /> 오늘 더 말하고 싶어요</span>
             </button>
             <button
               onClick={onNext}
@@ -279,7 +287,7 @@ export function CelebrationScreen({
                 cursor: 'pointer',
               }}
             >
-              계속 반복하기 💪
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}><Dumbbell size={16} /> 계속 반복하기</span>
             </button>
             <button
               onClick={onNext}
@@ -319,7 +327,7 @@ export function CelebrationScreen({
                 lineHeight: 1.6,
               }}
             >
-              정말 대단해요! 내일도 함께해요 👋
+              정말 대단해요! 내일도 함께해요
             </div>
             <button
               onClick={onNext}
