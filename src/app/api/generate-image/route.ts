@@ -54,11 +54,12 @@ Strict Rule: Maintain 100% facial consistency, bone structure, and identity of C
 - Full description: ${fd.generationPrompt}
 
 [Youth & Beauty Enhancement — MANDATORY]
-CRITICAL: Render Ch_RegisteredFace as significantly younger and more beautiful than they appear in the source photo.
-- Target appearance age: 20–28 years old maximum
-- Skin: smooth, flawless, radiant — no visible wrinkles, lines, or age spots
-- Face: lifted, sculpted, vibrant — youthful facial volume and glow
-- Overall: the most attractive, energetic, and beautiful version of this person at their peak youth
+CRITICAL: Render Ch_RegisteredFace as significantly younger and more beautiful/handsome than they appear in the source photo.
+- Target appearance age: MAXIMUM 25 years old — do NOT exceed this under any circumstances
+- Skin: completely smooth, flawless, radiant — zero wrinkles, zero age lines, zero spots
+- Women: elegant beauty, luminous glowing skin, graceful refined features
+- Men: sharp handsome features, strong jawline, vibrant charismatic energy
+- Overall: their most ideal, attractive, confident version at peak youth
 This is a visualization of their ideal successful future self — youthful transformation is intentional and essential.
 
 [Current Scene & Situation]
@@ -133,40 +134,65 @@ export async function POST(req: NextRequest) {
     let imageDataUrl: string | null = null
 
     if (profileImageBase64) {
-      const rules = `CRITICAL RULES — DO NOT IGNORE:
+      const rules = `[SYSTEM OVERRIDE — HIGHEST PRIORITY RULES — FOLLOW EXACTLY]
 
-1. GENDER: Look at the person in the photo. Determine if they are male or female.
-   Render them as the EXACT SAME gender. Do not change gender under any circumstances.
-   Female in photo → generate female. Male in photo → generate male.
+━━━ RULE 1: GENDER (ABSOLUTE — NO EXCEPTIONS) ━━━
+Study the person's face and body carefully.
+• If the photo shows a WOMAN → you MUST generate a beautiful WOMAN. Never make her look male.
+• If the photo shows a MAN → you MUST generate a handsome MAN. Never make him look female.
+Generating the wrong gender is a critical failure. Prioritize gender correctness above all else.
 
-2. AGE: Estimate the person's apparent age from the photo, then apply these rules:
-   - Appears 40 or older → render as approximately 28 years old
-   - Appears 30–39 → render as approximately 25 years old
-   - Appears 20–29 → render as approximately 20 years old
-   - Appears 19 or younger → keep their actual apparent age (do NOT make them look older)
+━━━ RULE 2: AGE (HARD MAXIMUM — NO EXCEPTIONS) ━━━
+Estimate the person's apparent age from the photo:
+• Appears 40 or older → MAXIMUM 28 years old in output (smooth youthful face, no age signs)
+• Appears 30–39 → MAXIMUM 25 years old in output
+• Appears 20–29 → MAXIMUM 20 years old in output
+• Appears 19 or younger → keep actual age
+The output face MUST have flawless smooth skin, zero wrinkles, zero age lines.
+If unsure → go YOUNGER. Never render older than the limit above.
 
-These two rules override all other instructions. Apply them first before anything else.
+━━━ RULE 3: BEAUTY (MANDATORY ENHANCEMENT) ━━━
+Render this person as the most attractive, radiant version of themselves:
+• Preserve their unique facial identity, bone structure, and hair color
+• Enhance: luminous skin, bright eyes, healthy vibrant hair, confident posture
+• Women → elegant, beautiful, graceful. Men → handsome, strong, charismatic.
+• Expression: genuine joy, deep confidence, inner peace — they have achieved everything.
+
+ALL THREE RULES are mandatory. Apply them before writing anything else.
 
 `
       const prompt = imageStyle === 'cartoon'
         ? `${rules}Transform this person into a warm anime/illustration style character (Studio Ghibli style), preserving their facial features, hair color, and identity.
 
-The affirmations of this person's success are: ${sceneContext}
-Create a scene where this person is ACTIVELY LIVING these successes — a specific meaningful moment, not just standing in a pretty background.
-Interpret the affirmations visually with symbolic elements in the scene (e.g. health → running joyfully in sunlight, abundance → beautiful flourishing environment, career → a moment of achievement and recognition).
-The scene should feel like their dream life has actually come true.
+[SUCCESS SCENE — THIS IS THE HEART OF THE IMAGE]
+Their affirmations: ${sceneContext}
+Read each affirmation carefully and translate it into a vivid, specific visual moment:
+• Health/fitness affirmation → show them running freely in golden sunlight, vibrant and energetic
+• Wealth/abundance affirmation → surround them with a beautiful flourishing environment, elegant lifestyle
+• Career/achievement affirmation → capture a peak moment of recognition and accomplishment
+• Relationship/love affirmation → warm connection, joy, belonging
+• Inner peace/happiness → serene radiant smile, glowing aura of fulfillment
+The scene should feel like a REAL moment — not a pose, not a symbol — but an actual lived second in their dream life.
+Every element in the background must reinforce that their affirmations have come true.
 
-Art style: Studio Ghibli anime — warm golden light, painterly, deeply emotional and heartwarming.
-NO TEXT OR LETTERS in the image.`
-        : `${rules}Preserve this person's facial bone structure, identity, hair color, and distinctive features.
+Art style: Studio Ghibli anime — warm golden light, painterly brushwork, deeply emotional and heartwarming.
+NO TEXT OR LETTERS in the image.
+FINAL CHECK: correct gender ✓ under age limit ✓ beautiful/handsome ✓ success scene vivid ✓`
+        : `${rules}Preserve this person's facial bone structure, identity, hair color, and distinctive features exactly.
 
-The affirmations of this person's success are: ${sceneContext}
-Create a powerful cinematic image showing this person IN their moment of success — actively experiencing what life looks like when these affirmations all come true.
-The scene, environment, and visual details should tell a story of achievement: where they are, what they have accomplished, what surrounds them.
+[SUCCESS SCENE — THIS IS THE HEART OF THE IMAGE]
+Their affirmations: ${sceneContext}
+Read each affirmation and build a powerful, cinematic scene around them:
+• What does their life look like NOW that these affirmations are all true?
+• Where are they? What have they achieved? What surrounds them?
+• Capture ONE powerful moment: the look in their eyes, the environment they inhabit, the energy they radiate
+• Let the setting tell the story — every detail of the scene proves their success is real
+The image should feel like a cinematic still from the best day of their life.
 
-Style: Photorealistic, warm golden cinematic light.
-The person's expression radiates genuine triumph and deep fulfillment.
-NO TEXT OR LETTERS in the image.`
+Style: Photorealistic, warm golden cinematic light, shallow depth of field.
+Expression: genuine triumph, deep fulfillment, quiet confidence — success feels natural to them now.
+NO TEXT OR LETTERS in the image.
+FINAL CHECK: correct gender ✓ under age limit ✓ beautiful/handsome ✓ success scene vivid ✓`
 
       const response = await withOpenRouter((openai) => openai.chat.completions.create({
         model: 'google/gemini-2.5-flash-image',
