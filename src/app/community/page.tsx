@@ -5,6 +5,32 @@ import { useRouter } from 'next/navigation'
 import { AppLayout } from '@/components/ui/AppLayout'
 import { Users, Plus, ChevronRight, CheckCircle, Search, X, UserCircle, Camera, Home, MessageCircle, Lightbulb, Ban, Loader2, User, Flame } from 'lucide-react'
 
+const T = {
+  ink: '#2A1801',
+  muted: '#A0937E',
+  cardBorder: '#F0E7D6',
+  goldGrad: 'linear-gradient(135deg, #BA7517, #D98A1C)',
+  goldTint: '#FBF0DA',
+  segTrack: '#F1E7D6',
+}
+
+function RankBadge({ rank }: { rank: number }) {
+  const styles: Record<number, { background: string; color: string }> = {
+    1: { background: 'linear-gradient(135deg,#F4C875,#BA7517)', color: '#fff' },
+    2: { background: '#B9C3B0', color: '#fff' },
+    3: { background: '#D8A97A', color: '#fff' },
+  }
+  const s = styles[rank] ?? { background: '#F0E7D6', color: '#A0937E' }
+  return (
+    <div style={{
+      width: 28, height: 28, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
+      fontSize: 13, fontWeight: 700, flexShrink: 0, ...s,
+    }}>
+      {rank}
+    </div>
+  )
+}
+
 interface UserProfile {
   nickname: string
   profileImage: string | null
@@ -297,15 +323,16 @@ export default function CommunityPage() {
     setActiveTab('내 방')
   }
 
-  const tabStyle = (tab: CommunityTab) => ({
+  const tabStyle = (tab: CommunityTab): React.CSSProperties => ({
     flex: 1,
-    padding: '10px 0',
-    background: 'none',
+    padding: '8px 0',
+    background: activeTab === tab ? '#FFFFFF' : 'transparent',
     border: 'none',
-    borderBottom: activeTab === tab ? '2px solid var(--color-accent-primary)' : '2px solid transparent',
-    color: activeTab === tab ? 'var(--color-accent-primary)' : 'var(--color-text-muted)',
+    borderRadius: 10,
+    boxShadow: activeTab === tab ? '0 2px 8px rgba(65,36,2,0.08)' : 'none',
+    color: activeTab === tab ? T.ink : T.muted,
     fontSize: '14px',
-    fontWeight: activeTab === tab ? 700 : 400,
+    fontWeight: activeTab === tab ? 700 : 500,
     cursor: 'pointer',
     transition: 'all 0.15s',
   })
@@ -317,7 +344,7 @@ export default function CommunityPage() {
         {/* 헤더 */}
         <div style={{ padding: '20px 16px 0' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
-            <h1 style={{ fontSize: '24px', fontWeight: 700, color: 'var(--color-text-primary)' }}>
+            <h1 style={{ fontSize: '27px', fontWeight: 800, color: T.ink }}>
               함께
             </h1>
             {/* 프로필 버튼 */}
@@ -340,11 +367,13 @@ export default function CommunityPage() {
                 </div>
               )}
               {userProfile.profileImage ? (
-                <img
-                  src={userProfile.profileImage}
-                  alt="프로필"
-                  style={{ width: '32px', height: '32px', borderRadius: '50%', objectFit: 'cover', border: '2px solid #F59E0B', flexShrink: 0 }}
-                />
+                <div style={{ padding: '2px', borderRadius: '50%', background: T.goldGrad, flexShrink: 0 }}>
+                  <img
+                    src={userProfile.profileImage}
+                    alt="프로필"
+                    style={{ width: '32px', height: '32px', borderRadius: '50%', objectFit: 'cover', display: 'block' }}
+                  />
+                </div>
               ) : (
                 <UserCircle size={30} color={userProfile.nickname ? 'var(--color-community-accent)' : 'var(--color-text-muted)'} style={{ flexShrink: 0 }} />
               )}
@@ -355,8 +384,8 @@ export default function CommunityPage() {
           </p>
         </div>
 
-        {/* 상단 탭: 내 방 → 방 둘러보기 → 랭킹 */}
-        <div style={{ display: 'flex', borderBottom: '1px solid var(--color-border)' }}>
+        {/* 상단 탭: 내 방 → 방 둘러보기 → 랭킹 (세그먼트 컨트롤) */}
+        <div style={{ margin: '0 16px 12px', display: 'flex', background: T.segTrack, borderRadius: 14, padding: 4, gap: 4 }}>
           {(['내 방', '방 둘러보기', '랭킹'] as CommunityTab[]).map(tab => (
             <button key={tab} onClick={() => setActiveTab(tab)} style={tabStyle(tab)}>
               {tab}
@@ -428,7 +457,8 @@ export default function CommunityPage() {
                     alignItems: 'center',
                     gap: '5px',
                     padding: '7px 14px',
-                    background: 'var(--color-community-accent)',
+                    background: T.goldGrad,
+                    boxShadow: '0 6px 16px rgba(186,117,23,0.28)',
                     color: 'white',
                     border: 'none',
                     borderRadius: '10px',
@@ -475,7 +505,7 @@ export default function CommunityPage() {
                       onClick={() => goToRoom(room.id)}
                       style={{
                         background: 'var(--color-bg-card)',
-                        borderRadius: '16px',
+                        borderRadius: '18px',
                         padding: '16px',
                         border: '1px solid var(--color-border)',
                         cursor: 'pointer',
@@ -526,7 +556,7 @@ export default function CommunityPage() {
                         key={room.id}
                         style={{
                           background: 'var(--color-bg-card)',
-                          borderRadius: '16px',
+                          borderRadius: '18px',
                           padding: '16px',
                           border: '1px solid var(--color-border)',
                         }}
@@ -546,8 +576,8 @@ export default function CommunityPage() {
                             <span style={{ fontSize: '12px', color: 'var(--color-text-muted)', display: 'flex', alignItems: 'center', gap: '4px' }}>
                               <Users size={13} color="#6B7280" /> {room.members}/{MAX_MEMBERS}명
                             </span>
-                            <span style={{ fontSize: '12px', color: 'var(--color-community-text)', background: 'var(--color-community-bg)', padding: '2px 8px', borderRadius: '999px', fontWeight: 500 }}>
-                              연속 {room.streakDays}일째 🔥
+                            <span style={{ fontSize: '12px', color: 'var(--color-community-text)', background: 'var(--color-community-bg)', padding: '2px 8px', borderRadius: '999px', fontWeight: 500, display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                              연속 {room.streakDays}일째 <Flame size={13} color="#FF6F00" style={{ display: 'inline', verticalAlign: 'middle' }} />
                             </span>
                             {isFull && (
                               <span style={{ fontSize: '12px', color: 'var(--color-danger)', background: 'var(--color-danger-bg)', padding: '2px 8px', borderRadius: '999px', fontWeight: 600 }}>
@@ -802,7 +832,8 @@ export default function CommunityPage() {
                 style={{
                   width: '100%',
                   padding: '14px',
-                  background: roomName.trim() && !creating ? 'var(--color-community-accent)' : 'var(--color-border)',
+                  background: roomName.trim() && !creating ? T.goldGrad : 'var(--color-border)',
+                  boxShadow: roomName.trim() && !creating ? '0 6px 16px rgba(186,117,23,0.28)' : 'none',
                   color: roomName.trim() && !creating ? 'white' : 'var(--color-text-muted)',
                   border: 'none',
                   borderRadius: '14px',
@@ -841,8 +872,6 @@ export default function CommunityPage() {
                   const room = MOCK_ROOMS.find(r => r.id === entry.roomId)
                   if (!room) return null
                   const isJoined = myRooms.includes(room.id)
-                  const medals = ['🥇', '🥈', '🥉']
-                  const medal = medals[idx] ?? `${idx + 1}`
                   return (
                     <div
                       key={room.id}
@@ -851,14 +880,12 @@ export default function CommunityPage() {
                         alignItems: 'center',
                         gap: '12px',
                         padding: '14px 16px',
-                        background: idx === 0 ? 'var(--color-community-bg-deep)' : 'var(--color-bg-card)',
+                        background: idx === 0 ? T.goldTint : 'var(--color-bg-card)',
                         border: idx === 0 ? '1.5px solid #FCD34D' : '1px solid var(--color-border)',
                         borderRadius: '14px',
                       }}
                     >
-                      <div style={{ fontSize: idx < 3 ? '24px' : '16px', fontWeight: 700, minWidth: '28px', textAlign: 'center', color: idx >= 3 ? 'var(--color-text-muted)' : undefined }}>
-                        {medal}
-                      </div>
+                      <RankBadge rank={idx + 1} />
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
                           <span style={{ fontSize: '14px', fontWeight: 700, color: 'var(--color-text-primary)' }}>{room.name}</span>
@@ -901,8 +928,6 @@ export default function CommunityPage() {
               {/* 성공의 말 별 랭킹 */}
               {rankingType === '성공의 말' && <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                   {MOCK_PHRASE_RANKING[rankingPeriod].map((entry, idx) => {
-                    const medals = ['🥇', '🥈', '🥉']
-                    const medal = medals[idx] ?? `${idx + 1}`
                     return (
                       <div
                         key={entry.phrase}
@@ -911,14 +936,12 @@ export default function CommunityPage() {
                           alignItems: 'center',
                           gap: '12px',
                           padding: '14px 16px',
-                          background: idx === 0 ? 'var(--color-community-bg-deep)' : 'var(--color-bg-card)',
+                          background: idx === 0 ? T.goldTint : 'var(--color-bg-card)',
                           border: idx === 0 ? '1.5px solid #FCD34D' : '1px solid var(--color-border)',
                           borderRadius: '14px',
                         }}
                       >
-                        <div style={{ fontSize: idx < 3 ? '24px' : '16px', fontWeight: 700, minWidth: '28px', textAlign: 'center', color: idx >= 3 ? 'var(--color-text-muted)' : undefined }}>
-                          {medal}
-                        </div>
+                        <RankBadge rank={idx + 1} />
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <p style={{ fontFamily: 'Georgia, serif', fontSize: '14px', fontWeight: 600, color: 'var(--color-text-primary)', marginBottom: '4px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                             {entry.phrase}
