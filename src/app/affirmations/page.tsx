@@ -3,10 +3,23 @@
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { AppLayout } from '@/components/ui/AppLayout'
-import { Plus, Trash2, Play, Pause, Download, FolderOpen, Sparkles } from 'lucide-react'
+import { Plus, Trash2, Play, Pause, Download, FolderOpen, Sparkles, Check } from 'lucide-react'
 import { getAffirmations, moveToTrash, updateAffirmation, getCategories, type Affirmation } from '@/lib/storage'
 import { getCategoryColor } from '@/lib/categories'
 import { getAudioRecords, moveAudioToTrash, type AudioRecord } from '@/lib/audioStorage'
+
+const T = {
+  ink: '#2A1801',
+  body: '#412402',
+  muted: '#A0937E',
+  gold: '#BA7517',
+  goldGrad: 'linear-gradient(135deg, #BA7517, #D98A1C)',
+  goldTint: '#FBF0DA',
+  cardBorder: '#F0E7D6',
+  chipInactiveBorder: '#EFE6D6',
+  recordingBg: '#FBF6EC',
+  waveform: '#E0C89A',
+}
 
 export default function AffirmationsPage() {
   const router = useRouter()
@@ -137,21 +150,25 @@ export default function AffirmationsPage() {
   return (
     <AppLayout activeTab="성공의 말">
       <div style={{ position: 'sticky', top: 0, zIndex: 10, background: 'var(--color-bg-primary)', padding: '20px 16px 0' }}>
-        <div className="flex items-center justify-between mb-4">
-          <h1 style={{ fontSize: '20px', fontWeight: 600, color: 'var(--color-text-primary)' }}>
+        <div className="flex items-center justify-between mb-1">
+          <h1 style={{ fontSize: '24px', fontWeight: 800, color: T.ink, letterSpacing: '-0.5px' }}>
             나의 성공의 말
           </h1>
           <button
             onClick={() => router.push('/create')}
             style={{
-              width: '36px', height: '36px', borderRadius: '50%',
-              background: 'var(--color-accent-primary)', border: 'none',
+              width: '38px', height: '38px', borderRadius: '50%',
+              background: T.goldGrad, border: 'none',
+              boxShadow: '0 6px 16px rgba(186,117,23,0.28)',
               cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}
           >
             <Plus size={18} color="white" />
           </button>
         </div>
+        <p style={{ fontSize: '13px', color: T.muted, marginBottom: '14px' }}>
+          총 {affirmations.length}개
+        </p>
 
         {/* Filter chips */}
         <div
@@ -173,11 +190,11 @@ export default function AffirmationsPage() {
           <button
             onClick={() => setFilterCategory(null)}
             style={{
-              padding: '6px 14px', borderRadius: '20px', flexShrink: 0,
-              border: !filterCategory ? '1px solid var(--color-accent-primary)' : '1px solid var(--color-border)',
-              background: !filterCategory ? 'var(--color-accent-light)' : 'transparent',
-              color: !filterCategory ? 'var(--color-accent-primary)' : 'var(--color-text-muted)',
-              fontSize: '12px', cursor: 'pointer',
+              padding: '6px 14px', borderRadius: '999px', flexShrink: 0,
+              border: !filterCategory ? 'none' : `1px solid ${T.chipInactiveBorder}`,
+              background: !filterCategory ? T.body : '#FFFFFF',
+              color: !filterCategory ? '#FAEEDA' : T.muted,
+              fontSize: '12px', fontWeight: 600, cursor: 'pointer',
             }}
           >
             전체
@@ -187,11 +204,11 @@ export default function AffirmationsPage() {
               key={cat}
               onClick={() => setFilterCategory(filterCategory === cat ? null : cat)}
               style={{
-                padding: '6px 14px', borderRadius: '20px', flexShrink: 0,
-                border: filterCategory === cat ? '1px solid var(--color-accent-primary)' : '1px solid var(--color-border)',
-                background: filterCategory === cat ? 'var(--color-accent-light)' : 'transparent',
-                color: filterCategory === cat ? 'var(--color-accent-primary)' : 'var(--color-text-muted)',
-                fontSize: '12px', cursor: 'pointer',
+                padding: '6px 14px', borderRadius: '999px', flexShrink: 0,
+                border: filterCategory === cat ? 'none' : `1px solid ${T.chipInactiveBorder}`,
+                background: filterCategory === cat ? T.body : '#FFFFFF',
+                color: filterCategory === cat ? '#FAEEDA' : T.muted,
+                fontSize: '12px', fontWeight: 600, cursor: 'pointer',
               }}
             >
               {cat}
@@ -223,11 +240,12 @@ export default function AffirmationsPage() {
             return (
               <div key={cat} style={{ marginBottom: '24px' }}>
                 <div style={{
-                  fontSize: '13px', fontWeight: 600, color: colors.dark,
-                  marginBottom: '8px', padding: '4px 12px', background: colors.light,
-                  borderRadius: '20px', display: 'inline-block',
+                  display: 'flex', alignItems: 'center', gap: 6,
+                  marginBottom: '8px',
                 }}>
-                  {cat}
+                  <span style={{ width: 8, height: 8, borderRadius: '50%', background: colors.dark, flexShrink: 0 }} />
+                  <span style={{ fontSize: '13px', fontWeight: 700, color: T.ink }}>{cat}</span>
+                  <span style={{ fontSize: '12px', color: T.muted }}>({items.length})</span>
                 </div>
                 {items.map((affirmation) => {
                   const record = audioMap[affirmation.id]
@@ -236,18 +254,24 @@ export default function AffirmationsPage() {
                     <div
                       key={affirmation.id}
                       style={{
-                        padding: '14px 16px', background: 'var(--color-bg-card)',
-                        borderRadius: '14px', marginBottom: '8px',
-                        border: '1px solid var(--color-border)',
+                        padding: '14px 16px', background: '#FFFFFF',
+                        borderRadius: '18px', marginBottom: '8px',
+                        border: `1px solid ${T.cardBorder}`,
+                        boxShadow: '0 4px 16px rgba(65,36,2,0.05)',
                       }}
                     >
                       {/* 텍스트 + 완료 횟수 */}
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
                         <div style={{ flex: 1 }}>
-                          <p style={{ fontSize: '14px', color: 'var(--color-text-primary)', lineHeight: 1.5, marginBottom: '4px' }}>
+                          <p style={{ fontSize: '15px', fontWeight: 600, color: T.ink, lineHeight: 1.5, marginBottom: '6px' }}>
                             {affirmation.text}
                           </p>
-                          <span style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>
+                          <span style={{
+                            display: 'inline-flex', alignItems: 'center', gap: 4,
+                            padding: '2px 8px', borderRadius: '999px',
+                            background: T.goldTint, color: T.gold, fontSize: '11px', fontWeight: 700,
+                          }}>
+                            <Check size={11} strokeWidth={2.5} />
                             {affirmation.completedDates.length}일 완료
                           </span>
                         </div>
@@ -300,8 +324,8 @@ export default function AffirmationsPage() {
                       {/* 녹음 영역 */}
                       {record && (
                         <div style={{
-                          marginTop: 12, paddingTop: 10,
-                          borderTop: '1px solid var(--color-border)',
+                          marginTop: 12, padding: '10px 12px',
+                          background: T.recordingBg, borderRadius: 12,
                           display: 'flex', alignItems: 'center', gap: 10,
                         }}>
                           {/* 파형 막대 */}
@@ -309,11 +333,11 @@ export default function AffirmationsPage() {
                             {[55, 80, 60, 100, 70, 85, 50].map((pct, k) => (
                               <span key={k} style={{
                                 display: 'block', width: 3, borderRadius: 2,
-                                background: 'var(--color-accent-primary)',
+                                background: T.waveform,
                                 height: isPlaying ? undefined : `${pct}%`,
                                 minHeight: isPlaying ? 3 : undefined,
                                 animation: isPlaying ? `waveBar 0.45s ease-in-out ${k * 0.07}s infinite` : 'none',
-                                opacity: isPlaying ? 1 : 0.5,
+                                opacity: isPlaying ? 1 : 0.7,
                               }} />
                             ))}
                           </div>
@@ -322,16 +346,16 @@ export default function AffirmationsPage() {
                           <button
                             onClick={() => handlePlayPause(affirmation.id)}
                             style={{
-                              width: 32, height: 32, borderRadius: '50%', border: 'none', cursor: 'pointer',
-                              background: isPlaying ? 'var(--color-accent-primary)' : 'var(--color-accent-light)',
-                              color: isPlaying ? 'white' : 'var(--color-accent-primary)',
+                              width: 34, height: 34, borderRadius: '50%', border: 'none', cursor: 'pointer',
+                              background: T.goldGrad,
+                              color: 'white',
                               display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
                             }}
                           >
                             {isPlaying ? <Pause size={14} /> : <Play size={14} />}
                           </button>
 
-                          <span style={{ fontSize: '11px', color: 'var(--color-text-muted)', flex: 1 }}>
+                          <span style={{ fontSize: '11px', color: T.muted, flex: 1 }}>
                             {new Date(record.createdAt).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' })} 녹음
                           </span>
 
@@ -339,9 +363,9 @@ export default function AffirmationsPage() {
                           <button
                             onClick={() => handleDownloadAudio(affirmation.id, affirmation.text)}
                             style={{
-                              padding: '4px 10px', border: '1px solid var(--color-border)',
+                              padding: '4px 10px', border: `1px solid ${T.cardBorder}`,
                               borderRadius: 8, background: 'transparent', cursor: 'pointer',
-                              fontSize: '11px', color: 'var(--color-text-muted)',
+                              fontSize: '11px', color: T.muted,
                               display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0,
                             }}
                           >
@@ -353,9 +377,9 @@ export default function AffirmationsPage() {
                           <button
                             onClick={() => handleDeleteAudio(affirmation.id)}
                             style={{
-                              padding: '4px 10px', border: '1px solid var(--color-border)',
+                              padding: '4px 10px', border: `1px solid ${T.cardBorder}`,
                               borderRadius: 8, background: 'transparent', cursor: 'pointer',
-                              fontSize: '11px', color: 'var(--color-text-muted)',
+                              fontSize: '11px', color: T.muted,
                               display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0,
                             }}
                           >
