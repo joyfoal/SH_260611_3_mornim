@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, type ReactNode } from 'react'
 import { AppLayout } from '@/components/ui/AppLayout'
 import { useTheme } from '@/lib/themeContext'
+import { themes } from '@/lib/theme'
 import { getCategoryColor } from '@/lib/categories'
 import {
   isTomorrowEnabled, setTomorrowEnabled,
@@ -137,9 +138,16 @@ function CategoryDeleteModal({
 }
 
 // ─── Panel wrapper ─────────────────────────────────────────────────────────────
+const T = {
+  cardBorder: '#F0E7D6',
+  gold: '#BA7517',
+  divider: '#F4ECDE',
+  goldGrad: 'linear-gradient(135deg, #BA7517, #D98A1C)',
+}
+
 function Panel({ children }: { children: React.ReactNode }) {
   return (
-    <div style={{ background: 'var(--color-bg-card)', borderRadius: '20px', padding: '20px', marginBottom: '16px' }}>
+    <div style={{ background: 'var(--color-bg-card)', borderRadius: '20px', padding: '20px', marginBottom: '16px', border: `1px solid ${T.cardBorder}`, boxShadow: '0 4px 16px rgba(65,36,2,0.05)' }}>
       {children}
     </div>
   )
@@ -149,24 +157,36 @@ function Panel({ children }: { children: React.ReactNode }) {
 function ThemePanel() {
   const { themeName, setTheme } = useTheme()
   const THEMES = [
-    { name: 'warm' as const, label: '따뜻한 황금', color: '#BA7517', bg: '#FFFAF5' },
-    { name: 'dark' as const, label: '딥 퍼플', color: '#534AB7', bg: '#1a1a2e' },
-    { name: 'green' as const, label: '내추럴 그린', color: '#639922', bg: '#F4F9F0' },
+    { name: 'warm' as const, label: '따뜻한 황금', color: themes.warm.accent.primary, colorSecondary: themes.warm.accent.secondary, bg: themes.warm.bg.primary },
+    { name: 'dark' as const, label: '딥 퍼플', color: themes.dark.accent.primary, colorSecondary: themes.dark.accent.secondary, bg: themes.dark.bg.primary },
+    { name: 'green' as const, label: '내추럴 그린', color: themes.green.accent.primary, colorSecondary: themes.green.accent.secondary, bg: themes.green.bg.primary },
   ]
   return (
     <Panel>
       <p style={{ fontSize: '15px', fontWeight: 600, color: 'var(--color-text-primary)', marginBottom: '16px' }}>테마 선택</p>
       <div className="flex gap-3">
-        {THEMES.map((t) => (
-          <button
-            key={t.name}
-            onClick={() => setTheme(t.name)}
-            style={{ flex: 1, padding: '14px 8px', borderRadius: '14px', border: themeName === t.name ? `2px solid ${t.color}` : '2px solid transparent', background: t.bg, cursor: 'pointer', textAlign: 'center' }}
-          >
-            <div style={{ width: '24px', height: '24px', borderRadius: '50%', background: t.color, margin: '0 auto 8px' }} />
-            <p style={{ fontSize: '11px', color: t.color, fontWeight: 600 }}>{t.label}</p>
-          </button>
-        ))}
+        {THEMES.map((t) => {
+          const selected = themeName === t.name
+          return (
+            <button
+              key={t.name}
+              onClick={() => setTheme(t.name)}
+              style={{ position: 'relative', flex: 1, padding: '14px 8px', borderRadius: '14px', border: selected ? `2px solid ${t.color}` : '2px solid transparent', background: t.bg, cursor: 'pointer', textAlign: 'center' }}
+            >
+              {selected && (
+                <div style={{
+                  position: 'absolute', top: -6, right: -6, width: 18, height: 18, borderRadius: '50%',
+                  background: T.goldGrad, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  boxShadow: '0 2px 6px rgba(65,36,2,0.25)',
+                }}>
+                  <Check size={11} color="#fff" strokeWidth={3} />
+                </div>
+              )}
+              <div style={{ width: '28px', height: '28px', borderRadius: '9px', background: `linear-gradient(135deg, ${t.color}, ${t.colorSecondary})`, margin: '0 auto 8px' }} />
+              <p style={{ fontSize: '11px', color: t.color, fontWeight: 600 }}>{t.label}</p>
+            </button>
+          )
+        })}
       </div>
     </Panel>
   )
@@ -203,31 +223,35 @@ function TogglePanel() {
   return (
     <Panel>
       <p style={{ fontSize: '15px', fontWeight: 600, color: 'var(--color-text-primary)', marginBottom: '16px' }}>홈 화면 표시 설정</p>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+      <div style={{ display: 'flex', flexDirection: 'column' }}>
         {items.map(({ key, label, desc }) => (
-          <div key={key} className="flex items-center justify-between">
+          <div
+            key={key}
+            className="flex items-center justify-between"
+            style={{ padding: '12px 0', borderBottom: `1px solid ${T.divider}` }}
+          >
             <div>
               <p style={{ fontSize: '14px', fontWeight: 500, color: 'var(--color-text-primary)' }}>{label}</p>
               <p style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>{desc}</p>
             </div>
             <button
               onClick={() => toggle(key)}
-              style={{ width: '48px', height: '28px', borderRadius: '14px', background: settings[key] ? 'var(--color-accent-primary)' : 'var(--color-border)', border: 'none', cursor: 'pointer', position: 'relative', transition: 'background 0.2s', flexShrink: 0 }}
+              style={{ width: '46px', height: '27px', borderRadius: '14px', background: settings[key] ? T.goldGrad : 'var(--color-border)', border: 'none', cursor: 'pointer', position: 'relative', transition: 'background 0.2s', flexShrink: 0 }}
             >
-              <div style={{ width: '22px', height: '22px', borderRadius: '50%', background: 'white', position: 'absolute', top: '3px', left: settings[key] ? '23px' : '3px', transition: 'left 0.2s' }} />
+              <div style={{ width: '22px', height: '22px', borderRadius: '50%', background: 'white', position: 'absolute', top: '2.5px', left: settings[key] ? '21px' : '3px', transition: 'left 0.2s' }} />
             </button>
           </div>
         ))}
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between" style={{ padding: '12px 0' }}>
           <div>
             <p style={{ fontSize: '14px', fontWeight: 500, color: 'var(--color-text-primary)' }}>성공의 말 후 나에게 표시</p>
             <p style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>완료 후 나에게 메시지 남기기</p>
           </div>
           <button
             onClick={toggleNaege}
-            style={{ width: '48px', height: '28px', borderRadius: '14px', background: naege ? 'var(--color-accent-primary)' : 'var(--color-border)', border: 'none', cursor: 'pointer', position: 'relative', transition: 'background 0.2s', flexShrink: 0 }}
+            style={{ width: '46px', height: '27px', borderRadius: '14px', background: naege ? T.goldGrad : 'var(--color-border)', border: 'none', cursor: 'pointer', position: 'relative', transition: 'background 0.2s', flexShrink: 0 }}
           >
-            <div style={{ width: '22px', height: '22px', borderRadius: '50%', background: 'white', position: 'absolute', top: '3px', left: naege ? '23px' : '3px', transition: 'left 0.2s' }} />
+            <div style={{ width: '22px', height: '22px', borderRadius: '50%', background: 'white', position: 'absolute', top: '2.5px', left: naege ? '21px' : '3px', transition: 'left 0.2s' }} />
           </button>
         </div>
       </div>
@@ -444,11 +468,11 @@ function AlarmPanel() {
             const isEditing = editingId === entry.id
             return (
               <div key={entry.id} style={{ background: isEditing ? 'color-mix(in srgb, var(--color-accent-light) 18%, var(--color-bg-card))' : 'var(--color-bg-card)', border: isEditing ? '1.5px solid var(--color-accent-primary)' : '1.5px solid transparent', borderRadius: '16px', padding: '14px 16px', display: 'flex', alignItems: 'center', gap: '12px', transition: 'all 0.15s' }}>
-                <div style={{ width: '42px', height: '42px', borderRadius: '12px', background: chipBg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: chipBg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                   <Bell size={19} strokeWidth={1.8} color="var(--color-accent-primary)" />
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <p style={{ fontSize: '18px', fontWeight: 700, color: 'var(--color-text-primary)', lineHeight: 1.2 }}>{fmtTime(entry)}</p>
+                  <p style={{ fontSize: '19px', fontWeight: 800, color: 'var(--color-text-primary)', lineHeight: 1.2 }}>{fmtTime(entry)}</p>
                   <p style={{ fontSize: '12px', color: 'var(--color-text-muted)', marginTop: '3px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {fmtDays(entry.repeatDays)}{aff ? ` · ${aff.category}` : ''}
                   </p>
@@ -1503,8 +1527,19 @@ export default function SettingsPage() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
           {rows.map((row, rowIdx) => {
             const rowActive = row.find((btn) => btn.id === active)
+            const sectionLabel =
+              rowIdx === 0 ? '개인화'
+              : rowIdx === 1 ? '알림 · 통계'
+              : rowIdx === 2 ? '데이터'
+              : rowIdx === 4 ? '지원'
+              : null
             return (
               <div key={rowIdx}>
+                {sectionLabel && (
+                  <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--color-text-muted)', margin: '6px 4px 2px', letterSpacing: '0.3px' }}>
+                    {sectionLabel}
+                  </div>
+                )}
                 {/* 버튼 행 */}
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px' }}>
                   {row.map((btn) => {
