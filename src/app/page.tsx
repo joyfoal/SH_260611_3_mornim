@@ -13,15 +13,20 @@ import {
 import { SwirlEmblem } from '@/components/ui/SwirlEmblem'
 
 const FADE_MS = 280
+const MIN_SPLASH_MS = 2000
 
 export default function RootPage() {
   const router = useRouter()
   const [fadingOut, setFadingOut] = useState(false)
 
   useEffect(() => {
+    const mountedAt = Date.now()
     const go = (path: string) => {
-      setFadingOut(true)
-      setTimeout(() => router.replace(path), FADE_MS)
+      const remaining = MIN_SPLASH_MS - (Date.now() - mountedAt)
+      setTimeout(() => {
+        setFadingOut(true)
+        setTimeout(() => router.replace(path), FADE_MS)
+      }, Math.max(0, remaining))
     }
 
     if (!isOnboarded()) {
